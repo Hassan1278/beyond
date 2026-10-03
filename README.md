@@ -1,6 +1,6 @@
 # Beyond
 
-Private repository owned by [Hassan1278](https://github.com/Hassan1278). Friends will join as repository collaborators, added by Hassan. No GitHub organization is needed.
+Private repository  
 
 Beyond will provide a website and a native Android/iOS app for journaling, delayed AI reflections, and memories that the user explicitly approves. Both interfaces will use the same Node.js API and Supabase data.
 
