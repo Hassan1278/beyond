@@ -1,0 +1,39 @@
+# Dependencies and generated files
+node_modules/
+.next/
+.expo/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+next-env.d.ts
+expo-env.d.ts
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+!.env.*.example
+.vercel/
+supabase/.temp/
+supabase/.branches/
+credentials.json
+supabase/signing_keys.json
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+
+# Generated native projects: Expo Continuous Native Generation
+apps/mobile/android/
+apps/mobile/ios/
+
+# Local harness artifacts, editors, and OS files
+.worktrees/
+.DS_Store
+Thumbs.db
+.idea/
+*.log

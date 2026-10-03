@@ -1,0 +1,35 @@
+name: Scaffold checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scaffold-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scaffold:
+    name: Dependencies and formatting
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Pin npm
+        run: npm install --global npm@11.19.0
+      - name: Install from the root lockfile
+        run: npm ci --no-audit --no-fund
+      - name: Check dependency resolution
+        run: npm run check:deps
+      - name: Check documentation and configuration formatting
+        run: npm run format:check
+      # Foundation work will add lint, types, tests, web build, and mobile export.

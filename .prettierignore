@@ -1,0 +1,12 @@
+node_modules/
+package-lock.json
+.next/
+.expo/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+supabase/.temp/
+supabase/.branches/

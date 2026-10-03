@@ -1,0 +1,54 @@
+{
+  "name": "beyond",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Beyond web, native mobile, and shared backend monorepo",
+  "license": "UNLICENSED",
+  "packageManager": "npm@11.19.0",
+  "engines": {
+    "node": ">=24.20.0 <25",
+    "npm": ">=11.19.0 <12"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=@beyond/web",
+    "dev:mobile": "npm run dev --workspace=@beyond/mobile",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "build:web": "npm run build --workspace=@beyond/web",
+    "check:mobile": "npm run check:bundle --workspace=@beyond/mobile",
+    "check:deps": "npm ls --all",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:test": "supabase test db"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "24.19.1",
+    "eas-cli": "24.10.0",
+    "eslint": "9.39.5",
+    "prettier": "3.9.9",
+    "supabase": "2.119.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.0",
+    "vitest": "5.0.3"
+  },
+  "overrides": {
+    "@react-native/metro-config": "0.86.3",
+    "react-native-reanimated": "4.5.1",
+    "react-native-worklets": "0.10.1"
+  },
+  "allowScripts": {
+    "protobufjs@7.6.6": true,
+    "unrs-resolver@1.12.2": true,
+    "dtrace-provider": false
+  }
+}
