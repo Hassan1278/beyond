@@ -1,10 +1,14 @@
 # Setup and commands
 
-## Tools
+## Status and tools
 
-Use Git, Node.js `24.20.0`, and npm `11.19.0`. `.nvmrc`, `packageManager`, and engine checks record these choices. Android emulator development needs Android Studio; the iOS simulator needs macOS and Xcode. Physical-device development and EAS cloud builds can be used without an iOS simulator.
+This is target setup guidance, not an implementation report. Step001 adds no product implementation: no `apps/api` source/manifests, migrations, executable product tests, AI service or cloud setup. Existing web API/server placeholders are legacy, unused and untouched. Frontends and root manifests/lockfile are unchanged at that milestone. The user has already authorized architecture-first work followed by backend/environment implementation with small validated local commits; hosted actions remain unauthorized.
 
-Docker or a compatible container runtime is required only when running the local Supabase stack. Docker for the web app is optional and deferred until there is a runnable app. No Docker image, container, native project, or emulator has been created by this scaffold.
+Use Git, Node.js `24.20.0` and npm `11.19.0`, recorded by `.nvmrc`, package manager and engines, with existing pins and one root lockfile. Consult `docs/backend-changes.txt` for actual validation and environment blockers; session-specific command availability is not a repository-wide prohibition.
+
+Android emulators require Android Studio; iOS simulators require macOS/Xcode. Physical devices/EAS builds remain options without an iOS simulator. Real local Supabase Auth/Postgres acceptance requires Docker or a compatible container runtime, not a mocked DB. Local container/service startup belongs to the authorized backend/environment implementation, not step001; hosted provisioning and native release work need separate authorization.
+
+Bootstrap guidance once tooling is available (frontend environment copies belong to the frontend owner's separately authorized work):
 
 ```sh
 nvm install
@@ -15,60 +19,66 @@ cp apps/web/.env.example apps/web/.env.local
 cp apps/mobile/.env.example apps/mobile/.env
 ```
 
-`npm ci` installs from the committed root lockfile without editing it. Use `npm install` when deliberately changing dependencies and commit the matching manifest and lockfile. Do not install from inside an app or create app-specific lockfiles.
+The frontend copies preserve existing scaffold conventions, not the new API/AI secret placement. Their examples contain legacy assumptions and need the follow-up below; do not populate their old privileged/provider fields. `npm ci` uses the root lockfile without editing it. Intentional dependency changes require coordinated manifests/root lockfile; do not install inside an app or add per-app locks. API/AI-specific examples and commands are not created in this step.
 
-## Commands
+## Existing scaffold commands and future checks
 
-| Command                | Purpose                                    | Available now?                                         |
-| ---------------------- | ------------------------------------------ | ------------------------------------------------------ |
-| `npm ci`               | Reproducible dependency installation       | Yes                                                    |
-| `npm run check:deps`   | Validate installed package/peer resolution | Yes                                                    |
-| `npm run format:check` | Check supported config/docs formatting     | Yes                                                    |
-| `npm run format`       | Format supported files                     | Yes                                                    |
-| `npm run dev:web`      | Start website and API on port 3000         | After web entry points                                 |
-| `npm run dev:mobile`   | Start Expo development server              | After mobile entry points                              |
-| `npm run lint`         | Lint all workspaces                        | After ESLint configuration and source                  |
-| `npm run typecheck`    | Type check all workspaces                  | After source exists                                    |
-| `npm test`             | Run Vitest unit/integration tests          | After test configuration and real tests                |
-| `npm run test:e2e`     | Run Playwright browser flows               | After app, Playwright config, and browser installation |
-| `npm run build:web`    | Produce Next.js production build           | After source and web configuration                     |
-| `npm run check:mobile` | Export Android/iOS JavaScript bundles      | After mobile routes; not a native build                |
-| `npm run db:start`     | Start local Supabase containers            | Config present; requires Docker                        |
-| `npm run db:stop`      | Stop local Supabase containers             | After local startup                                    |
-| `npm run db:test`      | Run database access tests                  | After migrations and SQL tests                         |
+| Command                | Purpose / prerequisite                                                  |
+| ---------------------- | ----------------------------------------------------------------------- |
+| `npm ci`               | Reproducible root install; requires pinned runtime/tooling              |
+| `npm run check:deps`   | Installed package/peer resolution                                       |
+| `npm run format:check` | Supported configuration/documentation formatting                        |
+| `npm run format`       | Formatting; use only on the assigned task's authorized paths            |
+| `npm run dev:web`      | Website on port 3000 after web entry points; not the target product API |
+| `npm run dev:mobile`   | Expo server after mobile entry points                                   |
+| `npm run lint`         | Requires ESLint configuration/source                                    |
+| `npm run typecheck`    | Requires source                                                         |
+| `npm test`             | Requires test configuration and real tests                              |
+| `npm run test:e2e`     | Requires apps, Playwright configuration and browsers                    |
+| `npm run build:web`    | Website production build after source/configuration                     |
+| `npm run check:mobile` | Android/iOS JavaScript export after routes; not a native build          |
+| `npm run db:start`     | Local Supabase configuration exists; Docker required                    |
+| `npm run db:stop`      | After local startup                                                     |
+| `npm run db:test`      | After migrations/access tests exist                                     |
 
-Missing source and test files are expected at this stage. Commands for future phases are defined so the team agrees on their names; they have not been verified as app checks.
+The command inventory is guidance; `docs/backend-changes.txt` records actual validation. Independent API/AI dev, lint/typecheck/test/build scripts and CI are coordinated foundation additions, not existing root script promises. Use separate service ports, env scopes and tests; keep the root lockfile. The first acceptance gate uses real local Supabase writing with two users, replay/revisions and AI-down saves, not merely health or app shells.
 
-## Environment ownership
+## Environment ownership target
 
-The root `.env.example` is an overview, not a combined configuration to copy. Web reads `apps/web/.env.local`. Expo reads `apps/mobile/.env`. Dashboard values must be set separately for deployed environments.
+Root `.env.example` is documentation only, not a combined file to copy. Web keeps `apps/web/.env.local`, mobile `apps/mobile/.env`. A future API example/local environment belongs to `apps/api`; AI config belongs to `services/ai` under its owner. Deployed values are separately scoped per project/environment and never committed.
 
-| Variable                               | Where                                 | Meaning                                                                   |
-| -------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`             | Web/browser                           | Supabase API URL                                                          |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Web/browser                           | Public client key; access still requires RLS policies                     |
-| `APP_URL`                              | Web/server                            | Canonical web origin for redirect/origin validation                       |
-| `SUPABASE_SECRET_KEY`                  | Web/server                            | Restricted admin operations and job processing; never normal user queries |
-| `AI_PROVIDER`                          | Web/server                            | Provider selected during AI implementation                                |
-| `AI_API_KEY`                           | Web/server                            | Provider credential                                                       |
-| `AI_MODEL`                             | Web/server                            | Model selected after fictional evaluations                                |
-| `JOB_TRIGGER_SECRET`                   | Web/server and scheduler secret store | Credential for protected job invocation                                   |
-| `EXPO_PUBLIC_SUPABASE_URL`             | Mobile                                | Supabase API URL                                                          |
-| `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Mobile                                | Public client key                                                         |
-| `EXPO_PUBLIC_API_URL`                  | Mobile                                | Reachable web/API origin, without `/api`                                  |
+| Variable                                | Target scope                          | Requirement / meaning                                                                                                           |
+| --------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`                          | API                                   | Writing-required Supabase Auth/Postgres API URL                                                                                 |
+| `SUPABASE_PUBLISHABLE_KEY`              | API                                   | Writing-required public-role key; normal queries also carry verified user's token and enforce RLS                               |
+| `CORS_ALLOWED_ORIGINS`                  | API                                   | Writing-required exact browser-origin allowlist; parser/format to be fixed during foundation, no wildcard                       |
+| `SUPABASE_SECRET_KEY`                   | API isolated jobs/account module only | Optional until those operations are enabled; privileged key, never normal product queries, client bundle or AI service          |
+| `AI_SERVICE_URL`                        | API                                   | Optional until AI processing is enabled; independent AI HTTP origin, API appends `/v1/reflections:generate`                     |
+| `AI_SERVICE_TOKEN`                      | API / matching AI credential verifier | Optional until AI processing is enabled; versioned server-to-server credential with agreed rotation/version, never a user token |
+| `JOB_TRIGGER_SECRET`                    | API / scheduler secret store          | Optional until protected job invocation is enabled                                                                              |
+| `AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL` | AI service only                       | Later AI-owner configuration; unselected provider/model and provider credential, no DB admin keys                               |
+| `NEXT_PUBLIC_SUPABASE_URL`              | Web                                   | Public Supabase Auth URL                                                                                                        |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`  | Web                                   | Public key; access still requires ownership policies                                                                            |
+| `NEXT_PUBLIC_API_URL`                   | Web, proposed follow-up               | Independent product API origin; not added to frontend example here                                                              |
+| `APP_URL`                               | Existing web convention               | Canonical frontend origin for auth redirects, not a product API origin/auth proof                                               |
+| `EXPO_PUBLIC_SUPABASE_URL`              | Mobile                                | Public reachable Auth URL                                                                                                       |
+| `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`  | Mobile                                | Public key                                                                                                                      |
+| `EXPO_PUBLIC_API_URL`                   | Mobile                                | Independent API origin only; future shared client appends `/api/v1`                                                             |
 
-All `NEXT_PUBLIC_` and `EXPO_PUBLIC_` values are exposed to clients. Blank values in examples are deliberate. Use Supabase's publishable and secret key formats; if a project uses legacy anon/service-role keys, map those roles deliberately and keep the privileged key server-side.
+Public prefixes expose values to clients. Examples may contain only names/dummy values. Use publishable/secret key roles deliberately if mapping legacy anon/service-role credentials; no privileged key in user queries or AI. Writing startup and bounded config/DB-schema readiness require only the writing-required API configuration, never AI credentials or AI reachability. Optional admin/job/AI configuration is validated at the corresponding enabled-feature boundary and must not block ordinary saves. Readiness exposes no secrets; private responses are never cached, and liveness is cheap and separate from protected later dependency/queue status.
 
-## Phones, authentication, and local data
+## Required frontend/environment migration follow-up
 
-`localhost` on a phone refers to the phone. Set the mobile API origin to a reachable computer LAN address or staging HTTPS origin. The web dev command listens on all interfaces for LAN access. Keep the phone and computer on a reachable network. If using local Supabase on a phone, its URL must also be reachable; a staging Supabase project avoids that local networking setup.
+Do not edit frontend examples, source or native packages in this step. Existing `apps/web/.env.example` still lists server Supabase/provider/job slots from the superseded combined deployment; those are not instructions to put secrets in the website. A later frontend/integration task removes/migrates obsolete slots, adds the web independent API origin, updates mobile's legacy `/api` comment and old port-3000 sample, and uses the shared `/api/v1` client. API privileged/job/AI service credentials go only to API; provider credentials only to AI. Do not remove legacy web API/server placeholders until that migration is separately authorized.
 
-Web will authenticate with server-managed Supabase cookies; mobile will store sessions using secure storage and send bearer tokens. Configure web and mobile redirect URLs during the authentication task. The provisional deep-link scheme is `beyond`; provider login, callback handling, and session storage remain to be implemented.
+Both first-party web/mobile product clients must send verified Supabase bearer tokens to the API. Supabase handles passwords/sign-in/reset/refresh; cookies may be a frontend session detail but are not the product API authentication contract. API freshly verifies identity/active profile and derives ownership. Configure exact browser origins for CORS/preflight; CORS is not auth. Native requests require bearer verification too.
 
-`supabase/config.toml` configures a local project. Startup downloads containers; migrations and seeds remain empty. Use only fictional local data. Local Supabase instances in multiple worktrees need different ports or one deliberately shared development instance.
+## Phones, local data and later foundations
 
-## First implementation checklist
+`localhost` on a phone means the phone. The later mobile client needs a reachable independent API LAN/staging origin and reachable Supabase Auth URL, not the web origin. Existing web dev LAN behavior is frontend-only; choose/bind API networking explicitly in the implementation task. Auth callbacks, reset redirects, mobile secure storage and deep links need owner testing; preserve provisional `beyond` scheme and native identifiers until Hassan confirms them.
 
-The foundation owner adds app entry points, the shared export, Next.js shared-package transpilation, ESLint configuration, and Vitest/Playwright configuration. Next.js/Expo can then generate their environment declaration files locally. See `docs/build-plan.md` for acceptance checks.
+`supabase/config.toml` is local configuration; migrations/seeds/access tests remain unimplemented. Use fictional data. Agree one local stack or distinct ports in worktrees; do not reset another owner's instance. No hosted setup is required for the writing-first local gate.
+
+Later foundation adds API entry/configuration/server modules and portable schemas, then real auth/database acceptance. Opted-in scheduling needs a tested UTC/IANA next-local-calendar-morning resolver for `07:00`, `07:30`, `08:00`, with tones `friend`, `mentor`, `future`, `diary`; preference changes affect future jobs and edits invalidate old revisions. Lease/fencing/backoff/recovery precede AI processing, tested with a fake independent AI HTTP service, never a production fallback. Real AI and later private-storage/transcription consent/reviewed-text flow follow under the AI owner. See `docs/build-plan.md` and `docs/deployment.md`.
 
 References: [npm workspaces](https://docs.npmjs.com/cli/v11/using-npm/workspaces/), [Supabase CLI setup](https://supabase.com/docs/guides/local-development/cli/getting-started), [Expo Router manual setup](https://docs.expo.dev/router/installation/).

@@ -1,46 +1,51 @@
 # Build plan
 
-This is the implementation sequence after the code-free scaffold. Durations are planning estimates, not promises. Assign human owners using `docs/workstreams.md`; parallel client work starts after the shared contract handoff.
+The user has already authorized architecture-first work followed by backend/environment implementation with small validated commits; no new implementation authorization gate is required. This plan describes the sequence, not completed implementation. Step001 adds no product implementation: no API app source, migrations, executable product tests, AI service or cloud setup. `apps/web` and `apps/mobile` remain untouched; their unused web API/server placeholders are legacy and are not removed. `services/ai` implementation belongs to its separate owner. Coordinate owned paths using `docs/workstreams.md`; hosted actions remain unauthorized.
 
-## Stage 1: Foundation — first 1–2 working days
+## Gate 1: Independent API and writing proof
 
-1. Hassan assigns owners and confirms API shapes, product limits, schedule semantics, and provisional native identifiers.
-2. The integration/shared owner adds the portable shared export, health response type, API client, schemas, ESLint configuration, and test configuration. They add Next.js shared transpilation and coordinate app entry points with the UI owners.
-3. The web owner creates root layout/homepage; the mobile owner creates router layouts and the first screen. Both call the same health endpoint.
-4. The API/database owner implements the health route, verified session boundary, initial schema/RLS, and local access tests.
-5. Hassan connects staging Supabase and Vercel, configures public/server environment values, and checks web/mobile against the staging origin. The mobile owner links EAS and creates the first development build when routes work.
-6. Enable CI lint, type checks, real tests, web production build, and Android/iOS JS export as prerequisites land. Add a separate database test job once migrations and access tests exist.
+1. Freeze portable `/api/v1` contracts, health shapes, bearer/active-profile rules, replay/revision semantics and bounded payloads. Reserve `services/ai` for the AI owner. No provider selection is required for writing.
+2. Under the existing backend/environment authorization, add API-only `apps/api` Next.js Node handlers and server modules, with its own environment/tests/deployment configuration. Coordinate new manifests/scripts and one root lockfile with integration; retain Node.js `24.20.0` and npm `11.19.0` and existing pins. Do not upgrade native packages or perform hosted actions.
+3. Use real local Supabase Auth/Postgres. Supabase handles password/sign-in/reset/refresh; API product requests freshly verify bearer tokens and active profiles. Add profiles, entries and required schema primitives with RLS, grants and validated RPCs, not an API-only access assumption.
+4. Implement text save/read/edit/delete, unique owner/key equality against a separately stored immutable original validated creation payload for live entries, expected revisions and replay tombstones that clear the original payload and all content/consent. Equivalent retries return current persisted state without reverting edits or duplicating jobs; different original payloads return `409`. Own retired keys return `409` before payload comparison; ordinary deleted-resource reads return `404`. Add cheap public `/api/health/live` and bounded config/DB-schema `/api/health/ready`, both without secrets; writing startup/readiness requires URL, publishable key and exact allowed origins, not optional later admin/job/AI credentials or AI reachability. Exact browser-origin CORS is not authentication; private responses are never cached.
+5. Prove the flow with two users and real database/auth tests, including direct grants/RLS/RPC access, expired/invalid sessions, inactive profiles, equal/unequal replay, replay after edits/deletion and AI-down saves. Non-opted-in saves create no AI job.
 
-Acceptance: both interfaces launch, both can import shared code, both call the same deployed health endpoint, current checks run in CI, and two-user ownership tests pass. Do not merge a feature as complete based only on a stubbed response.
+Acceptance: writing works independently of AI, without frontend edits. Health/stub responses or fake database tests do not establish acceptance. Step001 adds no product implementation; `docs/backend-changes.txt` records actual validation and gate results.
 
-## Stage 2: Core flow — week 1
+## Gate 2: Scheduling and durable processing before AI
 
-Implement authentication, entry CRUD, initial reflection generation/read view, and session/error recovery. The backend persists an entry and job atomically. The AI owner uses a provider adapter and validated output; unit tests use a fake provider. The UI owners consume the same typed contracts.
+1. Add `reflection_jobs`, `reflections`, `approved_memories` and `todos` design primitives as needed. Entry plus eligible job is atomic only on explicit opt-in; ordinary saves remain independent.
+2. Prototype tones are `friend`, `mentor`, `future`, `diary`; morning times are `07:00`, `07:30`, `08:00`, with an IANA timezone and UTC storage. Test the next-local-calendar-morning resolver, UTC/date boundaries and DST gaps/overlaps before enabling opted-in schedules. Preference changes affect future jobs; edits invalidate older revisions. No production forced demo delivery.
+3. Implement bounded atomic claims, leases, fencing tokens, backoff/maximum attempts, lease-expiry/crash recovery and revision-unique jobs/output before first AI processing. Finalization must check active profile, live entry, current revision/eligibility and fencing token in the database.
+4. Build the API-side authenticated HTTP client for `POST /v1/reflections:generate`: entry/revision/tone/bounded authorized context in, letter/actions/provenance out. AI credentials are versioned; provider credentials stay outside the API. Backend does not implement `services/ai`.
+5. Use a fake independent AI HTTP service only in tests to prove downtime, timeouts, malformed output, duplicate/retry behavior, stale leases and edit/delete while processing. Never use it as a production fallback.
 
-Use a short staging schedule to exercise the complete pipeline. Deliver an installable preview build for the first beta platform and verify it against the staging API. Confirm a journal entry saved on one interface appears on the other.
+Acceptance: replay produces no duplicate jobs/output; stale workers cannot finalize or resurrect content; interrupted processing recovers. Lease/fencing/backoff/recovery cannot be postponed until after first AI processing.
 
-Acceptance: login → save entry → process durable job → read reflection works on web and mobile. User A cannot read or mutate user B's content. Repeated requests do not create duplicate jobs/output. Failed generation has a visible, recoverable state.
+## Gate 3: Real AI and explicit user decisions
 
-## Stage 3: Complete MVP — week 2
+The AI owner implements and independently tests/deploys `services/ai`, selects a provider/model only after fictional evaluations and retention review, and owns prompts/provider behavior. No database admin keys go to AI. Product API retains all database writes, queue orchestration, finalization and deletion.
 
-Implement user-selected delayed schedules/timezone handling, explicit memory approval/removal, corrections, settings, source deletion, and account deletion. Add bounded claims, leases, retry backoff, maximum attempts, and stale-revision checks. Match core behavior across web and mobile.
+Add explicit action acceptance/rejection and owned todos unique to each reflection suggestion; no auto-todos or auto-approved memories. Repeat acceptance returns the same surviving todo in its current state; explicit todo deletion preserves the acceptance decision while its source survives, and repeat acceptance then returns `409` without recreation. Keep corrections separate from original letters. Implement memory approval/removal and the proposed privacy-first source-deletion cascade for reflections, source-linked memories and derived todos; standalone todos survive unrelated entry deletion.
 
-Acceptance: edited/deleted entries invalidate old work, in-flight generation cannot recreate deleted content, removed memories are excluded from later processing, corrections remain distinct from the original letter, and account deletion completes safely after partial failures.
+Implement an account deleting gate covering API, RLS/RPC and claim/finalize paths, with durable retry of product/storage/context cleanup before Auth deletion. Account deletion and provider/backups retention need later failure tests and honest disclosure; no end-to-end encrypted AI or perfect-safety guarantee.
 
-## Stage 4: Validation — weeks 3–4
+Acceptance: real-service integration and fictional evaluations, explicit decision/replay/ownership tests including repeat acceptance after todo deletion, deletion during processing and interrupted account cleanup. These are acceptance requirements; `docs/backend-changes.txt` records actual validation.
 
-Run beta feedback sessions, two-user integration tests, Playwright flows, real Android/iOS preview builds, and explicit fictional AI evaluations. Verify networking, deep links, expired sessions, pending/failed states, accessibility, logs, and rate limits. Rehearse `docs/demo.md` and prepare store assets/privacy text when behavior is stable.
+## Gate 4: Voice as second core input
 
-Acceptance: agreed MVP flows pass on the supported platforms; release notes record tested commits/build IDs and known gaps. Store submission is a later explicit release action.
+Voice follows the writing proof, not a native upgrade in this backend task. Add private Supabase Storage with owned media metadata, scoped policies and transcription job-kind support. AI owns transcription. Capture separate transcription consent; return a transcript for user review before feeding the same text-entry flow. Test isolation, expiry/retry, review and source/account cleanup. Optional RAG is added only with bounded user-scoped source/provenance and deletion contracts.
 
-## CI progression
+## Gate 5: Client integration and release validation
 
-Current workflow: root `npm ci`, `npm run check:deps`, and `npm run format:check`.
+Separately authorize web/mobile work to migrate API origins, shared `/api/v1` paths and bearer adapters/environment examples. Do not remove legacy web API placeholders until that migration is owned and authorized. Later verify cross-client writing, reflections, actions, reviewed voice and deletion on real supported devices. Preserve native identifiers, EAS instructions and SDK-compatible pins; no UI or native package changes occur in this step.
 
-Foundation adds, in order of prerequisites: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build:web`, `npm run check:mobile`. Once the database/tests exist, start local Supabase in a dedicated job and run its access tests. Add Playwright with installed browsers and a controlled app/test database. Native EAS builds run at milestones; JS export does not validate signing or native modules.
+Run two-user integration tests, Playwright flows, native preview builds, deep-link/session/network recovery, accessibility and fictional AI evaluations before beta. Full patterns/Life Film, broad attachments and custom native modules are outside this slice. Never fabricate counts or statistics, including in later analytics. Store submission is a later explicit release action.
 
-Live AI evaluation and production deployment are explicit release steps, not automatic operations on every pull request. PR checks use fictional data and mocked providers. Production database migrations use the deployment sequence in `docs/deployment.md`.
+## CI and merge progression
 
-## Merge order
+Existing scaffold checks are root `npm ci`, `npm run check:deps` and `npm run format:check`; consult `docs/backend-changes.txt` for actual validation. Foundation adds real API-specific lint/typecheck/test/build commands and an independent database job once source/migrations/tests exist. Coordinate script/CI changes rather than claiming those commands already exist. Use real local Supabase for auth/data acceptance and the fake independent AI HTTP service for API integration tests. AI-service tests/evaluations stay independent; live provider quota and deployments require explicit authorization.
 
-Merge shared contracts/configuration first, then the app shells and API foundation. API/database and AI/jobs agree on claim/finalize operations before implementing the processor. Web/mobile can work against agreed fixtures during backend development, then replace them with the real API before claiming acceptance. Each feature PR names its upstream dependency and integration check.
+Later frontend validation uses `npm run build:web`, `npm run check:mobile` and Playwright when their prerequisites exist. EAS milestone builds remain separate: JavaScript export is not proof of native signing/modules. Follow `docs/deployment.md` for cloud actions and rollback.
+
+Finalize architecture first, portable contracts next, then independent API/writing foundation, durable scheduling tests and API-side AI integration under the already granted backend/environment authorization. Use task management, relevant local commands and small validated local commits within owned paths; step001 adds no product implementation. The main agent updates `docs/backend-changes.txt` with actual validation and blockers before committing. Do not turn a documentation-only review's execution limits into persistent workflow prohibitions. Frontend paths remain untouched, `services/ai` implementation belongs to its separate owner, and hosted pushes/PRs/deployments/database/account changes require separate authorization.

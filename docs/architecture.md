@@ -1,88 +1,80 @@
 # Architecture
 
-## System boundary
+## Status and superseding decision
 
-One personal private repository contains three npm workspaces. The Node.js backend lives inside the Next.js web workspace, with route handlers as its HTTP boundary. There is no separate `apps/api` service for the MVP.
+This is the authorized architecture target, not an implemented system. This documentation-only step adds no `apps/api` source, migrations, executable tests, AI service, or cloud setup. Existing configuration and legacy placeholders remain. It supersedes the all-in-one web/API deployment; `apps/web` and `apps/mobile` are untouched, and their unused API/server placeholders are not running and must not be removed in this step.
 
-## Why not top-level frontend and backend folders?
+One monorepo will contain independently deployed and tested frontends, a product API, and an AI HTTP service. The user has already authorized architecture-first work followed by backend/environment implementation with small validated local commits. Workspace manifests, scripts, dependencies and lockfile changes stay coordinated within that authorization; frontend work, `services/ai` implementation and hosted actions are outside the backend owner's scope.
 
-Frontend and backend responsibilities are separated by folders inside the web app. Next.js handles both website routes and HTTP API routes, so one deployment can serve the website and the API used by mobile. Business logic remains isolated from UI code.
+## System boundary and ownership
 
-| Boundary                                    | Current folders                                                 |
-| ------------------------------------------- | --------------------------------------------------------------- |
-| Web frontend                                | `apps/web/src/app` except `api`, plus `apps/web/src/components` |
-| Mobile frontend                             | `apps/mobile/src`                                               |
-| Backend HTTP boundary                       | `apps/web/src/app/api`                                          |
-| Backend business logic / AI / jobs          | `apps/web/src/server`                                           |
-| Backend database configuration / migrations | `supabase`                                                      |
-| Portable contracts used on both sides       | `packages/shared`                                               |
+| Target path                    | Responsibility                                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `apps/web`                     | Website only; legacy API/server placeholders remain until an authorized migration                       |
+| `apps/mobile`                  | Expo / React Native Android and iOS client                                                              |
+| `apps/api/src/app/api`         | API-only Next.js route handlers using the Node.js runtime; no product UI                                |
+| `apps/api/src/server/services` | Product rules: entries, reflections, memories, actions/todos, settings, deletion                        |
+| `apps/api/src/server/jobs`     | Queue orchestration, claims, leases/fencing, retry/recovery, AI HTTP calls, finalization                |
+| `apps/api/src/server`          | Verified auth, environment, user-scoped database access, isolated privileged jobs/account operations    |
+| `services/ai`                  | Independent HTTP service reserved for the AI owner: prompts, providers, optional RAG and transcription  |
+| `packages/shared/src`          | Portable contracts, validation, API client and limits; no framework/runtime-only imports or credentials |
+| `supabase`                     | Database configuration, future migrations, RLS, grants, validated RPCs and storage policies             |
+| `tests`                        | Cross-system acceptance tests, including a fake independent AI HTTP service for tests only              |
+| `evals`                        | Fictional AI evaluation scenarios and a future AI-owner runner                                          |
 
-Next.js expects route handlers inside its `app` directory, which explains the API folder there. Keep handlers thin: authentication and request parsing at the boundary, then calls into the server services. Backend credentials and provider code must remain server-only. Sharing a deployment does not mean shipping backend code or secrets to a client.
-
-A separate `apps/api` is also possible within the same private repository. It would own its own server framework, dependencies, runtime, deployment, and API origin; web and mobile would both call it. This gives independent backend scaling/releases and is useful when long-running workers or persistent connections exceed the chosen Next.js hosting runtime. It also adds hosting, networking/CORS, authentication integration, and release coordination. Simply renaming folders does not create that independent service.
-
-For this MVP, keep the proposed Next.js API with clear server ownership and durable database jobs. If measured workloads need a separate worker/API service, extract the services behind the same shared contracts. Separate developers and coding harnesses can already work on frontend/backend using the owned paths in `docs/workstreams.md`.
+Keep API handlers thin and backend modules server-only. The product API owns auth, authorization/RLS, database writes, queues/jobs, finalization and deletion. The AI service never receives database admin keys and never directly saves product data, creates todos or approves memories. Backend work may define shared HTTP contracts and test fixtures, but must not implement `services/ai`.
 
 ```text
-Web screens ────┐
-                ├── shared API contract/client
-Mobile screens ─┘             │
-                              v
-                    Next.js Node.js routes
-                              │
-                     backend services
-                        │           │
-                        v           v
-                    Supabase    server AI adapter
-
-Supabase scheduler ──> protected job route ──> durable database jobs
+Web / mobile -- verified bearer token --> apps/api -- user-scoped access --> Supabase
+                                             |
+Scheduler -- protected trigger --> API jobs -- authenticated HTTP --> services/ai
+                                             |                         |
+                                      validated finalize          provider / optional RAG
 ```
 
-Web and mobile may use Supabase client SDKs for authentication. Product operations go through the shared backend. User-scoped database clients and row-level security both enforce ownership. Admin access is isolated to narrowly defined account deletion and job operations.
+Shared TypeScript contracts remain portable. Future Next.js API/web foundations configure shared-package transpilation independently; Expo keeps standard monorepo support. No frontend configuration or native dependency upgrade is authorized here.
 
-## Folder responsibilities
+## Identity, origins and health
 
-| Path                           | Owns                                                                     |
-| ------------------------------ | ------------------------------------------------------------------------ |
-| `apps/web/src/app`             | Web routes, layouts, and thin authenticated HTTP handlers                |
-| `apps/web/src/components`      | Browser UI                                                               |
-| `apps/web/src/lib`             | Browser-safe configuration and auth adapters                             |
-| `apps/web/src/server/services` | Journal, reflection, memory, settings, account business rules            |
-| `apps/web/src/server/ai`       | Provider adapter, prompts, output validation                             |
-| `apps/web/src/server/jobs`     | Claim/process/retry orchestration                                        |
-| `apps/mobile/src/app`          | Expo Router screens and layouts                                          |
-| `apps/mobile/src/lib`          | Native session storage, config, API client adapter                       |
-| `packages/shared/src`          | Portable types, validation, API client, product limits                   |
-| `supabase`                     | Local configuration, schema migrations, policies, durable job primitives |
-| `tests`                        | Cross-system integration tests and browser flows                         |
-| `evals`                        | Fictional evaluation scenarios and an explicit future runner             |
+Supabase handles passwords, sign-in, reset and session refresh. Both first-party clients send a Supabase bearer access token to `/api/v1` product routes on the independent API origin. The API freshly verifies the token with Supabase Auth and checks an active profile; decoded claims or a client-supplied owner ID are not sufficient. User-scoped database operations, RLS, grants and validated RPCs enforce the same active-owner boundary even outside the API. CORS allows exact configured browser origins, not wildcard origins; CORS is not authentication. Do not cache private responses.
 
-Shared packages expose TypeScript source to app bundlers. The web foundation task adds `transpilePackages` for `@beyond/shared`; Expo's standard monorepo support handles its imports. Avoid custom Metro resolution until a verified problem requires it.
+`/api/health/live` is public and cheap. `/api/health/ready` performs bounded configuration and database-schema checks, without contacting AI. Neither exposes secrets, user data or detailed configuration. Protected dependency/queue status is deferred. AI downtime must not block ordinary entry saves or make API readiness depend on AI.
 
-## Initial data model
+## Proposed data model
 
-| Table               | Proposed data and relationship                                                      |
-| ------------------- | ----------------------------------------------------------------------------------- |
-| `profiles`          | One row per auth user; timezone, reflection schedule, preferences                   |
-| `journal_entries`   | Owner ID, text, revision number, timestamps                                         |
-| `reflections`       | Owner/entry IDs, source revision, generated letter, user correction, timestamps     |
-| `approved_memories` | Owner ID, explicitly approved content, optional source, timestamps                  |
-| `reflection_jobs`   | Owner/entry IDs, source revision, due time, status, lease, attempts, error category |
+| Table               | Proposed data and relationship                                                                                                                                                                |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `profiles`          | Auth-user identity; active/deleting lifecycle, IANA timezone, morning time and tone preferences                                                                                               |
+| `journal_entries`   | Owner, mutable text/revision/state, UTC timestamps, creation idempotency key and separately stored immutable original validated creation payload while live; minimal tombstone after deletion |
+| `reflection_jobs`   | Owner/entry/revision, due time, status, attempts, lease/fencing token, backoff and safe error category                                                                                        |
+| `reflections`       | Owner/entry/source revision, generated letter, action suggestions/provenance, separate user correction                                                                                        |
+| `approved_memories` | Explicitly approved owned content and source links when derived from an entry/reflection                                                                                                      |
+| `todos`             | Owned standalone or explicitly accepted reflection-derived action; unique owner/reflection/suggestion reference                                                                               |
 
-Supabase owns auth records. Use UTC timestamps in storage and an explicit user timezone for schedule display and daylight-saving transitions. Define relationships, cascade behavior, indexes, and access policies in versioned migrations during implementation. Generated database types then belong in `packages/shared/src/types/database.ts`.
+Add private media metadata and job-kind support when voice is implemented, not in this step. Supabase owns auth records. Store timestamps in UTC. Versioned migrations must define foreign keys, indexes, grants, RLS and input/ownership checks in RPCs; do not assume the API is the only possible database caller. Generated database types will belong in `packages/shared/src/types/database.ts`.
 
-## Durable reflection processing
+Creation uses unique `(owner_id, idempotency_key)`. LIVE entries store the immutable ORIGINAL validated creation payload separately from mutable fields; creation equality compares against that payload only. Equivalent retries return the CURRENT persisted entry state without reverting edits or duplicating jobs; different original payloads return `409`. Edits require an expected revision and never change the stored original payload. Check an owner's retired key before payload comparison: reuse always returns `409`. Deletion clears the original payload and all content/consent, retaining only minimum IDs, owner/key and `deleted_at`. Ordinary deleted-resource reads return `404`. All product APIs, RLS visibility and RPC resource results exclude tombstones; internal key checks never return deleted content.
 
-Saving an entry and creating its job must be atomic. A database transaction/RPC should persist the entry and scheduled job together. A job is unique to an entry revision so repeated requests cannot create repeated reflections.
+## Durable jobs and scheduling gates
 
-Supabase Cron invokes the protected Node.js job processor over HTTPS; the scheduler credential belongs in its secret store. The processor claims a bounded batch atomically, uses leases for crash recovery, and retries transient failures with backoff and a maximum attempt count. Keep request duration and concurrency within verified hosting/provider limits.
+The first acceptance gate is writing with real local Supabase Auth/Postgres: save/read/edit/delete, two-user isolation, replay and revision semantics. A non-opted-in save creates no reflection job and works while AI is unavailable. Only an opted-in entry and its eligible job are persisted atomically in a validated transaction/RPC. Scheduling remains disabled until its resolver is tested; enabling opt-in is not a prerequisite for the writing gate.
 
-Immediately before saving a result, check that the entry still exists, has the same revision, and remains eligible. An edited entry invalidates earlier jobs; a deleted entry cancels outstanding work. A late response must never recreate deleted data. Use a uniqueness constraint for completed output and test recovery after an interrupted run.
+Prototype tones are `friend`, `mentor`, `future`, `diary`; morning choices are `07:00`, `07:30`, `08:00`, with a validated IANA timezone. Before enabling opt-in, test a server resolver for the next local calendar morning at the selected time, UTC conversion, daylight-saving gaps/overlaps and day boundaries. Preference changes affect future jobs, not already scheduled ones; editing invalidates the old revision and uses the current preferences for a newly opted-in revision. No forced demo delivery in production.
 
-The API/database owner supplies schema, claim/finalize primitives, authorization, and the scheduler. The AI/jobs owner supplies generation and processing orchestration. These owners agree on the interfaces before writing either side.
+Before any AI processing, implement bounded atomic claims, leases, fencing tokens checked at finalization, retry backoff/maximum attempts and lease-expiry/crash recovery. Jobs/output are unique to the entry revision. Finalization rechecks active owner, live entry, source revision, eligibility and current fencing token in the database. Edits/deletion invalidate old work; late responses cannot restore content. Supabase scheduling later calls a protected API trigger; the API owns processing and database primitives, while the AI owner owns generation behind HTTP.
 
-## Deployment topology
+`POST /v1/reflections:generate` uses a versioned server-to-server credential. The API supplies entry, revision, tone and bounded authorized context; the AI returns letter, action suggestions and provenance. Validate output before finalization. Use a fake independent AI HTTP service only in tests, never as a production fallback. No provider/model is selected. Actions require explicit acceptance/rejection; accepting atomically records a durable decision and creates an owned todo unique to the suggestion, never an automatic todo. Repeated acceptance returns the same surviving todo in its current state. Explicit todo deletion preserves the decision while its source survives, so repeat acceptance returns `409` rather than recreating it. Corrections remain separate from the generated letter; memory approval is also separate.
 
-Vercel hosts the website and Node.js API. Supabase hosts Postgres, auth, and scheduling. Expo EAS builds Android/iOS binaries against the same HTTPS API origin. Web/API changes, database migrations, and native releases have separate release steps despite sharing one Git commit history.
+## Voice, optional context and deletion
+
+Voice is a later second core input proof: private Supabase Storage plus owned metadata and transcription jobs, separate transcription consent, then user-reviewed transcript into the same text-entry flow. No UI edits or native package upgrades are authorized by this backend task. RAG is optional; if added, the API must authorize bounded user-scoped sources and define source provenance, retention/removal and deletion before use. Full patterns and Life Film are deferred; any later counts must come from real authorized data, never fabricated statistics.
+
+The proposed privacy-first source-deletion rule removes dependent reflections, source-linked approved memories and reflection-derived todos and cancels jobs; standalone todos remain. Clear entry content before retaining minimal replay-prevention tombstones. Account deletion first gates the profile as deleting, blocks all product/claim/finalize paths and durably retries product/storage/context cleanup before deleting Supabase Auth. No runtime deletion tests exist yet. Provider/backups retention must be disclosed; do not promise end-to-end encrypted AI or perfect safety. See `docs/data-handling.md`.
+
+## Deployment and environment target
+
+Deploy `apps/web` and API-only `apps/api` independently, with separate tests and environment scopes. Vercel is the planned host for each Next.js project; the AI owner chooses a suitable independent HTTP deployment for `services/ai`. Supabase provides Auth/Postgres and later private Storage/scheduling; Expo EAS supplies native binaries. Maintain one root lockfile and Node.js `24.20.0` / npm `11.19.0`.
+
+Writing-required API environment: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `CORS_ALLOWED_ORIGINS` with exact allowed browser origins. Writing startup and bounded config/DB-schema readiness require neither AI credentials nor AI reachability. Later feature configuration is optional until its feature is enabled: isolated `SUPABASE_SECRET_KEY` for jobs/account operations only, `JOB_TRIGGER_SECRET` for protected job invocation, and `AI_SERVICE_URL`/`AI_SERVICE_TOKEN` for AI processing. Validate later configuration at the corresponding feature boundary, not as a writing startup/readiness prerequisite. Provider credentials belong only to the separately owned AI service. Frontend environment examples remain unchanged and need a separately authorized migration to the independent `/api/v1` origin/client behavior; see `docs/setup.md`. Hosted actions are not authorized by local backend/environment work.
 
 References: [Next.js backend support](https://nextjs.org/docs/app/guides/backend-for-frontend), [Next.js installation](https://nextjs.org/docs/app/getting-started/installation), [Expo monorepos](https://docs.expo.dev/guides/monorepos/), [Expo SDK compatibility](https://docs.expo.dev/versions/latest/), [Vercel monorepos](https://vercel.com/docs/monorepos).

@@ -1,0 +1,57 @@
+step001
+Title: Approve independent product API and AI service architecture before implementation
+Date: 2026-10-08
+Status: Documentation-only step prepared for local commit after validation. Architecture target, not implemented behavior.
+
+Affected areas/files:
+- AGENTS.md: backend boundaries, ownership, identity, validation and handoff rules.
+- README.md: docs-first branch status, target services, writing-first gate and link to this log.
+- .env.example: root documentation overview only; separate API/AI secret scopes and frontend migration follow-up.
+- docs/architecture.md: superseding topology, authority, schema, scheduling, replay and deletion target.
+- docs/api.md: /api/v1 bearer product API, split health, versioned AI HTTP contract, explicit actions/todos and replay/revision rules.
+- docs/workstreams.md: independent API and AI ownership, shared contract handoffs and ordered gates.
+- docs/build-plan.md: real local writing proof before durable scheduling/AI, explicit decisions, later voice and releases.
+- docs/deployment.md: separate website/API/AI deploys, environments/tests, scheduler and rollback; native EAS instructions preserved.
+- docs/setup.md: pinned runtime, target environment inventory, local testing and unmodified frontend-example migration.
+- docs/skeleton.md: existing legacy placeholders versus future API/AI folders and deferred files.
+- docs/mvp-scope.md: writing-first acceptance, opted-in generation, explicit actions, later voice and deferred patterns/Life Film.
+- docs/data-handling.md: RLS/grants/validated RPCs, privacy-first proposed deletion, minimal tombstones, consent and honest limits.
+- docs/dependencies.md: existing pins preserved; future provider dependencies belong only to AI service.
+- docs/demo.md: future gated fictional staging rehearsal, no forced production delivery or fabricated results.
+- docs/backend-changes.txt: this explicitly requested new plain-text log.
+
+Why:
+The user authorized architecture documentation before implementation. The prior all-in-one web API design conflicts with independent backend ownership/deployment and writing availability during AI outages. The new target keeps one monorepo and portable shared contracts but separates API, AI and frontend deploy/test/environment boundaries. API owns auth/RLS/database/queue/jobs/finalize/deletion; AI owns prompts/providers and optional RAG/transcription without DB admin keys. Both first-party clients use freshly verified Supabase bearer tokens and active profiles; Supabase retains password/sign-in/reset/refresh ownership. Exact browser CORS is not auth, and private responses are not cached.
+
+Design recorded:
+- Public cheap liveness and bounded config/DB-schema readiness are independent of AI and expose no secrets. Protected dependency/queue status is later.
+- Writing acceptance uses real local Supabase Auth/Postgres and two users for save/read/edit/delete, creation equality/replay and revisions; AI downtime cannot prevent saves.
+- Atomic entry plus eligible job is opt-in only. Tested next-local-calendar-morning UTC/IANA resolution and leases/fencing/backoff/recovery precede processing. Tones: friend, mentor, future, diary. Morning times: 07:00, 07:30, 08:00. Preference changes affect future jobs; edits invalidate old revisions.
+- Independent versioned AI HTTP generation returns letter/actions/provenance from entry/revision/tone/bounded authorized context. Fake independent AI HTTP service is tests only, never a production fallback. No provider is selected. No automatic todos/memories; decisions and corrections are explicit/separate.
+- Proposed profiles, journal_entries, reflection_jobs, reflections, approved_memories and todos schema includes RLS, grants and validated RPCs. Unique owner/key plus immutable original creation equality prevents duplicates; equivalent replay returns current persisted state without reverting edits or duplicating jobs. Deletion clears original payload, content and consent before retaining minimum IDs/owner/key/deleted_at only. APIs/RLS/RPC resource visibility excludes tombstones; ordinary deleted reads return 404 and own retired-key creation returns 409 before payload comparison.
+- Proposed privacy-first source deletion removes reflections, source-linked approved memories and derived todos; standalone todos remain. Account deleting gate and durable retry precede Auth deletion. Runtime deletion tests do not exist yet.
+- Voice is a later second core input: private Storage, metadata/transcription job kind, separate consent and reviewed transcript into text flow. Optional RAG requires user-scoped source/provenance/deletion contracts. Full patterns/Life Film are later; no fake counts or AI end-to-end-encryption/perfect-safety guarantees.
+
+Scope preserved:
+Only existing documentation and the root environment overview were edited inside backend-worktree, plus this requested new log. No gratuitous Markdown files, source, migrations or tests were added. No cloud setup. No apps/web or apps/mobile edits or legacy placeholder removal. No root package/lockfile edits or dependency/native upgrades. Local inspection, scoped Git operations and formatting validation were performed; no push or hosted action. Existing user authorization covers this commit and subsequent backend/environment implementation, not frontend or AI-owner implementation. Node.js 24.20.0, npm 11.19.0, dependency pins, one root lockfile and native release conventions remain.
+
+Validation performed during documentation handoff:
+Required existing guidance/docs/environment examples were directly read before editing. Changed files were directly re-read; dedicated content search reviewed obsolete backend paths, routes and cookie/deployment assumptions. Legacy paths remaining in edited docs are explicitly marked historical/unimplemented. This is a static documentation review only, not formatting, build, runtime, database, native or cloud validation.
+
+Validation performed before commit:
+Reviewed Git changed-file scope and core diffs, and independently reviewed all documentation for architecture/API/environment consistency. Corrected stale creation-replay behavior and subtask-only restrictions; clarified deleted-key conflicts, todo deletion replay and phase-specific environment requirements. Confirmed no frontend, manifests, lockfile, source, SQL or tests changed. Original main checkout remains clean. Scoped Git ownership exception resolves linked WSL worktree access without global configuration changes.
+
+Validation pass/result:
+PASS: Prettier 3.9.9 formatted and checked AGENTS.md, README.md and all docs/*.md; all matched files use Prettier style. Executed this formatter with managed Node 22.22.2, supported by Prettier, not as proof of repository Node 24 compatibility. PASS: git diff --check. Line-ending conversion warnings were non-failing; global Git settings unchanged. No npm ci, dependency resolution, build, auth/database, AI, native or cloud acceptance tests are claimed for this documentation-only step.
+
+Planned implementation validation, not passed:
+Real local two-user bearer/active-profile and RLS/grants/RPC writing, replay/revisions/tombstones, no private caching, exact CORS and AI-down saves; opted-in atomic jobs and UTC/date/DST resolver; bounded lease/fencing/retry/crash recovery with fake independent AI HTTP failures and late results; explicit action acceptance/rejection/unique todos and corrections; memory/source deletion and interrupted account cleanup; later private voice consent/reviewed transcript, optional source-scoped RAG, real AI evaluations and separately authorized cross-client/native releases.
+
+Blockers:
+WSL command execution remains restricted. Repository-required Node/npm and local Docker/Supabase availability must be established separately before implementation validation; documentation formatting does not prove those prerequisites. No API app source, migrations or executable tests exist for target product runtime checks at step001.
+
+Remaining intentional mismatches/follow-ups:
+Unmodified frontend environment examples still show combined-web server/provider/job slots and mobile legacy API path/origin comments; docs/setup.md explicitly documents separate-owner migration. Existing unused web API/server placeholders and manifests remain as historical scaffold, not the target service. New API manifest/scripts/examples and portable contracts are next in the already-authorized backend foundation; AI implementation, frontend migration and cloud setup remain separate-owner work. Exact schema bounds, DST gap/overlap policy tests, other suggestion decision conflicts, credential version/rotation and AI provider/model/retention remain future gates. Repeat acceptance after explicit todo deletion conflicts without recreating the todo. Writing requires URL/publishable key/exact allowed origins but not AI credentials or AI reachability. Material static review contradictions were corrected; runtime guarantees remain unverified.
+
+Commit:
+Prepared for the authorized local documentation commit: docs(backend): define independent services and writing-first gates. This entry travels in that commit; verify the actual hash in Git history. No push, hosted migration or deployment.

@@ -20,7 +20,9 @@ ESLint `9.39.5` is a compatibility pin: the React plugin shipped by the selected
 | `typescript-eslint` | `8.71.0`  | Development |
 | `vitest`            | `5.0.3`   | Development |
 
-## Web and Node.js API
+## Existing web workspace inventory (not the target API manifest)
+
+These pins describe the unchanged `apps/web` scaffold, including legacy server dependencies. They do not imply a running combined web/API service. The target API is independent API-only `apps/api` Next.js Node handlers; adding its manifest and coordinating the existing root lockfile are later tasks. Do not remove/move web dependencies or edit either frontend in this documentation step.
 
 | Package                 | Version   | Kind        |
 | ----------------------- | --------- | ----------- |
@@ -82,6 +84,10 @@ npm 11 records install-script decisions in the root `allowScripts` field. The re
 
 Only the coordinator integrates root lockfile changes. Add a dependency to the workspace that imports it; portable validation belongs in shared, framework packages belong in each app, and repository tools belong at the root. Native modules must remain compatible with the Expo SDK.
 
-No AI provider SDK is installed yet because the provider is an implementation decision. Use a provider adapter and add the selected SDK in the web workspace when that task begins. Playwright browsers, local Supabase container images, native SDKs, and EAS signing/store credentials are separate setup items; npm installation does not provision them.
+Runtime remains Node.js `24.20.0` and npm `11.19.0`; all listed dependency pins, root manifests/overrides and lockfile remain unchanged. `apps/api` and AI-owner `services/ai` will have independent tests/environment/deployment within this monorepo, but no new manifests/scripts/packages are added here. Portable contracts belong in `packages/shared`; API owns product auth/RLS/database/jobs/finalize/deletion. AI owns prompts/providers and optional RAG/transcription, with no DB admin keys.
+
+No AI provider/model is selected and no provider SDK is installed. Any eventual SDK/provider key belongs only to the independently owned `services/ai`, never the website, product API or portable shared package. Backend tests use a fake independent AI HTTP service, not a production fallback; writing gates use real local Supabase Auth/Postgres. Playwright browsers, container images, native SDKs and EAS signing/store credentials are separate setup items; npm install does not provision them. Later voice implementation must coordinate SDK-compatible requirements rather than upgrade native packages in this task.
+
+Record actual runtime, dependency validation and environment blockers in `docs/backend-changes.txt` for each step. The architecture commit changes no dependency pins; the already-authorized backend foundation must use the pinned toolchain and preserve frontend manifests.
 
 References: [Expo SDK compatibility](https://docs.expo.dev/versions/latest/), [Expo monorepos](https://docs.expo.dev/guides/monorepos/), [Expo Router setup](https://docs.expo.dev/router/installation/), [ESLint support](https://eslint.org/version-support/), [npm install-script settings](https://docs.npmjs.com/cli/v11/commands/npm-install-scripts/).

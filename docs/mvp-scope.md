@@ -1,25 +1,24 @@
 # MVP scope
 
-The goal is one consistent flow on web, Android, and iOS: sign in, write a journal entry, receive a scheduled reflection, correct it, and control retained memories.
+The target is one consistent writing-first product across web, Android and iOS, with an independent API and opted-in AI reflections. This documentation-only backend step implements none of the flows: no API app source, migrations, executable tests or cloud setup. Frontends and their unused legacy web API/server placeholders remain untouched.
 
-## Required
+## Acceptance order
 
-- Authentication and session recovery on web/mobile.
-- Create, read, edit, and delete personal journal entries.
-- Durable delayed reflection delivery with a visible pending/failed state.
-- Read reflections and preserve user corrections separately.
-- Explicitly approve and remove retained memories.
-- Timezone and reflection schedule settings.
-- Entry/account deletion that also handles outstanding jobs and retained data according to the documented rules.
-- Loading, empty, validation, error, and expired-session states.
-- Meaningful access-control tests, fictional AI evaluations, and an end-to-end demo.
+1. **Text writing first:** real local Supabase Auth/Postgres save/read/edit/delete with two users, replay/creation equality, expected revisions, cleared-content replay tombstones and ownership tests. Both clients will use bearer tokens; API freshly verifies identity and active profiles, with RLS/grants/validated RPCs. AI downtime must not prevent saves. No frontend edits are required for the backend proof.
+2. **Safe opt-in jobs before AI:** only explicitly opted-in entry plus eligible job is atomic. Test next-local-calendar-morning resolution using UTC storage, IANA timezone, morning times `07:00`, `07:30`, `08:00` and tones `friend`, `mentor`, `future`, `diary` before enabling scheduling. Preference changes affect future jobs; edits invalidate old revisions. Bounded claims, leases/fencing, backoff and crash recovery must exist before first AI processing.
+3. **Independent HTTP generation:** backend tests use a fake independent AI HTTP service, never a production fallback. AI owner later implements real `services/ai`; no provider/model is selected. Versioned authenticated `POST /v1/reflections:generate` takes entry/revision/tone/bounded authorized context and returns letter/actions/provenance. API owns all DB writes/queue/finalization/deletion; AI gets no DB admin keys.
+4. **Explicit decisions:** read reflections; keep user corrections separate from generated letters; accept/reject suggestions explicitly and create owned todos unique to accepted suggestions. No automatic todos/memories. Explicitly approve/remove memories. Source deletion follows the proposed privacy-first cascade for reflections, source-linked memories and derived todos; standalone todos remain.
+5. **Deletion and second core input:** durably gate deleting accounts and retry owned product/storage/context cleanup before Auth deletion. Voice is the later second input proof: private Supabase Storage, owned metadata and transcription jobs, separate consent and user-reviewed transcript into the same text flow. No UI edits/native dependency upgrades are authorized here.
+6. **Client integration/release:** later separately authorize independent API-origin, bearer, `/api/v1` client and frontend env-example migration. Test loading/empty/errors/expired sessions and the same core behavior on supported clients/native previews before beta.
 
-The first usable vertical slice can process a reflection immediately in staging to validate the pipeline. The final MVP uses the durable schedule; production must not depend on a phone timer or request continuing after it has returned.
+All gates need meaningful tests, not fake success responses. API-only `apps/api`, frontend and AI service deployment/tests/environments are separate within one monorepo/root lockfile. Public health is `/api/health/live` and bounded config/DB-schema `/api/health/ready`, independent of AI and without secrets; protected dependency/queue status is later. Exact browser CORS is not authentication; no private response caching.
 
-## Deferred
+A fictional local/staging accelerated rehearsal may be explicitly enabled only after durable scheduling/recovery gates; it does not validate next-morning semantics. No production forced demo delivery, phone timers or post-response background work as durability guarantees.
 
-Social features, shared journals, billing, offline synchronization, complex notifications, attachments, multiple AI providers, and custom native platform modules. Store submission comes after beta validation. Docker packaging is optional after apps launch.
+## Deferred / optional
 
-## Decisions to settle before implementation
+Full patterns and Life Film, social/shared journals, billing, offline synchronization, complex notifications, broad attachments, multiple providers and custom native modules are outside this slice. Later analytics must use actual authorized data; fake counts are never acceptable. Voice is a later core proof, not a generic attachment feature. RAG is optional and requires bounded user-scoped source/provenance and deletion contracts if added. Store submission follows beta and explicit release authorization; Docker packaging is optional after services launch.
 
-Exact reflection schedule choices, text and memory limits, retention of memories after source deletion, AI provider/model, and the first beta platform. The draft API and build plan identify the owners who confirm these. No vendor subscription or app-store identifier has been registered.
+## Settled design and remaining implementation choices
+
+Settled here: separate API/AI ownership and deploys, first-party bearer product auth, writing-first gates, prototype tone/morning options, replay/revision/tombstone semantics and proposed privacy-first source cascades. Before enabling features, freeze payload/context limits, exact DST gap/overlap policy in the tested resolver, suggestion decision conflicts, credential version/rotation, provider/model/retention and first beta platform with their owners. No subscription/cloud/store registration happens here. Do not claim end-to-end encrypted AI or perfect safety; transcription consent is separate and outputs need review.
