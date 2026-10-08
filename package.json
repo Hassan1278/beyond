@@ -16,6 +16,12 @@
   "scripts": {
     "dev:web": "npm run dev --workspace=@beyond/web",
     "dev:mobile": "npm run dev --workspace=@beyond/mobile",
+    "dev:api": "npm run dev --workspace=@beyond/api",
+    "build:api": "npm run build --workspace=@beyond/api",
+    "lint:backend": "npm run lint --workspace=@beyond/shared && npm run lint --workspace=@beyond/api",
+    "typecheck:backend": "npm run typecheck --workspace=@beyond/shared && npm run typecheck --workspace=@beyond/api",
+    "test:backend": "vitest run --project backend",
+    "test:api:smoke": "node tests/api-health-smoke.mjs",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "format": "prettier --write .",

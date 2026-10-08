@@ -6,23 +6,25 @@ Beyond will provide a website and a native Android/iOS app for writing-first jou
 
 ## Current state
 
-Step001 is a **docs-first backend milestone** updating the configuration/planning scaffold created on 3 October 2026. Existing dependency/workspace manifests, runtime configuration, frontend environment examples and CI remain unchanged at that milestone; the root `.env.example` documentation overview is updated. Empty feature folders are tracked using `.gitkeep`.
+Step001 is the **historical docs-first architecture commit `93e473b`**, updating the configuration/planning scaffold created on 3 October 2026 without adding product implementation. It is not the current source inventory. Empty deferred feature folders still use `.gitkeep`.
 
-The authorized architecture now supersedes the combined web/API design: target `apps/api` is API-only Next.js Node handlers/server modules, independently deployed from the untouched frontends; `services/ai` is reserved for the AI owner. Step001 adds no product implementation: no API app source, SQL migrations, executable product tests, generated assets or cloud setup. Existing unused web API/server placeholders remain legacy and are not running or removed. The user has already authorized architecture-first work followed by backend/environment implementation with small validated local commits; hosted actions are not authorized.
+Step002 currently contains only an API-only Next.js Node health/configuration foundation in `apps/api`, HTTP envelope helpers, portable shared health/error and writing INPUT schemas, and adjacent executable unit tests. Public `GET /api/health/live` is a real handler. `GET /api/health/ready` returns `503` unless writing configuration is valid and the actual required `api_schema_ready` database RPC succeeds with JSON boolean `true`; no SQL migration or RPC implementation has been added. There is no product auth, `/api/v1` endpoint, persistence or real Auth/Postgres writing proof. The writing acceptance gate is not met.
 
-Development, API-specific checks and builds require foundation implementation. Current CI is scaffold dependency/formatting validation, not application acceptance. The [plain-text backend change log](docs/backend-changes.txt) records actual validation and environment blockers; milestone documentation is not an execution report.
+The architecture supersedes the combined web/API design: API and frontends deploy independently; `services/ai` remains reserved for the AI owner and unimplemented. Frontends and their unused legacy web API/server placeholders remain untouched. The user has already authorized backend/environment implementation with small validated local commits; hosted actions are not authorized.
+
+Root `dev:api`, `lint:backend`, `typecheck:backend`, `test:backend`, `build:api` and `test:api:smoke` scripts and the `backend` project in `vitest.config.ts` exist. Main verified exact Node.js `24.20.0` / npm `11.19.0` and locally validated backend lint/types, all 300 API/shared unit tests in seven files, the Next.js `16.3.8` production build with only dynamic health routes, and production HTTP health smoke checks. Smoke covers liveness `200` and unconfigured readiness `503`, both with no-store safe envelopes; it is not database acceptance. CI now configures backend lint/types/unit/build/smoke after existing dependency/format checks, but remote CI has not run. The [plain-text backend change log](docs/backend-changes.txt) remains main's record of detailed validation and environment blockers.
 
 ## Workspaces
 
-| Path              | Responsibility and status                                                        |
-| ----------------- | -------------------------------------------------------------------------------- |
-| `apps/web`        | Existing `@beyond/web` frontend scaffold; legacy backend placeholders untouched  |
-| `apps/mobile`     | Existing `@beyond/mobile` Expo / React Native scaffold for Android and iOS       |
-| `packages/shared` | Existing `@beyond/shared` scaffold for portable types, validation and API client |
-| `apps/api`        | Target independent API-only Next.js Node service; not added/implemented here     |
-| `services/ai`     | Target independent AI HTTP service, reserved for AI owner; not implemented here  |
+| Path              | Responsibility and status                                                                    |
+| ----------------- | -------------------------------------------------------------------------------------------- |
+| `apps/web`        | Existing `@beyond/web` frontend scaffold; legacy backend placeholders untouched              |
+| `apps/mobile`     | Existing `@beyond/mobile` Expo / React Native scaffold for Android and iOS                   |
+| `packages/shared` | Portable health/error and writing INPUT schemas/tests; clients and resource outputs deferred |
+| `apps/api`        | Existing `@beyond/api` health/config foundation and unit tests; product API deferred         |
+| `services/ai`     | Target independent AI HTTP service, reserved for AI owner; not implemented here              |
 
-One monorepo and root lockfile remain; adding target workspaces/scripts is a later coordinated task. Database configuration and future RLS/grants/RPC migrations live in `supabase/`; future cross-system tests in `tests/` and fictional AI evaluation cases in `evals/`. Each service has separate deployment, tests and environment.
+One monorepo and root lockfile remain. API lock integration is complete: only `apps/api` metadata and its workspace link were added, with existing pins unchanged. Full isolated npm install completed after repair of interrupted Zod/SWC files, but clean `npm ci` failed under host bulk-delete protection, so clean-install reproducibility remains unverified. No vulnerability audit is claimed; pinned ESLint/transitive deprecation warnings remain in main's log. The root `vitest.config.ts` module-native future warning is non-failing follow-up, not suppressed here. `apps/api/.env.example` documents writing-only configuration; frontend examples remain untouched legacy. Database configuration and deferred RLS/grants/RPC migrations live in `supabase/`; `tests/api-health-smoke.mjs` exists, while real Auth/Postgres cross-system acceptance tests in `tests/` and fictional AI evaluations in `evals/` remain future work. Each service has separate deployment, tests and environment.
 
 ## Getting started when tooling is available
 

@@ -55,3 +55,34 @@ Unmodified frontend environment examples still show combined-web server/provider
 
 Commit:
 Prepared for the authorized local documentation commit: docs(backend): define independent services and writing-first gates. This entry travels in that commit; verify the actual hash in Git history. No push, hosted migration or deployment.
+
+step002
+Title: Add independent API health/configuration and portable writing input foundation
+Date: 2026-10-08
+Status: Health/contract foundation validated and prepared for local commit. Not a completed writing flow.
+
+Affected areas:
+- apps/api: API-only Next workspace, exact existing pins, local environment example, strict lazy server configuration, health handlers and unit tests.
+- packages/shared/src: portable strict entry input, health/error schemas, inferred types and contract tests; packages/shared/eslint.config.mjs supplies lint configuration.
+- Root package.json and vitest.config.ts: backend-scoped development, lint/typecheck/test/build entry points and test project. tests/api-health-smoke.mjs proves built health handlers over loopback HTTP, not database acceptance; .github/workflows/ci.yml runs validated backend checks and smoke test.
+- Root package-lock.json: only API workspace metadata and its link added; existing package entries/pins unchanged compared with architecture commit.
+- AGENTS.md, README.md, .env.example and existing docs: distinguish implemented foundation from target product acceptance; no frontend edits.
+
+Decisions:
+- Create input permits reflection_opt_in false only until scheduling prerequisites pass. Text preserves exact whitespace, rejects blank/overlong text, NUL and unpaired Unicode; maximum 20000 UTF-16 code units. PATCH requires integer expected revision 1..2147483647. Strict bodies reject owner injection and unknown fields.
+- Writing config requires a publishable key, Supabase HTTPS origin (loopback HTTP allowed) and exact HTTPS browser origins (loopback HTTP allowed); no AI/admin/job credential requirement.
+- Public process liveness has no DB/AI call. Bounded readiness performs the required api_schema_ready RPC and accepts only boolean true; missing configuration/schema/dependency errors return generic no-store 503, not fake ready. RPC/migration is deliberately not implemented in this foundation.
+- Error envelopes use safe fixed messages and generated request_id; no private content/key logging. Product auth, CORS/preflight middleware, entries/database, jobs, todos, AI and voice remain unimplemented.
+
+Validation so far:
+- Static independent code review; corrected PostgreSQL-incompatible text acceptance and added real readiness-route unit wiring tests.
+- Official Node24.20.0 archive SHA-256 verified against release checksum; bundled npm11.19.0 confirmed. All installs stay in isolated runtime workspace, not user/global environment.
+- Prettier3.9.9 formatting and git diff --check passed on current owned files.
+- Direct Node assertions for config/liveness/readiness passed using fixture HTTP results; not live database acceptance.
+- Initial Vitest execution could not load four suites because an interrupted isolated install lacked Zod files. Repaired only missing exact-pin files from a complete isolated install, without deleting files. Final suite PASS: 7 files, 300 tests. Full backend typecheck and lint both PASS in the refreshed isolated repository mirror.
+- npm install completed in the isolated repository mirror, but npm ci clean deletion was blocked by host bulk-delete protection. Cleanup warnings leave ignored transient install directories; no cleanup was attempted. Clean-install reproducibility remains unverified and must be checked in CI. Existing repository dependency pins remain unchanged.
+- First API build failed on a truncated Windows SWC binary left by interrupted install. Repaired exact-pin compiler files from the complete isolated install; final production build PASS with only dynamic /api/health/live and /api/health/ready routes. Production HTTP smoke PASS: liveness 200, unconfigured readiness 503, both no-store with safe envelopes and generated request IDs. Server stopped after test.
+- Existing pinned ESLint/transitive packages emitted deprecation warnings; no dependency upgrade performed. These warnings are not a vulnerability audit. CI backend lint/typecheck/unit/build/production-health steps added after local checks passed; remote CI has not run.
+
+Blockers and remaining work:
+Docker Desktop Linux engine is unavailable; WSL commands remain restricted, so real Supabase Auth/Postgres acceptance cannot run. Clean npm ci remains a separate host/CI validation blocker, not a claimed pass. Final root format:check in the Windows mirror flagged only 11 untouched baseline files with Git-converted CRLF; read-only Prettier check with end-of-line auto passed those files. Frontend/baseline files were not changed to normalize line endings. Owned new/edited files pass default formatting; Linux CI must confirm the root format/dependency gates. Final backend typecheck/lint/unit300/production HTTP checks passed; production build passed. These checks support the limited foundation commit, not real writing acceptance. Next product work requires migrations/RLS/grants/validated RPCs, verified bearer/active-profile auth and real two-user writing/replay/revision/deletion tests. Keep AI/voice deferred. No push, cloud setup or paid AI call.

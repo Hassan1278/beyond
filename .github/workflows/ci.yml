@@ -32,4 +32,16 @@ jobs:
         run: npm run check:deps
       - name: Check documentation and configuration formatting
         run: npm run format:check
-      # Foundation work will add lint, types, tests, web build, and mobile export.
+      - name: Check backend lint
+        run: npm run lint:backend
+      - name: Check backend types
+        run: npm run typecheck:backend
+      - name: Run backend unit tests
+        run: npm run test:backend
+      - name: Build independent product API
+        run: npm run build:api
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Smoke-test production API health
+        run: npm run test:api:smoke
+      # Real database acceptance, frontend builds and native exports remain separate gates.

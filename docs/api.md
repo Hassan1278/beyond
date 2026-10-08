@@ -1,6 +1,14 @@
 # Draft API contract
 
-This is the authorized target, not running endpoints. This documentation-only step adds no API app source, migrations or executable tests. `apps/api` will be an independently deployed API-only Next.js Node.js service; `apps/web` API/server placeholders remain legacy, unused and untouched. The API/shared owner confirms exact schemas and bounds before implementation.
+This combines the limited current foundation with the authorized product API target. Step001 is the historical documentation-only architecture commit `93e473b`, not the current source inventory. Step002 contains API-only Next.js Node.js health handlers/configuration and portable shared INPUT/health/error schemas with adjacent executable unit tests. Product routes and database behavior remain planned. `apps/web` API/server placeholders remain legacy, unused and untouched; `services/ai` implementation remains reserved for the AI owner.
+
+### Implemented status: health routes, not product routes
+
+Only public `GET /api/health/live` and `GET /api/health/ready` have real dynamic Node handlers. Liveness returns `200` with `{ data: { status: 'alive' } }` without config, database or AI calls. Readiness validates writing configuration, then POSTs `{}` to `/rest/v1/rpc/api_schema_ready` with the publishable key and a 1500 ms deadline. Only a successful actual RPC response with JSON boolean `true` within the deadline yields `200` with `{ data: { status: 'ready' } }`; missing/invalid config, missing RPC, errors, timeouts and other results yield generic `503` `not_ready`. Both routes use `Cache-Control: no-store` and generated UUID `X-Request-Id`; error bodies contain matching `request_id`. No SQL migration or RPC implementation has been added.
+
+Config parsing requires HTTPS Supabase origins except HTTP loopback (`localhost`, `127.*`, `[::1]`), a `sb_publishable_` key and comma-separated exact canonical browser origins. Browser origins require HTTPS except local loopback development, with no wildcard, credentials, path, trailing slash, query or fragment. This is config/allowlist parsing, not product CORS/preflight middleware or auth.
+
+Shared exports contain health/error envelopes and writing INPUT/UUID-params schemas only. Adjacent executable unit tests, root backend lint/typecheck/test/build/smoke scripts and the Node `backend` project in `vitest.config.ts` exist; API root-lock integration is complete with only API metadata/workspace link added and existing pins unchanged. Main locally validated the pinned runtime, backend lint/types/unit tests, the Next.js `16.3.8` production build with only dynamic health routes, and `npm run test:api:smoke` (`tests/api-health-smoke.mjs`), proving production liveness `200` and unconfigured readiness `503` with no-store safe envelopes; detailed results remain in `docs/backend-changes.txt`. CI configures backend lint/types/unit/build/smoke after dependency/format checks, but remote CI has not run. Clean-install reproducibility remains unverified after host bulk-delete protection blocked clean `npm ci`; no vulnerability audit is claimed. No product auth, `/api/v1` handlers, persistence, migrations/RLS/grants/RPCs, resource output/client or AI HTTP schemas exist. Writing acceptance remains unmet, and smoke does not prove database readiness. The following identity, product-route and persistence rules are targets.
 
 ## Transport and identity
 
@@ -12,12 +20,19 @@ This is the authorized target, not running endpoints. This documentation-only st
 - `401` means missing/invalid authentication; inactive/deleting profiles are denied with a safe `403`. `400` is invalid input, `409` a revision/idempotency conflict, `429` a request limit and `500` a safe server error. Missing, deleted and other-user resources return `404` without revealing existence.
 - Private responses use `Cache-Control: no-store` and must not enter shared/CDN/framework caches. Do not log bearer tokens, private content or secrets.
 
-## Planned routes
+## Implemented health routes
+
+| Method | Path                | Implemented behavior                                                                                        |
+| ------ | ------------------- | ----------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/health/live`  | Public dependency-free `200` liveness handler                                                               |
+| GET    | `/api/health/ready` | Public config + required `api_schema_ready` RPC check; `503` unless actual RPC succeeds with boolean `true` |
+
+The required RPC is not implemented in SQL. Health handlers do not establish product acceptance.
+
+## Planned product routes (no handlers yet)
 
 | Method | Path                                                   | Target behavior                                                                                                    |
 | ------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| GET    | `/api/health/live`                                     | Public cheap process liveness; no DB/AI calls or sensitive details                                                 |
-| GET    | `/api/health/ready`                                    | Public bounded required-config and DB-schema checks; generic ready/not-ready, independent of AI                    |
 | POST   | `/api/v1/entries`                                      | Save owned text with replay semantics; atomic entry/job only when explicitly opted in and scheduling gate passed   |
 | GET    | `/api/v1/entries`                                      | Paginated live owned entries; no tombstones                                                                        |
 | GET    | `/api/v1/entries/:id`                                  | One live owned entry                                                                                               |
@@ -44,7 +59,16 @@ Readiness must bound DB latency and check expected schema compatibility without 
 
 ## Resource and replay semantics
 
-Entry: ID, text, revision, UTC timestamps and reflection scheduling state. Creation accepts text, an idempotency key and explicit reflection opt-in; the server derives ownership and due time. Define all content/context limits in portable shared validation before implementation.
+Planned entry output: ID, text, revision, UTC timestamps and reflection scheduling state; no resource output schema or persistence exists yet.
+
+Implemented shared writing INPUT contracts:
+
+- `createEntryBodySchema` is a strict object requiring `text`, UUID `idempotency_key` and explicit literal `false` `reflection_opt_in`. Missing opt-in, `true`, ownership/scheduling fields and unknown keys are rejected; no defaults or coercion enable scheduling.
+- `text` is a nonblank string of 1..20000 UTF-16 code units, including whitespace in the length. Leading, trailing and internal whitespace are preserved exactly; trimming only checks blankness. NUL and unpaired UTF-16 surrogates are rejected; valid paired Unicode is preserved. No normalization or byte/code-point count is applied.
+- `patchEntryBodySchema` requires the same `text` and integer `expected_revision` 1..2147483647, with no opt-in or extra fields. `entryParamsSchema` requires an exact UUID `id` object.
+- Health/error schemas validate the exact success envelopes or `error` with stable code, string message and UUID `request_id`; HTTP helpers choose safe fixed messages. These schemas/tests do not implement auth, product routes, replay, revision increments or database constraints.
+
+Later opted-in creation requires a contract extension only after the scheduling gates; the server will derive ownership and due time. Remaining product/context/AI bounds and output contracts must be agreed before their implementation.
 
 Enforce unique `(owner_id, idempotency_key)`. For LIVE entries, store the immutable ORIGINAL validated creation payload separately from mutable entry fields and compare retries only against that payload. An equivalent retry returns the CURRENT persisted entry state without reverting later edits or duplicating jobs. A different original payload with the same live key returns `409`. Updates require the expected revision and increment it atomically; stale writes conflict. Saves without opt-in create no AI job and must work during AI downtime.
 
@@ -56,13 +80,13 @@ Memory: ID, approved text, owned source links where derived, timestamp. Todo: ID
 
 Settings: prototype tone `friend | mentor | future | diary`, morning time `07:00 | 07:30 | 08:00`, validated IANA timezone, explicit opt-in. Store UTC due times. Enable next-local-calendar-morning scheduling only after resolver tests for UTC conversion, day boundaries and DST gaps/overlaps. Preference changes affect future jobs; edits invalidate the old revision. Never force production demo delivery.
 
-## Independent AI HTTP contract
+## Planned independent AI HTTP contract
 
-The AI owner implements `services/ai`; the backend only implements its API-side client and tests. `POST /v1/reflections:generate` is server-to-server, protected by a versioned credential represented by API-side `AI_SERVICE_TOKEN`. Agree credential version/rotation and shared request/response schemas before processing; reject absent, invalid or unsupported credentials.
+The AI owner will implement `services/ai`; the backend will implement only its API-side client and test fixtures. Neither implementation nor shared AI HTTP schemas exist yet. `POST /v1/reflections:generate` is server-to-server, protected by a versioned credential represented by API-side `AI_SERVICE_TOKEN`. Agree credential version/rotation and shared request/response schemas before processing; reject absent, invalid or unsupported credentials.
 
 Input: entry ID/text, source revision, selected tone and bounded context explicitly authorized by the API for that owner, with source references. Output: generated letter, stable action suggestions and provenance tying output to the supplied revision/sources. AI owns prompts/provider calls and optional RAG/transcription; no database admin key, database write, auto-todo or auto-memory authority. Provider key/model configuration belongs only in the AI service. No provider/model is selected.
 
-The product API owns queue leases/fencing, backoff/recovery and validated finalization. Before saving output, the database rechecks active owner, live source revision, job eligibility and lease fencing token. A fake independent AI HTTP service exercises timeout, malformed output, unavailable service and late/stale result tests; it is not a production fallback. A real AI service follows these gates later.
+The product API owns queue leases/fencing, backoff/recovery and validated finalization. Before saving output, the database rechecks active owner, live source revision, job eligibility and lease fencing token. A future fake independent AI HTTP service will exercise timeout, malformed output, unavailable service and late/stale result tests; it is not a production fallback. A real AI service follows these gates later.
 
 Voice is a later second core input proof: private Storage, owned media metadata, transcription job kind and separate transcription consent, then a reviewed transcript entering the same text flow. No voice route/source is implemented here. Optional RAG requires user-scoped source/provenance and deletion contracts before use.
 
@@ -70,4 +94,4 @@ Voice is a later second core input proof: private Storage, owned media metadata,
 
 Writing-first gate: real local Supabase Auth/Postgres, bearer verification/active profiles, grants/RLS/RPC checks, two-user save/read/edit/delete, equal/unequal replay and revisions, private no-cache responses, exact-origin CORS, AI-down saves. Before first AI processing: atomic opted-in entry/job, tested next-morning resolver, bounded leases/fencing, backoff/recovery and stale/deleted-source finalization tests. Then test explicit action acceptance/rejection, repeat acceptance returning the same surviving todo's current state, retained decisions and `409` after explicit todo deletion, unique owned todos, separate corrections and memory approval/removal.
 
-Account deletion needs a deleting gate and durable retry of product/storage/context cleanup before Auth deletion; test interrupted cleanup later. No runtime tests have run or exist at this documentation step. Frontend examples/clients require a separately authorized origin, bearer and `/api/v1` migration; do not edit them here.
+Account deletion needs a deleting gate and durable retry of product/storage/context cleanup before Auth deletion; test interrupted cleanup later. API/shared unit tests and production health smoke are implemented and locally validated by main, but no real Auth/Postgres writing or account-deletion acceptance tests exist. Foundation validation does not satisfy those gates; detailed command outcomes remain in main's `docs/backend-changes.txt`. Frontend examples/clients remain untouched legacy and require a separately authorized origin, bearer and `/api/v1` migration.
