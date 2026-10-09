@@ -1,0 +1,71 @@
+import { useState, type ReactElement } from 'react';
+import { SCHOOLS } from '../../data/site';
+
+export function SchoolsPage(): ReactElement {
+  const [email, setEmail] = useState('');
+  const [msg, setMsg] = useState('');
+
+  return (
+    <>
+      <section className="sec night">
+        <div className="wrap">
+          <div className="sec-head">
+            <p className="eyebrow">For institutions</p>
+            <h2>Beyond for schools and teams.</h2>
+            <p className="sub">
+              Universities, schools and employers can offer Beyond to the people they look after.
+              Each person gets their own private space.
+            </p>
+          </div>
+          <div className="school-grid">
+            {SCHOOLS.map((s) => (
+              <article key={s.big}>
+                <p className="big">{s.big}</p>
+                <h3>{s.title}</h3>
+                <p>{s.body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="sec night join" style={{ paddingTop: 0 }}>
+        <div className="wrap">
+          <p className="eyebrow">Beta</p>
+          <h2 style={{ marginTop: 20 }}>Tonight, write without an audience.</h2>
+          <p className="sub">
+            We&rsquo;re opening a small beta for students. Tell us where to reach you, and help
+            shape what Beyond becomes.
+          </p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setMsg(
+                /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+                  ? 'Thanks! This is a demo page, so nothing was sent yet.'
+                  : 'Enter an email address like you@university.edu.',
+              );
+            }}
+          >
+            <label className="sr" htmlFor="betaEmail">
+              Email
+            </label>
+            <input
+              id="betaEmail"
+              type="email"
+              value={email}
+              placeholder="you@university.edu"
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <button type="submit" className="btn btn-light">
+              Join the beta
+            </button>
+          </form>
+          <p className="msg" aria-live="polite">
+            {msg}
+          </p>
+        </div>
+      </section>
+    </>
+  );
+}

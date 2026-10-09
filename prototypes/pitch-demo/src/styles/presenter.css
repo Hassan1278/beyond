@@ -1,0 +1,401 @@
+/* The pitch view: flow list on the left, one live phone in the middle, notes on
+   the right. "All screens" lays every phone out side by side. */
+
+.top {
+  max-width: 1280px;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px 20px;
+  flex-wrap: wrap;
+  padding-block: 18px;
+}
+.logo {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  color: var(--paper);
+  text-decoration: none;
+}
+.tag {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: var(--moon);
+  border: 1px solid var(--night-line);
+  border-radius: 30px;
+  padding: 4px 10px;
+}
+.modes {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--night-2);
+  border: 1px solid var(--night-line);
+  border-radius: 30px;
+  margin-left: auto;
+}
+.modes button {
+  border: 0;
+  background: none;
+  border-radius: 30px;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: var(--mist);
+}
+.modes button[aria-selected='true'] {
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 600;
+}
+.top .link {
+  color: var(--mist);
+  text-decoration: none;
+  font-size: 14px;
+  background: none;
+  border: 0;
+  padding: 6px 0;
+}
+.top .link:hover {
+  color: var(--paper);
+}
+
+/* ------------------------------------------------------------- prototype */
+.proto {
+  max-width: 1280px;
+  margin: 10px auto 70px;
+  display: grid;
+  grid-template-columns: 220px auto minmax(0, 380px);
+  justify-content: center;
+  gap: clamp(28px, 4vw, 72px);
+  align-items: start;
+}
+.steps ol {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.steps button {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  color: var(--mist);
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 14.5px;
+  line-height: 1.35;
+}
+.steps button:hover {
+  color: var(--paper);
+}
+.steps .n {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+  padding-top: 2px;
+}
+.steps button[aria-current='step'] {
+  background: var(--night-2);
+  color: var(--paper);
+  box-shadow: inset 0 0 0 1px var(--night-line);
+}
+.steps .branch {
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  color: var(--dawn);
+  display: block;
+  margin-top: 2px;
+}
+.stage {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+}
+.pager {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.pager button {
+  border: 1px solid var(--night-line);
+  background: var(--night-2);
+  border-radius: 30px;
+  padding: 8px 16px;
+  font-size: 13.5px;
+  color: var(--mist);
+}
+.pager button:hover:not(:disabled) {
+  color: var(--paper);
+  border-color: var(--moon);
+}
+.pager button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.pager .pos {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+  min-width: 56px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.info {
+  display: grid;
+  gap: 18px;
+  padding-top: 36px;
+  align-content: start;
+}
+.info h2 {
+  font-size: clamp(32px, 3.4vw, 46px);
+  letter-spacing: -0.055em;
+  line-height: 0.95;
+  font-weight: 800;
+}
+.info .lead {
+  color: var(--mist);
+  font-size: 16.5px;
+  line-height: 1.6;
+  max-width: 44ch;
+}
+.info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+}
+.info li {
+  padding: 11px 0;
+  border-top: 1px solid var(--night-line);
+  font-size: 14.5px;
+  color: #d3d2cc;
+  display: flex;
+  gap: 12px;
+  line-height: 1.45;
+}
+.info li::before {
+  content: '';
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  margin-top: 8px;
+}
+.demo-box {
+  border: 1px dashed var(--night-line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+}
+.demo-box .eyebrow {
+  font-size: 11px;
+}
+.demo-box .row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.demo-box p {
+  color: var(--mist);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.chipbtn {
+  border: 1px solid var(--night-line);
+  background: var(--night-2);
+  border-radius: 30px;
+  padding: 7px 13px;
+  font-size: 13px;
+  color: var(--mist);
+}
+.chipbtn:hover:not(:disabled) {
+  color: var(--paper);
+  border-color: var(--moon);
+}
+.chipbtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.chipbtn[aria-pressed='true'] {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--paper);
+}
+.chipbtn.start {
+  justify-self: start;
+}
+
+/* --------------------------------------------------------------- gallery */
+.all {
+  max-width: 1280px;
+  margin: 10px auto 80px;
+}
+.all .intro {
+  color: var(--mist);
+  max-width: 60ch;
+  margin-bottom: 34px;
+  font-size: 15.5px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 56px 28px;
+  justify-items: center;
+}
+.g-item {
+  margin: 0;
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+  width: 100%;
+}
+.g-open {
+  cursor: pointer;
+  border-radius: 52px;
+  max-width: 100%;
+  transition: transform 0.2s;
+  border: 0;
+  background: none;
+  padding: 0;
+}
+.g-open:hover {
+  transform: translateY(-4px);
+}
+.g-item .screen * {
+  pointer-events: none;
+}
+.g-item figcaption {
+  display: grid;
+  gap: 4px;
+  text-align: center;
+  max-width: 320px;
+}
+.g-item figcaption .n {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.g-item figcaption b {
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+.g-item figcaption span:last-child {
+  color: var(--mist);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.g-item .phone {
+  width: 340px;
+}
+
+/* ------------------------------------------------------------- QR dialog */
+.qr-bg {
+  position: fixed;
+  inset: 0;
+  background: #0b0c0ee0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  border: 0;
+  width: 100%;
+}
+.qr {
+  background: var(--night-2);
+  border: 1px solid var(--night-line);
+  border-radius: 24px;
+  padding: 28px;
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+  max-width: 380px;
+  text-align: center;
+}
+.qr svg,
+.qr img {
+  width: 232px;
+  height: 232px;
+  background: var(--paper);
+  border-radius: 14px;
+  padding: 12px;
+}
+.qr h3 {
+  font-size: 21px;
+  letter-spacing: -0.03em;
+}
+.qr p {
+  color: var(--mist);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.qr code {
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  color: var(--moon);
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+/* ------------------------------------------------------------ responsive */
+@media (max-width: 1120px) {
+  .proto {
+    grid-template-columns: auto minmax(0, 380px);
+  }
+  .steps {
+    grid-column: 1/-1;
+    min-width: 0;
+  }
+  .steps .eyebrow {
+    display: none;
+  }
+  .steps ol {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    margin: 0;
+    padding-bottom: 6px;
+    scrollbar-width: thin;
+  }
+  .steps li {
+    flex: none;
+  }
+  .steps button {
+    display: flex;
+    gap: 8px;
+    white-space: nowrap;
+    border: 1px solid var(--night-line);
+    border-radius: 30px;
+    padding: 7px 14px;
+    font-size: 13.5px;
+  }
+  .steps .branch {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .proto {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+  .info {
+    padding-top: 0;
+  }
+  .modes {
+    margin-left: 0;
+    order: 3;
+    width: 100%;
+  }
+  .modes button {
+    flex: 1;
+  }
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
