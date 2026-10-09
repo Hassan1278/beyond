@@ -1,0 +1,90 @@
+/* Entrances and exits.
+
+   One easing curve throughout, so every move on the site feels like the same
+   hand. Distances stay short: the point is that something arrived, not that it
+   travelled. Everything here is switched off under prefers-reduced-motion at
+   the bottom of the file. */
+
+:root {
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-in: cubic-bezier(0.55, 0.06, 0.68, 0.19);
+}
+
+/* ------------------------------------------------------------ page change */
+.page {
+  animation: page-in 0.42s var(--ease-out) both;
+}
+.page.is-leaving {
+  animation: page-out 0.22s var(--ease-in) both;
+  pointer-events: none;
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+@keyframes page-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+/* --------------------------------------------------------------- reveals */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.55s var(--ease-out),
+    transform 0.55s var(--ease-out);
+}
+[data-reveal].in {
+  opacity: 1;
+  transform: none;
+}
+/* A heading can afford a touch more travel than a row of text. */
+[data-reveal='lead'] {
+  transform: translateY(26px);
+}
+
+/* -------------------------------------------------------------- presence */
+.swap-in {
+  animation: swap-in 0.34s var(--ease-out) both;
+}
+.swap-out {
+  animation: swap-out 0.26s var(--ease-in) both;
+}
+@keyframes swap-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+}
+@keyframes swap-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.99);
+  }
+}
+/* Two states crossfading in the same spot must not push each other around. */
+.swap-stack {
+  display: grid;
+}
+.swap-stack > .swap {
+  grid-area: 1 / 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page,
+  .page.is-leaving,
+  .swap-in,
+  .swap-out {
+    animation: none;
+  }
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

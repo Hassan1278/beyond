@@ -1,0 +1,371 @@
+/* Layouts specific to one page each, so no two pages read as the same
+   template. Loaded after site.css, which holds what they share. */
+
+/* ============================================================ the feed wall
+   The home page's loud moment. Copy on the left holds still while the wall on
+   the right refuses to. */
+.feed-sec {
+  padding-block: clamp(56px, 7vw, 96px);
+  border-top: 1px solid var(--night-line);
+  border-bottom: 1px solid var(--night-line);
+}
+.feed-layout {
+  max-width: var(--max);
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: clamp(28px, 5vw, 72px);
+  align-items: center;
+}
+.feed-copy {
+  display: grid;
+  gap: 20px;
+  align-content: center;
+}
+.feed-copy h2 {
+  font-size: clamp(40px, 5.4vw, 72px);
+}
+.feed-frame {
+  min-width: 0;
+}
+.quiet-state {
+  display: grid;
+  gap: 18px;
+  animation: settle 0.9s ease both;
+}
+.quiet-line {
+  font-size: clamp(40px, 5.4vw, 72px);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 0.95;
+  color: var(--dawn);
+}
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+/* Once it is quiet, the section itself exhales. */
+.feed-sec.is-quiet {
+  background: linear-gradient(180deg, var(--night), #101218);
+}
+
+/* ----------------------------------------------------------------- ticker */
+.ticker {
+  overflow: hidden;
+  border-bottom: 1px solid var(--night-line);
+  background: var(--night-2);
+  padding-block: 13px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+.ticker-run {
+  display: flex;
+  gap: 40px;
+  width: max-content;
+  animation: ticker 64s linear infinite;
+}
+.ticker:hover .ticker-run,
+.ticker:focus-within .ticker-run {
+  animation-play-state: paused;
+}
+@keyframes ticker {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+.tick-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 9px;
+  font-size: 14px;
+  color: var(--mist);
+  white-space: nowrap;
+}
+.tick-at {
+  font-weight: 600;
+  color: var(--paper);
+}
+.tick-n {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* ---------------------------------------------------------------- figures
+   One finding set large, the rest as a list: a hierarchy, not four tiles. */
+.lead-stat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: clamp(28px, 5vw, 72px);
+  align-items: end;
+  padding-bottom: 34px;
+  border-bottom: 1px solid var(--night-line);
+}
+.lead-num {
+  font-size: clamp(84px, 13vw, 190px);
+  font-weight: 800;
+  letter-spacing: -0.07em;
+  line-height: 0.82;
+  margin-top: 14px;
+}
+.lead-cap {
+  font-size: clamp(19px, 2.1vw, 26px);
+  line-height: 1.35;
+  color: var(--mist);
+  max-width: 24ch;
+  margin-top: 16px;
+}
+.lead-stat .dots {
+  width: clamp(180px, 22vw, 260px);
+  flex: none;
+}
+.findings {
+  margin: 0;
+  display: grid;
+}
+.findings > div {
+  display: grid;
+  grid-template-columns: minmax(96px, 150px) minmax(0, 1fr) clamp(140px, 18vw, 220px);
+  gap: clamp(18px, 3vw, 48px);
+  align-items: center;
+  padding-block: 22px;
+  border-bottom: 1px solid var(--night-line);
+}
+.findings dt {
+  font-size: clamp(32px, 3.6vw, 46px);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+.findings dd {
+  margin: 0;
+  color: var(--mist);
+  font-size: 16px;
+  line-height: 1.5;
+}
+/* Each dot is one student, and they answer in sequence. */
+.dots span {
+  transition: background 0.45s ease;
+}
+
+/* ------------------------------------------------------------ why: ledger */
+.why-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 80px);
+  align-items: end;
+  margin-bottom: clamp(40px, 5vw, 64px);
+}
+.why-head h2 {
+  font-size: clamp(40px, 5.6vw, 76px);
+}
+.ledger {
+  display: grid;
+  border-top: 1px solid var(--paper-line);
+}
+.ledger-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.8fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: clamp(18px, 3vw, 48px);
+  padding-block: 26px;
+  border-bottom: 1px solid var(--paper-line);
+  align-items: baseline;
+}
+.ledger-row h3 {
+  font-size: 21px;
+  letter-spacing: -0.025em;
+}
+.ledger-row .good,
+.ledger-row .short {
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.ledger-row .short {
+  color: var(--ink);
+}
+
+/* Beyond breaks the ledger: full-bleed, dark, nothing lined up with it. */
+.us-band {
+  border-top: 1px solid var(--night-line);
+}
+.us-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: clamp(28px, 5vw, 80px);
+  align-items: start;
+}
+.us-mark {
+  font-size: clamp(64px, 10vw, 150px);
+  letter-spacing: -0.07em;
+  line-height: 0.85;
+  margin-top: 12px;
+}
+.us-cols {
+  display: grid;
+  gap: 26px;
+  justify-items: start;
+}
+.us-cols p:not(.kicker) {
+  font-size: clamp(17px, 1.8vw, 21px);
+  line-height: 1.55;
+  color: #d6d5cf;
+  max-width: 46ch;
+}
+.us-cols .kicker {
+  color: var(--moon);
+  margin-bottom: 8px;
+}
+
+/* ----------------------------------------------------- privacy: a manifest */
+.manifest {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(20px, 4vw, 64px);
+  padding: clamp(22px, 3vw, 32px) 0;
+  border-top: 1px solid var(--night-line);
+  border-bottom: 1px solid var(--night-line);
+}
+.manifest .kicker {
+  color: var(--moon);
+  margin-bottom: 14px;
+}
+.manifest ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 11px;
+}
+.manifest li {
+  display: flex;
+  gap: 11px;
+  font-size: 15.5px;
+  line-height: 1.45;
+  align-items: baseline;
+}
+.manifest li::before {
+  flex: none;
+  font-family: var(--f-mono);
+  font-size: 13px;
+}
+.yeslist li {
+  color: var(--paper);
+}
+.yeslist li::before {
+  content: '\2713';
+  color: var(--ok);
+}
+.nolist li {
+  color: var(--mist);
+}
+.nolist li::before {
+  content: '\2715';
+  color: var(--alert);
+}
+.commitments {
+  margin: 0;
+  display: grid;
+  padding-top: 8px;
+}
+.commitments > div {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.7fr) minmax(0, 2fr);
+  gap: clamp(18px, 3vw, 48px);
+  padding-block: 22px;
+  border-bottom: 1px solid var(--night-line);
+  align-items: baseline;
+}
+.commitments dt {
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.commitments dd {
+  margin: 0;
+  color: var(--mist);
+  font-size: 15.5px;
+  line-height: 1.6;
+}
+
+/* ------------------------------------------------ schools: a divided band */
+.audiences {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(22px, 4vw, 56px);
+  border-top: 1px solid var(--night-line);
+  padding-top: 32px;
+}
+.audiences section {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding-left: clamp(18px, 3vw, 40px);
+  border-left: 1px solid var(--night-line);
+}
+.audiences section:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.audiences .big {
+  font-size: clamp(30px, 3.4vw, 44px);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--dawn);
+}
+.audiences p:not(.big) {
+  color: var(--mist);
+  font-size: 15px;
+  line-height: 1.55;
+}
+.join h2 {
+  font-size: clamp(44px, 7vw, 100px);
+  max-width: 13ch;
+  margin-inline: auto;
+}
+
+/* ------------------------------------------------ responsive for the above */
+@media (max-width: 1040px) {
+  .feed-layout,
+  .why-head,
+  .us-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .audiences {
+    grid-template-columns: 1fr;
+  }
+  .audiences section {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--night-line);
+    padding-top: 20px;
+  }
+  .audiences section:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+}
+@media (max-width: 820px) {
+  .ledger-row,
+  .commitments > div,
+  .findings > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .findings > div .dots,
+  .lead-stat .dots {
+    width: 100%;
+    margin-top: 10px;
+  }
+  .lead-stat {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+  .manifest {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 26px;
+  }
+}

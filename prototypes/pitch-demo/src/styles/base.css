@@ -1,0 +1,75 @@
+* {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background: var(--night);
+  color: var(--paper);
+  font-family: var(--f-display);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+[hidden] {
+  display: none !important;
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+:focus-visible {
+  outline: 2px solid var(--dawn);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+h1,
+h2,
+h3 {
+  margin: 0;
+  text-wrap: balance;
+}
+p {
+  margin: 0;
+}
+.eyebrow {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--moon);
+  margin: 0;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Presenter: a dark studio table. The app: edge to edge on the device. */
+body[data-mode='present'] {
+  padding-inline: clamp(16px, 4vw, 48px);
+  padding-block: env(safe-area-inset-top, 0px) env(safe-area-inset-bottom, 0px);
+}
+body[data-mode='app'] {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Native-feeling taps in the installed app. */
+body[data-mode='app'] button {
+  -webkit-tap-highlight-color: transparent;
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Beyond",
+  "short_name": "Beyond",
+  "description": "Say it tonight. Understand it tomorrow.",
+  "start_url": "./?mode=app#/app",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0c0e",
+  "theme_color": "#0b0c0e",
+  "categories": ["health", "lifestyle", "productivity"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
