@@ -126,3 +126,11 @@ Windows Git lacks usable private-repo credentials; existing WSL Git credentials 
 
 Remaining work:
 Durable jobs/IANA scheduling/fencing/retries, API-side independent AI client, real AI-owner service, explicit accepted-action todos, approved memory, private reviewed voice and durable account cleanup remain unimplemented. Frontend integration remains separately owned. No hosted DB change/deployment/paid AI calls.
+
+Publication and final reproducibility update:
+PASS: authorized backend implementation commit published to feat/backend-foundation using existing WSL credentials; remote feature ref verified, main unchanged. No merge/force-push/PR/deployment.
+PASS: GitHub Actions run37958461995 completed SUCCESS for the source implementation commit. Both jobs passed Linux clean root-lock npm ci, dependency resolution, root formatting, backend lint/types/unit536, ordinary repository Next production build (no Windows mirror config adjustment), health smoke, real local pgTAP123 and production Auth/Postgres writing15 groups, with CI stack cleanup.
+Clean-install reproducibility is now VERIFIED in Linux CI. The local Windows bulk-delete guard remains an environment limitation, not a project acceptance blocker. No vulnerability audit is claimed.
+PASS: local test Auth fixture count0; stopped only Beyond Supabase and retained local Docker-volume data. Docker Desktop/unrelated existing services remain running/untouched. Restart Beyond using npm run db:start (writing-only exclusions).
+PASS: final owned formatting and git diff --check. Frontend paths and root package-lock remain unchanged.
+Final documentation-record commit follows the code commit and will be pushed to the same feature branch; the successful CI run above applies to the implementation source, not an unexecuted future commit.
