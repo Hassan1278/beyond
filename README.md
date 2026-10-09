@@ -8,7 +8,7 @@ Beyond targets web and native Android/iOS writing-first journaling, opted-in del
 
 The private-backend milestone on `feat/private-backend` adds settings, explicitly approved memories, standalone todos, a portable authenticated API client, and recoverable account deletion to the existing journal API. See [current product API and privacy limits](docs/product-api.md) for routes, migrations, enablement and acceptance checks.
 
-The writing backend and pitch prototype were merged into `main` at `6ef74e9`; [main CI](https://github.com/Hassan1278/beyond/actions/runs/37963026068) passed both jobs. Backend feature-branch checks must be evaluated separately. The prototype is in `prototypes/pitch-demo` and is independent of the product API. `apps/web` and `apps/mobile` remain undesigned scaffolds.
+The writing backend and pitch prototype were merged into `main` at `6ef74e9`. Private milestone source `f155dc6` passed [all three feature CI jobs](https://github.com/Hassan1278/beyond/actions/runs/37970549760): 600 unit tests, 186 database checks, 20 real HTTP acceptance groups and the independent prototype's regression/render/build checks. The prototype is in `prototypes/pitch-demo` and is independent of the product API. `apps/web` and `apps/mobile` remain undesigned scaffolds.
 
 Production AI processing/reflection jobs, voice, patterns/Life Film and frontend integration remain unimplemented. Journal creation remains explicitly non-opted-in; no AI credentials or reachability are required. Account deletion is a separate optional privileged feature, disabled until its credentials and scheduler are configured.
 
