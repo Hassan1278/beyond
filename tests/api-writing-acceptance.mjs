@@ -245,6 +245,8 @@ function json(method, body, headers = {}) {
 }
 
 function statusIs(result, expected, errorCode) {
+  if (result.response.status !== expected)
+    console.error(`HTTP assertion: expected ${expected}, received ${result.response.status}.`);
   assert.equal(result.response.status, expected, 'Unexpected HTTP status.');
   if (errorCode !== undefined) {
     check(result.body?.error?.code === errorCode, 'Unexpected safe API error code.');
