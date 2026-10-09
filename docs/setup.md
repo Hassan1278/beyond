@@ -2,13 +2,13 @@
 
 ## Status and tools
 
-This is setup guidance, not an execution report. Step001 is the historical documentation-only architecture commit `93e473b`. Step002 now includes `apps/api` health/configuration source, its manifest/config/environment example, shared writing INPUT/health/error schemas and adjacent executable unit tests. No product auth, `/api/v1` handlers, persistence, SQL migrations/RPC implementation, AI service or cloud setup exists; writing acceptance is not met. Frontends and legacy web API/server placeholders remain untouched. Root backend scripts/test configuration and production health smoke exist; API root-lock integration is complete with only API metadata/workspace link added and existing pins unchanged. The continuing backend/environment authorization does not authorize hosted actions.
+This is guidance, not a fresh execution report. Step001 (`93e473b`) is historical architecture-only work; step002 established health/configuration/input schemas/unit tooling. **Step003 implements non-opted-in writing**, fresh bearer/active-profile checks, entries CRUD/resource/cursor contracts, profiles/Auth trigger/backfill, RLS/grants/validated RPCs and real schema readiness. Frontends/legacy placeholders and AI implementation remain untouched; no cloud setup is claimed.
 
-Use Git, Node.js `24.20.0` and npm `11.19.0`, recorded by `.nvmrc`, package manager and engines, with existing pins and one root lockfile. Consult `docs/backend-changes.txt` for actual validation and environment blockers; session-specific command availability is not a repository-wide prohibition.
+Use Git, Node.js `24.20.0`, npm `11.19.0`, existing pins and one root lockfile; step003 adds no package. Existing WSL GitHub credentials are verified for read/push; Windows credentials remain unavailable. Remote `main` advanced to `2c9fa7e`, beyond the original base. Backend/local Docker work, small validated commits and feature-branch push are authorized; no feature push is claimed yet. Automatic main merge/overwrite/force-push, hosted DB/deploy/account actions, PR creation, frontend/AI-owner work and native release are not authorized. Main owns the log; narrower delegate restrictions are not global workflow rules.
 
-Android emulators require Android Studio; iOS simulators require macOS/Xcode. Physical devices/EAS builds remain options without an iOS simulator. Real local Supabase Auth/Postgres acceptance requires Docker or a compatible container runtime, not a mocked DB. Local container/service startup belongs to the authorized backend/environment implementation, not step001; hosted provisioning and native release work need separate authorization.
+Android emulators need Android Studio; iOS simulators need macOS/Xcode. Physical devices/EAS remain options with signing/account prerequisites. Local writing uses real Supabase Auth/Postgres and Docker, not mocked DB.
 
-Bootstrap guidance once tooling is available (frontend environment copies belong to the frontend owner's separately authorized work):
+Bootstrap guidance (frontend env copies belong to separately authorized frontend work):
 
 ```sh
 nvm install
@@ -19,74 +19,103 @@ cp apps/web/.env.example apps/web/.env.local
 cp apps/mobile/.env.example apps/mobile/.env
 ```
 
-The frontend copies preserve existing scaffold conventions, not the new API/AI secret placement. Their examples remain untouched legacy and need the follow-up below; do not populate their old privileged/provider fields. `npm ci` uses the integrated root lockfile without editing it. Main completed a full isolated npm install after repair of interrupted Zod/SWC files, but clean `npm ci` failed under host bulk-delete protection, so clean-install reproducibility remains unverified; these instructions are not a clean-install pass claim. No vulnerability audit is claimed, and pinned ESLint/transitive deprecation warnings remain in `docs/backend-changes.txt`. Intentional dependency changes require coordinated manifests/root lockfile; do not install inside an app or add per-app locks. `apps/api/.env.example` exists with writing-only config; copy it to `apps/api/.env.local` when configuring the API, not for the deliberately unconfigured production smoke scenario. AI-specific configuration remains with the AI owner.
+Frontend examples remain legacy: do not populate old privileged/provider fields. Root clean `npm ci` remains unverified after host bulk-delete protection blocked it, although a full isolated install completed after Zod/SWC repair. No vulnerability audit is claimed; pinned deprecation warnings remain in the log. Install at root, never add per-app locks. Copy writing-only `apps/api/.env.example` to `apps/api/.env.local` for configured development, not deliberately unconfigured health smoke. The API sample is fixed to local Supabase port `55321`.
 
-## Existing commands and remaining prerequisites
+## Existing commands and prerequisites
 
-| Command                     | Purpose / prerequisite                                                                    |
-| --------------------------- | ----------------------------------------------------------------------------------------- |
-| `npm ci`                    | Root-lock clean install; pinned tooling required, reproducibility unverified              |
-| `npm run check:deps`        | Installed package/peer resolution                                                         |
-| `npm run format:check`      | Supported configuration/documentation formatting                                          |
-| `npm run format`            | Formatting; use only on the assigned task's authorized paths                              |
-| `npm run dev:web`           | Website on port 3000 after web entry points; not the target product API                   |
-| `npm run dev:mobile`        | Expo server after mobile entry points                                                     |
-| `npm run dev:api`           | API health/config development server; binds `127.0.0.1:3002`                              |
-| `npm run lint:backend`      | Shared + API ESLint checks; locally validated by main                                     |
-| `npm run typecheck:backend` | Shared + API TypeScript checks; locally validated by main                                 |
-| `npm run test:backend`      | Node `backend` Vitest API/shared unit tests; locally validated, not DB acceptance         |
-| `npm run build:api`         | Next.js `16.3.8` production build; locally validated with only dynamic health routes      |
-| `npm run test:api:smoke`    | Production HTTP health smoke; requires `build:api`, free port 3002, unconfigured API      |
-| `npm run lint`              | Workspace lint; API/shared configs exist, frontend prerequisites separate                 |
-| `npm run typecheck`         | Workspace types; API/shared source exists, frontend prerequisites separate                |
-| `npm test`                  | Root Vitest configuration now includes real API/shared unit tests, not writing acceptance |
-| `npm run test:e2e`          | Requires apps, Playwright configuration and browsers                                      |
-| `npm run build:web`         | Website production build after source/configuration                                       |
-| `npm run check:mobile`      | Android/iOS JavaScript export after routes; not a native build                            |
-| `npm run db:start`          | Local Supabase configuration exists; Docker required                                      |
-| `npm run db:stop`           | After local startup                                                                       |
-| `npm run db:test`           | After migrations/access tests exist                                                       |
+| Command                     | Purpose / prerequisite                                                             |
+| --------------------------- | ---------------------------------------------------------------------------------- |
+| `npm ci`                    | Root-lock clean install; reproducibility unverified                                |
+| `npm run check:deps`        | Installed package/peer resolution                                                  |
+| `npm run format:check`      | Supported configuration/documentation formatting                                   |
+| `npm run format`            | Only assigned authorized paths                                                     |
+| `npm run dev:web`           | Frontend on 3000 when entry points exist; not product API                          |
+| `npm run dev:mobile`        | Expo after mobile entry points                                                     |
+| `npm run dev:api`           | Health/writing development API at `127.0.0.1:3002`                                 |
+| `npm run lint:backend`      | API/shared lint; final pass                                                        |
+| `npm run typecheck:backend` | API/shared types; final pass                                                       |
+| `npm run test:backend`      | Final pass: 536 tests / 9 files, including 216 writing + 20 outputs                |
+| `npm run build:api`         | Production build passed in isolated fresh mirror; caveat below                     |
+| `npm run test:api:smoke`    | Built API, free 3002, no configured API env file; deliberately unconfigured health |
+| `npm run test:api:writing`  | Built API + running local Supabase; real fixture-user writing acceptance           |
+| `npm run lint`              | Workspace lint; frontend prerequisites separate                                    |
+| `npm run typecheck`         | Workspace types; frontend prerequisites separate                                   |
+| `npm test`                  | Root Vitest API/shared unit tests, separate from real DB acceptance                |
+| `npm run test:e2e`          | Apps, Playwright config/browsers                                                   |
+| `npm run build:web`         | Website source/config prerequisites                                                |
+| `npm run check:mobile`      | Android/iOS JS export after routes, not native-build proof                         |
+| `npm run db:start`          | Docker + configured writing-only local Supabase startup                            |
+| `npm run db:stop`           | Stop local stack after startup/validation                                          |
+| `npm run db:test`           | Running local DB; writing migration/access pgTAP tests                             |
 
-The command inventory identifies implemented scripts and prerequisites; detailed execution records remain with main in the log. Main verified exact Node.js `24.20.0` / npm `11.19.0` and locally validated backend lint/types/unit tests, API production build and production HTTP health smoke; detailed results remain in `docs/backend-changes.txt`. `vitest.config.ts` defines the Node `backend` project for `apps/api/src/**/*.test.ts` and `packages/shared/src/**/*.test.ts`, with `passWithNoTests: false`; its module-native future warning is non-failing follow-up, not suppressed here. API root-lock integration is complete. CI configures backend lint/types/unit/build/smoke after existing dependency/format checks, but remote CI has not run. Independent AI tooling remains its owner's work. Use separate service ports, env scopes and tests; keep the root lockfile. The first acceptance gate still needs real local Supabase writing with two users, replay/revisions and AI-down saves, not merely health handlers, unit fixtures or smoke.
+Final checks passed: **536 unit tests across 9 files** (including **216 writing and 20 output-contract tests**), lint/types and body-bound/deadline/cancellation regressions. Production Next build passed dynamic health/entries routes in an isolated fresh mirror; only that mirror needed a temporary Turbopack root adjustment for the shared dependency junction, with repository Next config unchanged. Production unconfigured health passed live `200`/ready `503`. Real Auth/Postgres passed **15 two-user groups** covering signed expired local/forged/revoked tokens, RLS/grants, races, replay/tombstones/paging/deleting-profile denial, configured readiness `200` and fixture-user/server cleanup; **123 pgTAP** passed. Vitest's module-native warning remains non-failing. Separate real-DB CI and feature-branch push triggering are implemented; remote execution and clean-install reproducibility remain unverified.
 
-`tests/api-health-smoke.mjs`, invoked by root `npm run test:api:smoke`, requires a successful `npm run build:api` first. It starts the production API on `127.0.0.1:3002`, removes writing variables from the spawned process environment, checks liveness `200` and unconfigured readiness `503` with no-store headers and safe envelopes, then stops its server. Keep port 3002 free and do not supply a configured API-local environment file for this deliberately unconfigured scenario. Smoke does not prove the missing `api_schema_ready` RPC, configured readiness or database/writing acceptance. Main owns the detailed execution log; do not replace it with this setup inventory.
+Health smoke requires a successful build and free `127.0.0.1:3002`, removes writing variables from its spawned server and needs no configured API-local env file. It tests live `200`/unconfigured ready `503`, no-store/safe envelopes and stops the server. It is not the writing or configured-readiness proof.
 
-## Environment ownership target
+## Local writing-only Supabase
 
-Root `.env.example` is documentation only, not a combined file to copy. Web keeps `apps/web/.env.local`, mobile `apps/mobile/.env`; both frontend examples remain untouched legacy. The existing `apps/api/.env.example` is writing-only and supplies the template for `apps/api/.env.local`. AI config belongs to `services/ai` under its owner and remains deferred. Deployed values are separately scoped per project/environment and never committed.
+Windows excludes TCP ports `54290..54489`. Local Supabase ports changed from the `5432x` range to `5532x`; no OS exclusion/firewall changes were made:
 
-| Variable                                | Target scope                          | Requirement / meaning                                                                                                             |
-| --------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `SUPABASE_URL`                          | API                                   | HTTPS origin except HTTP loopback (`localhost`, `127.*`, `[::1]`); no credentials/path/query/fragment                             |
-| `SUPABASE_PUBLISHABLE_KEY`              | API                                   | Required `sb_publishable_` key; future normal queries also need verified user's token and RLS                                     |
-| `CORS_ALLOWED_ORIGINS`                  | API                                   | Required comma-separated exact canonical HTTPS origins except local loopback HTTP; no wildcard/trailing slash/path/query/fragment |
-| `SUPABASE_SECRET_KEY`                   | API isolated jobs/account module only | Optional until those operations are enabled; privileged key, never normal product queries, client bundle or AI service            |
-| `AI_SERVICE_URL`                        | API                                   | Optional until AI processing is enabled; independent AI HTTP origin, API appends `/v1/reflections:generate`                       |
-| `AI_SERVICE_TOKEN`                      | API / matching AI credential verifier | Optional until AI processing is enabled; versioned server-to-server credential with agreed rotation/version, never a user token   |
-| `JOB_TRIGGER_SECRET`                    | API / scheduler secret store          | Optional until protected job invocation is enabled                                                                                |
-| `AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL` | AI service only                       | Later AI-owner configuration; unselected provider/model and provider credential, no DB admin keys                                 |
-| `NEXT_PUBLIC_SUPABASE_URL`              | Web                                   | Public Supabase Auth URL                                                                                                          |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`  | Web                                   | Public key; access still requires ownership policies                                                                              |
-| `NEXT_PUBLIC_API_URL`                   | Web, proposed follow-up               | Independent product API origin; not added to frontend example here                                                                |
-| `APP_URL`                               | Existing web convention               | Canonical frontend origin for auth redirects, not a product API origin/auth proof                                                 |
-| `EXPO_PUBLIC_SUPABASE_URL`              | Mobile                                | Public reachable Auth URL                                                                                                         |
-| `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`  | Mobile                                | Public key                                                                                                                        |
-| `EXPO_PUBLIC_API_URL`                   | Mobile                                | Independent API origin only; future shared client appends `/api/v1`                                                               |
+| Component | Port  | Status                           |
+| --------- | ----- | -------------------------------- |
+| API/Auth  | 55321 | Writing-only local API           |
+| Postgres  | 55322 | Local DB                         |
+| Studio    | 55323 | Configured, excluded/not started |
+| Mailpit   | 55324 | Local mail fixture service       |
 
-Public prefixes expose values to clients. Examples may contain only names/dummy values. Use publishable/secret key roles deliberately if mapping legacy anon/service-role credentials; no privileged key in user queries or AI. The implemented config loader requires only the writing config and ignores later admin/job/AI settings; future feature-boundary validation must not block ordinary saves. Readiness additionally POSTs to required `api_schema_ready` with a 1500 ms deadline and returns `503` unless the actual successful RPC returns JSON boolean `true`. No migration or RPC definition exists, so config/connectivity alone is insufficient and writing acceptance remains unmet. Liveness is a real public dependency-free handler; both health routes use safe no-store envelopes. Product auth/CORS/preflight, uncached private routes and saves remain implementation targets.
+Root `npm run db:start` now configures the writing-only exclusions by default and is the restart command. Its supported CLI equivalent is:
 
-## Required frontend/environment migration follow-up
+```sh
+supabase start --exclude realtime,storage-api,imgproxy,studio,edge-runtime,logflare,vector,supavisor,postgres-meta
+```
 
-Do not edit frontend examples, source or native packages in this step. Existing `apps/web/.env.example` still lists server Supabase/provider/job slots from the superseded combined deployment; those are not instructions to put secrets in the website. A later frontend/integration task removes/migrates obsolete slots, adds the web independent API origin, updates mobile's legacy `/api` comment and old port-3000 sample, and uses the shared `/api/v1` client. API privileged/job/AI service credentials go only to API; provider credentials only to AI. Do not remove legacy web API/server placeholders until that migration is separately authorized.
+Use the pinned repository CLI; no reset, hosted linking or hosted DB change is needed. The exclusions retain writing/Auth/Postgres without AI, Storage, Studio or optional services. Supabase CLI Docker defaults bind published ports to `0.0.0.0`: **local development only, never a production exposure/deployment pattern**. API dev/start remains loopback-bound. Main will stop the stack before final handoff; shutdown has not happened yet. Restart with `npm run db:start`, coordinate shared local instances and never reset another owner's DB.
 
-Both first-party web/mobile product clients must send verified Supabase bearer tokens to the API. Supabase handles passwords/sign-in/reset/refresh; cookies may be a frontend session detail but are not the product API authentication contract. API freshly verifies identity/active profile and derives ownership. Configure exact browser origins for CORS/preflight; CORS is not auth. Native requests require bearer verification too.
+Acceptance order:
 
-## Phones, local data and later foundations
+```sh
+npm run db:start
+npm run db:test
+npm run build:api
+npm run test:api:writing
+```
 
-`localhost` on a phone means the phone. The later mobile client needs a reachable independent API LAN/staging origin and reachable Supabase Auth URL, not the web origin. Existing web dev LAN behavior is frontend-only; choose/bind API networking explicitly in the implementation task. Auth callbacks, reset redirects, mobile secure storage and deep links need owner testing; preserve provisional `beyond` scheme and native identifiers until Hassan confirms them.
+The writing runner guards its local target, captures keys at runtime without dotenv/committed secrets, creates fixture users only and cleans those users/server. It must not target hosted or production data. Fixture cleanup passed; stack shutdown is still planned by main. Use fictional content, not real journals.
 
-`supabase/config.toml` is local configuration; migrations/seeds/access tests remain unimplemented. Use fictional data. Agree one local stack or distinct ports in worktrees; do not reset another owner's instance. No hosted setup is required for the writing-first local gate.
+## Environment ownership
 
-Health/configuration modules and shared writing INPUT/health/error schemas now exist, but real auth/database writing acceptance is the next implementation gate. Opted-in scheduling needs a tested UTC/IANA next-local-calendar-morning resolver for `07:00`, `07:30`, `08:00`, with tones `friend`, `mentor`, `future`, `diary`; preference changes affect future jobs and edits invalidate old revisions. Lease/fencing/backoff/recovery precede AI processing, tested with a fake independent AI HTTP service, never a production fallback. Real AI and later private-storage/transcription consent/reviewed-text flow follow under the AI owner. See `docs/build-plan.md` and `docs/deployment.md`.
+Root `.env.example` is documentation only, not a combined file to copy. Web uses `apps/web/.env.local`, mobile `apps/mobile/.env`; their examples remain legacy. API uses its writing-only example and `apps/api/.env.local`. AI config remains under its separate owner. Keep project/environment values scoped and out of Git.
+
+| Variable                                | Scope                               | Requirement / meaning                                                    |
+| --------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------ |
+| `SUPABASE_URL`                          | API                                 | Required HTTPS origin except HTTP loopback; local API port 55321         |
+| `SUPABASE_PUBLISHABLE_KEY`              | API                                 | Required `sb_publishable_` key; writing also uses verified user's bearer |
+| `CORS_ALLOWED_ORIGINS`                  | API                                 | Exact canonical comma-separated HTTPS origins except local HTTP loopback |
+| `SUPABASE_SECRET_KEY`                   | Future isolated jobs/account module | Optional until enabled; never writing/user queries, client bundle or AI  |
+| `AI_SERVICE_URL`                        | Future API AI client                | Optional independent AI origin; append `/v1/reflections:generate`        |
+| `AI_SERVICE_TOKEN`                      | Future API / AI verifier            | Versioned server credential/rotation, never user token                   |
+| `JOB_TRIGGER_SECRET`                    | Future API / scheduler              | Optional until protected jobs enabled                                    |
+| `AI_PROVIDER`, `AI_API_KEY`, `AI_MODEL` | AI service only                     | Unselected provider/model; no DB admin keys                              |
+| `NEXT_PUBLIC_SUPABASE_URL`              | Web                                 | Public Auth URL                                                          |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`  | Web                                 | Public key, ownership policies still required                            |
+| `NEXT_PUBLIC_API_URL`                   | Web proposed migration              | Independent API origin, not yet added to frontend example                |
+| `APP_URL`                               | Existing web convention             | Frontend auth-redirect origin, not API/auth proof                        |
+| `EXPO_PUBLIC_SUPABASE_URL`              | Mobile                              | Reachable public Auth URL                                                |
+| `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`  | Mobile                              | Public key                                                               |
+| `EXPO_PUBLIC_API_URL`                   | Mobile                              | Independent origin; future shared client appends `/api/v1`               |
+
+Public prefixes expose values. Examples contain dummy values only; never commit credentials. Writing uses no API admin key, AI credential or AI reachability. Config requires HTTPS except loopback and rejects wildcard/path/trailing-slash/query/fragment origins. Actual `api_schema_ready` SQL catalog check must return boolean `true` within readiness's 1500 ms deadline; config/connectivity alone is insufficient. Liveness/ready and private writing use no-store safe envelopes.
+
+## Required frontend migration follow-up
+
+Do not edit frontend examples/source/native packages in backend-only work. Web example still lists superseded server/provider/job fields; mobile retains legacy `/api`/3000 assumptions. Their owners must migrate public independent API origins, bearer adapters/shared `/api/v1` client and obsolete slots/comments. Provider credentials belong only to AI, privileged jobs/account keys only to isolated API modules. Leave legacy web backend placeholders until migration is separately authorized.
+
+Both clients must send bearer tokens; API freshly verifies Auth and active profile and derives owner. Cookies may be frontend session details, not product auth. Exact CORS/preflight is implemented, not authentication. Native requests need tokens too.
+
+## Phones and later features
+
+`localhost` on a phone means the phone. Future mobile integration needs deliberately configured reachable API and Supabase Auth LAN/staging origins, not web origin. Keep API loopback defaults unless networking is separately owned/authorized. Test callbacks/reset redirects/secure storage/deep links with owner; preserve provisional `beyond` scheme and identifiers until Hassan confirms them.
+
+Writing migrations/access tests now exist. Scheduling/jobs/reflections/accepted todos/memory/voice/durable account deletion do not. Profile deleting denial is not a full deletion endpoint. Test next-morning UTC/IANA/date/DST resolution, atomic opt-in and leases/fencing/backoff/recovery before AI; fake HTTP fixtures are future tests, never production fallback. Later voice requires private Storage, separate consent and reviewed text. See build-plan/deployment.
 
 References: [npm workspaces](https://docs.npmjs.com/cli/v11/using-npm/workspaces/), [Supabase CLI setup](https://supabase.com/docs/guides/local-development/cli/getting-started), [Expo Router manual setup](https://docs.expo.dev/router/installation/).

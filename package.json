@@ -22,6 +22,7 @@
     "typecheck:backend": "npm run typecheck --workspace=@beyond/shared && npm run typecheck --workspace=@beyond/api",
     "test:backend": "vitest run --project backend",
     "test:api:smoke": "node tests/api-health-smoke.mjs",
+    "test:api:writing": "node tests/api-writing-acceptance.mjs",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "format": "prettier --write .",
@@ -32,7 +33,7 @@
     "build:web": "npm run build --workspace=@beyond/web",
     "check:mobile": "npm run check:bundle --workspace=@beyond/mobile",
     "check:deps": "npm ls --all",
-    "db:start": "supabase start",
+    "db:start": "supabase start --exclude realtime,storage-api,imgproxy,studio,edge-runtime,logflare,vector,supavisor,postgres-meta",
     "db:stop": "supabase stop",
     "db:test": "supabase test db"
   },

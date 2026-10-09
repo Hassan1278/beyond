@@ -1,8 +1,10 @@
 # Folder structure and deferred files
 
-This distinguishes the existing scaffold/current foundation from the authorized target. Step001 is the historical documentation-only architecture commit `93e473b`, not the current source inventory. Step002 now contains API health/configuration and portable shared writing INPUT/health/error schemas with adjacent executable unit tests. No product auth, `/api/v1` handlers, persistence, SQL migrations/RPC implementation, AI service or cloud setup exists. Git does not store empty directories, so deferred empty leaves contain `.gitkeep`; asset folders have no dummy images. The old `apps/web/src/app/api` and `apps/web/src/server` folders below remain legacy unused placeholders, not running backend services. Do not remove them or edit either frontend in backend-only tasks.
+Step001 (`93e473b`) is historical architecture-only work; step002 established health/configuration/input schemas/unit tooling. **Step003 implements non-opted-in writing** in the independent API, shared contracts and local Supabase migrations/tests. Frontends and unused legacy web API/server placeholders remain untouched; no AI implementation or cloud setup is claimed. Git does not store empty directories; deferred leaves retain `.gitkeep`, assets have no dummy images.
 
-## Existing scaffold and step002 foundation
+## Existing scaffold and current backend inventory
+
+This groups implemented areas without inventing filenames for deferred modules:
 
 ```text
 beyond/
@@ -10,47 +12,34 @@ beyond/
 │   ├── api/
 │   │   ├── package.json, tsconfig.json, next.config.ts, eslint.config.mjs, .env.example
 │   │   └── src/
-│   │       ├── app/api/health/
-│   │       │   ├── live/route.ts, route.test.ts
-│   │       │   └── ready/route.ts, route.test.ts
-│   │       └── server/
-│   │           ├── config.ts, config-parser.ts, config-parser.test.ts
-│   │           ├── health.ts, health-check.ts, health-check.test.ts
-│   │           └── http.ts, http.test.ts
+│   │       ├── app/api/health/live/, ready/ (Node handlers/tests)
+│   │       ├── app/api/v1/entries/, entries/[id]/ (GET/POST/PATCH/DELETE)
+│   │       └── server/ (config, health, HTTP, verified identity and writing modules/tests)
 │   ├── web/
-│   │   ├── package.json, tsconfig.json, .env.example
-│   │   ├── public/fonts/
+│   │   ├── package.json, tsconfig.json, .env.example, public/fonts/
 │   │   └── src/
-│   │       ├── app/
-│   │       │   ├── (auth)/login/, signup/
-│   │       │   ├── auth/callback/
-│   │       │   ├── (app)/journal/[id]/, reflections/[id]/, memory/, settings/
-│   │       │   └── api/ (legacy placeholders, no handlers)
-│   │       │       ├── health/, entries/[id]/, reflections/[id]/, memories/[id]/
-│   │       │       ├── settings/, account/
-│   │       │       └── internal/jobs/process/
-│   │       ├── components/ui/
-│   │       ├── lib/supabase/
-│   │       └── server/services/, ai/prompts/, jobs/
+│   │       ├── app/(auth)/login/, signup/, auth/callback/
+│   │       ├── app/(app)/journal/[id]/, reflections/[id]/, memory/, settings/
+│   │       ├── app/api/ (unused legacy placeholders, no handlers)
+│   │       │   ├── health/, entries/[id]/, reflections/[id]/, memories/[id]/
+│   │       │   └── settings/, account/, internal/jobs/process/
+│   │       ├── components/ui/, lib/supabase/
+│   │       └── server/services/, ai/prompts/, jobs/ (legacy placeholders)
 │   └── mobile/
-│       ├── package.json, tsconfig.json, app.json, eas.json, .env.example
-│       ├── assets/fonts/
-│       └── src/
-│           ├── app/(auth)/, auth/, (app)/journal/, (app)/reflections/
-│           ├── components/ui/
-│           └── lib/
+│       ├── package.json, tsconfig.json, app.json, eas.json, .env.example, assets/fonts/
+│       └── src/app/(auth)/, auth/, (app)/journal/, (app)/reflections/, components/ui/, lib/
 ├── packages/shared/
 │   ├── package.json, tsconfig.json, eslint.config.mjs
-│   └── src/
-│       ├── index.ts
-│       ├── schemas/entries.ts, entries.test.ts, health.ts, health.test.ts
-│       └── types/, validation/, api/, constants/ (deferred placeholders)
-├── supabase/config.toml, migrations/, tests/ (no SQL implementation)
+│   └── src/ (index; writing input/resource/cursor/output and health/error schemas/tests)
+├── supabase/
+│   ├── config.toml
+│   ├── migrations/ (profiles/Auth trigger/backfill, entries/RLS/grants/RPCs/schema readiness)
+│   └── tests/ (transactional writing pgTAP)
 ├── tests/
-│   ├── api-health-smoke.mjs (production HTTP health, not DB acceptance)
-│   └── integration/, e2e/ (deferred acceptance tests)
+│   ├── api-health-smoke.mjs
+│   └── local writing acceptance runner; deferred AI integration/client E2E
 ├── evals/README.md
-├── docs/ (plans, contracts, workstreams, task template)
+├── docs/ (plans, contracts, workstreams, task template, backend-changes.txt)
 ├── .github/workflows/ci.yml, pull_request_template.md
 ├── package.json, package-lock.json, tsconfig.base.json, vitest.config.ts
 ├── .nvmrc, .npmrc, .prettierrc.json, .prettierignore
@@ -58,50 +47,36 @@ beyond/
 └── README.md, AGENTS.md
 ```
 
-The API is API-only Next.js Node handlers, with shared-package transpilation and a server-only writing-config loader. Public liveness is a real dependency-free `200` handler. Readiness uses valid writing config and a bounded POST to required `api_schema_ready`; it returns generic `503` unless the actual successful RPC returns JSON boolean `true` within 1500 ms. No migration/RPC definition exists. Health/configuration and unit fixtures do not meet writing acceptance.
+API writing freshly verifies bearer and active profile every call, uses exact-origin CORS/preflight/no-store and no admin credentials. Public live is dependency-free; ready bounds actual `api_schema_ready` catalog-checking RPC to 1500 ms and returns `200` only for successful boolean `true`. Configured readiness `200` was tested; AI health is not required.
 
-Shared schemas are portable INPUT contracts, not saves or database enforcement: strict creation with UUID `idempotency_key`, explicit literal `false` `reflection_opt_in`, nonblank text of 1..20000 UTF-16 code units preserving whitespace exactly, valid Unicode and no NUL; PATCH requires the same text and integer revision 1..2147483647; params require UUID `id`. Health/error envelopes also exist; resource outputs, clients and AI contracts remain deferred.
+Shared writing includes strict create (UUID key, literal `false` opt-in, nonblank <=20000 UTF-16 text preserving whitespace and valid Unicode/no NUL), PATCH text/expected revision, UUID params, resource/output and canonical limit/cursor contracts. The shared API client remains deferred. Resource contains ID/text/revision/false opt-in/UTC created/updated; cursor strict base64url `{ created_at, id }` preserves positive-year UTC microseconds. See API for exact contracts.
 
-Root `dev:api`, `lint:backend`, `typecheck:backend`, `test:backend`, `build:api` and `test:api:smoke` scripts and the Node `backend` project in `vitest.config.ts` exist with API/shared unit tests and `passWithNoTests: false`. `tests/api-health-smoke.mjs` requires an existing production build, starts Next on `127.0.0.1:3002` with writing environment variables removed, checks live `200` / unconfigured ready `503`, no-store headers and safe envelopes, and stops its server. Run `npm run build:api` before `npm run test:api:smoke`, with port 3002 free and no configured API-local environment file. Main locally validated the pinned runtime, backend lint/types/unit tests, the Next.js `16.3.8` production build with only dynamic health routes, and production smoke; detailed results remain in `docs/backend-changes.txt`. API root-lock integration is complete with only API metadata/workspace link added and existing pins unchanged. CI configures backend lint/types/unit/build/smoke after dependency/format checks, but remote CI has not run. Clean-install reproducibility remains unverified after clean `npm ci` failed under host bulk-delete protection; no vulnerability audit or database/writing acceptance is claimed. The module-native future warning from root `vitest.config.ts` is non-failing follow-up, not suppressed here. `apps/api/.env.example` is writing-only; frontend examples remain untouched legacy. Detailed validation/blockers stay in main's log.
+Writing persistence includes public active/deleting profiles and trigger/backfill, active-own-live entries RLS, private original/key grants and authenticated validated `entry_create/update/delete/get/list` RPCs with empty search path/active lock. Unique original-payload replay returns current resource; atomic revisions conflict on stale updates. Deletion NULLs original/text/consent/revision/create/update timestamps and leaves minimum IDs, owner/key/deleted_at. DELETE returns ID only; tombstones cannot be read or resurrected. No AI/job table exists.
 
-## Authorized deferred backend target
+## Validation inventory
 
-```text
-apps/api/
-  src/app/api/v1/entries/, reflections/, memories/, todos/, settings/, account/
-  src/app/api/v1/internal/jobs/process/
-  src/server/services/, jobs/, auth/, db/
-services/ai/                    independent HTTP service, reserved for AI owner
-packages/shared/src/            resource outputs, API client, AI HTTP contracts, DB types
-supabase/                       schema, RLS, grants, validated RPCs; later private media policies
-tests/integration/              real Auth/Postgres and fake independent AI HTTP fixtures
-```
+Root API/backend lint/typecheck/unit/build/health-smoke and `test:api:writing` scripts exist. For writing run `db:start`, `db:test`, `build:api`, then `test:api:writing`; the guarded local runner captures runtime keys without dotenv/committed secrets and cleans fixture users/server. Health smoke remains the separate deliberately unconfigured live `200`/ready `503` scenario on free port 3002 after build, without configured API env file.
 
-API owns auth/database/queue/jobs/finalize/deletion as the implementation target, not existing behavior. `services/ai` owns prompts/providers and optional RAG/transcription without DB admin keys; backend does not implement it. Shared remains portable, with no framework/Node-only dependencies or credentials. Preserve completed API metadata/workspace link integration in the root lockfile and coordinate any future dependency changes while retaining Node.js `24.20.0`, npm `11.19.0` and existing pins; frontend manifests remain untouched.
+Final checks passed: **536 unit tests across 9 files** (including **216 writing and 20 output-contract tests**), lint/types and body 128000-byte/total-5000-ms deadline/cancellation regressions. Production Next build passed dynamic health/entries routes in an isolated fresh mirror; its temporary Turbopack root adjustment for the shared dependency junction left repository Next config unchanged. Production unconfigured health passed `200`/`503`. Real Auth/Postgres passed **15 two-user groups** covering signed expired local/forged/revoked identity, RLS/grants, races, replay/tombstones/paging/deleting-profile denial and fixture cleanup; **123 pgTAP** passed. Main owns the log. Separate real-DB CI and feature-branch push triggering are implemented; remote execution/clean `npm ci` remain unverified. Pins/overrides/root lock unchanged, no package addition or vulnerability-audit claim; existing non-failing warnings remain.
 
-## Files intentionally deferred
+Local Supabase API `55321`, DB `55322`, Mailpit `55324`, Studio `55323` configured but not started avoid Windows exclusions `54290..54489` without OS changes. Root `npm run db:start` configures writing-only exclusions by default and restarts the stack; the API env sample is fixed to `55321`. CLI Docker binds `0.0.0.0` by default: local-dev only, never production. Main will stop the stack before final handoff; shutdown has not happened yet. No resets/hosted changes.
 
-These files are future implementation work, not missing completed work. Do not implement obsolete web backend placeholders:
+## Intentionally deferred work
 
-| Area                       | Future files                                                                                                                                                                                                                     |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Web framework/tooling      | `next.config.ts`, `eslint.config.mjs`, generated `next-env.d.ts`                                                                                                                                                                 |
-| Web pages                  | Root/auth/app layouts and pages, `globals.css`, error/not-found pages                                                                                                                                                            |
-| Independent product API    | `/api/v1` Node `route.ts` product handlers; health routes/config already exist; no web API implementation                                                                                                                        |
-| Web components             | UI primitives, shell, editor, reflection card                                                                                                                                                                                    |
-| Web/browser adapters       | Separately authorized independent-origin `/api/v1` bearer client and public env migration; legacy examples unchanged                                                                                                             |
-| Product backend            | Auth/active-profile verification, user DB, isolated jobs/account admin, product services and lease/fenced job processor/tests; writing config/health/errors already exist                                                        |
-| Independent AI             | AI-owner `services/ai` versioned HTTP generation, prompts/providers and optional RAG/transcription; no DB admin keys                                                                                                             |
-| Mobile screens             | `_layout.tsx`, `index.tsx`, auth callbacks/screens, journal/reflection/detail/settings/memory screens                                                                                                                            |
-| Mobile adapters/components | API, Supabase, secure storage, environment modules, UI/editor/reflection components                                                                                                                                              |
-| Shared package             | Generated DB types, resource/output/reflection/AI HTTP schemas, API client modules and remaining limits; `index.ts` and writing INPUT/health/error schemas already exist                                                         |
-| Database                   | Required `api_schema_ready` SQL RPC, profiles, entries, jobs, reflections, approved memories, todos; RLS/grants/validated RPCs, replay tombstones, deletion; later private media metadata/job kind                               |
-| Tests/evaluations          | Real local Supabase Auth/Postgres two-user writing tests, replay/revisions, scheduling/lease/fencing/backoff/recovery, fake independent AI HTTP fixtures; later E2E/AI evaluations; adjacent foundation unit tests already exist |
-| Assets                     | Logo, fonts, icons, splash images, store art                                                                                                                                                                                     |
-| Optional Docker            | `Dockerfile.dev` and `compose.yaml` after apps launch                                                                                                                                                                            |
+| Area                      | Future files / behavior                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------------------- |
+| Web framework/pages/UI    | Framework config, layouts/pages/styles, shell/editor/reflection UI                       |
+| Web/browser adapters      | Separately authorized independent API-origin/bearer/shared-client/env migration          |
+| Independent product API   | Reflections/actions/todos/memories/settings/account/internal-job handlers                |
+| Product backend           | Durable jobs/claim/lease/fencing/retry/finalize, isolated privileged account cleanup     |
+| Independent AI            | AI-owner HTTP service/prompts/providers; optional owned RAG/transcription                |
+| Mobile screens/adapters   | Routes/screens, API/Auth/secure-storage/env modules and UI; native previews              |
+| Shared package            | Generated DB types, API client, reflection/AI schemas and remaining feature limits       |
+| Database                  | Jobs/reflections/approved memories/todos, source cascades/account cleanup; private media |
+| Tests/evaluations         | Scheduling/lease/recovery/fake AI HTTP, decisions/source/account/voice and client E2E    |
+| Assets                    | Logo/fonts/icons/splash/store art                                                        |
+| Optional Docker packaging | `Dockerfile.dev`, `compose.yaml` if needed; local Supabase already uses Docker           |
 
-Mobile uses declarative `app.json` rather than the proposed executable `app.config.ts`; switch to a dynamic app config later only if required. Its Expo Router entry still points to deferred mobile source. Shared exports now point to existing `src/index.ts`, not a future entry point. Native release instructions and SDK-compatible pins remain unchanged; no UI/native package work occurs here.
+Deleting-profile denial is implemented, not durable account deletion. Writing and its resource/cursor/output contracts are implemented; final unit/lint/types/body regressions, mirror production build, health and local integration checks passed. The shared API client remains deferred. Opt-in stays false until atomic entry/job plus tested UTC/IANA next-morning/lease/fencing/backoff/recovery gates. Voice later needs private media, separate consent and reviewed transcript. Proposed source cascades remove linked memories/derived todos, leaving standalone todos. Full patterns/Life Film remain deferred; never fabricate statistics.
 
-Writing with real local Auth/Postgres comes first and must work with AI down; that gate is not met. Atomic entry/job is opt-in only after a later contract extension; tested UTC/IANA next-morning resolution and lease/fencing/backoff/recovery precede scheduled AI processing. Voice later uses private Storage/metadata/transcription jobs and a reviewed transcript into the same text flow with separate consent. Source-linked memories/derived todos follow the proposed privacy-first cascade; standalone todos remain. Account deletion needs a durable deleting gate/retry before Auth deletion. See architecture/API/build-plan for exact contracts; completed local foundation checks do not validate these deferred product behaviors. Full patterns/Life Film are deferred; never fabricate counts or statistics. Frontend origin/bearer/environment-example migration and eventual legacy cleanup require separate authorization.
-
-`docs/backend-changes.txt` remains the main agent's existing plain-text record of actual milestone validation and session-specific blockers, separate from this source/status inventory.
+Mobile retains declarative `app.json`, provisional identifiers, EAS conventions and SDK-compatible pins; JS export is not native-build proof. Backend/environment work and feature-branch push/local Docker are authorized, not frontend/AI-owner implementation, main overwrite/force-push, hosted DB/deploy/account changes or PR creation. Shared stays portable. Detailed session validation belongs in main's existing log, not this inventory.
