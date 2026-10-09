@@ -1,6 +1,6 @@
 # Beyond
 
-Private repository owned by [Hassan1278](https://github.com/Hassan1278). Friends join as collaborators added by Hassan; no GitHub organization is needed.
+Private repository
 
 Beyond targets web and native Android/iOS writing-first journaling, opted-in delayed AI reflections, explicit actions/todos and user-approved memories. Frontends use an independent product API and Supabase; an independently owned AI HTTP service will generate reflections.
 
