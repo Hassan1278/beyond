@@ -63,6 +63,15 @@ describe('account deletion authorization and durable worker', () => {
     expect(hasRecentSignIn('Bearer nonsense')).toBe(false);
     expect(hasRecentSignIn('Bearer ' + token())).toBe(true);
   });
+  it.each([{ method: ['password'] }, { method: { method: 'password' } }, { method: null }])(
+    'does not coerce malformed authentication methods %#',
+    ({ method }) => {
+      const claims = { amr: [{ method, timestamp: Math.floor(Date.now() / 1000) }] };
+      const jwt =
+        'header.' + Buffer.from(JSON.stringify(claims)).toString('base64url') + '.signature';
+      expect(hasRecentSignIn('Bearer ' + jwt)).toBe(false);
+    },
+  );
   it('freshly verifies auth before trusting recent-sign-in claims', async () => {
     const f = vi.fn<typeof fetch>().mockResolvedValue(Response.json({}, { status: 401 }));
     expect((await createAccountDeleteHandler(config, () => account, f)(deletion())).status).toBe(

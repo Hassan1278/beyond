@@ -47,7 +47,8 @@ export function hasRecentSignIn(authorization: string | null, now = Date.now()):
       if (typeof item !== 'object' || item === null) return false;
       const record = item as { method?: unknown; timestamp?: unknown };
       return (
-        ['password', 'oauth', 'totp', 'sso', 'webauthn'].includes(String(record.method)) &&
+        typeof record.method === 'string' &&
+        ['password', 'oauth', 'totp', 'sso', 'webauthn'].includes(record.method) &&
         typeof record.timestamp === 'number' &&
         Number.isInteger(record.timestamp) &&
         record.timestamp * 1000 <= now + 30_000 &&

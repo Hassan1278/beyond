@@ -47,6 +47,8 @@ SELECT set_config('request.jwt.claims',jsonb_build_object('sub','88888888-8888-4
 SELECT throws_ok($$SELECT public.account_export_page('entries',1,NULL,NULL)$$,'P0001','forbidden','String timestamp cannot authorize export');
 SELECT set_config('request.jwt.claims',jsonb_build_object('sub','88888888-8888-4888-8888-888888888888','role','authenticated','amr',jsonb_build_array(jsonb_build_object('method','password','timestamp',floor(extract(epoch FROM statement_timestamp()))+0.5)))::text,true);
 SELECT throws_ok($$SELECT public.account_export_page('entries',1,NULL,NULL)$$,'P0001','forbidden','Fractional sign-in timestamp is rejected');
+SELECT set_config('request.jwt.claims',jsonb_build_object('sub','88888888-8888-4888-8888-888888888888','role','authenticated','amr',jsonb_build_array(jsonb_build_object('method',jsonb_build_array('password'),'timestamp',floor(extract(epoch FROM statement_timestamp())))))::text,true);
+SELECT throws_ok($$SELECT public.account_export_page('entries',1,NULL,NULL)$$,'P0001','forbidden','Array method cannot be coerced into recent authentication');
 SELECT set_config('request.jwt.claims',jsonb_build_object('sub','88888888-8888-4888-8888-888888888888','role','authenticated','amr',jsonb_build_array(jsonb_build_object('method','password','timestamp',floor(extract(epoch FROM statement_timestamp())))))::text,true);
 INSERT INTO privacy_results VALUES('settings',public.account_export_page('settings',NULL,NULL,NULL));
 SELECT is((SELECT payload->>'format_version' FROM privacy_results WHERE label='settings'),'1','Export format is versioned');
