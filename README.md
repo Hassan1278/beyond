@@ -1,6 +1,6 @@
 # Beyond
 
-Private repository  
+Private repository
 
 Beyond will provide a website and a native Android/iOS app for journaling, delayed AI reflections, and memories that the user explicitly approves. Both interfaces will use the same Node.js API and Supabase data.
 
