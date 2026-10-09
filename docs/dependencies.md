@@ -1,6 +1,6 @@
 # Dependency inventory
 
-Versions were resolved from the npm registry on 3 October 2026. Direct dependencies are pinned exactly; the root `package-lock.json` records the full dependency tree. Installed dependency code stays in ignored `node_modules/`, not in the repository.
+The scaffold's versions were resolved from npm on 3 October 2026; direct dependencies are exactly pinned with one root `package-lock.json`. Step001 (`93e473b`) is historical architecture-only work; step002 established API/shared tooling and workspace lock integration. **Step003 implements non-opted-in writing without adding packages or changing root pins/overrides.** Node.js `24.20.0` / npm `11.19.0` and root-lock clean-install reproducibility are verified on Linux CI. Local Windows `npm ci` remains host-guard constrained, not a project-wide reproducibility blocker. No vulnerability audit is claimed; existing deprecations/non-failing warnings remain in main's `docs/backend-changes.txt`. Installed dependency code stays in ignored `node_modules/`, not the repository.
 
 Expo SDK 57 dictates React `19.2.3`, React Native `0.86.3`, and compatible native module versions. Web uses the same React version to avoid unnecessary duplicate runtimes. TypeScript `5.9.3` satisfies both SDK 57 and the pinned EAS CLI's older config-loader peer range. The SDK template suggests TypeScript 6, but the repository uses a version compatible with the complete installed toolchain. Reassess newer TypeScript versions with a coordinated EAS/tooling upgrade.
 
@@ -20,7 +20,9 @@ ESLint `9.39.5` is a compatibility pin: the React plugin shipped by the selected
 | `typescript-eslint` | `8.71.0`  | Development |
 | `vitest`            | `5.0.3`   | Development |
 
-## Web and Node.js API
+## Existing web workspace inventory (not the target API manifest)
+
+These pins describe the unchanged `apps/web` scaffold, including legacy server dependencies. They do not imply a running combined web/API service. Independent API-only `apps/api` has its own manifest/config and implemented health/verified writing source, with root-lock workspace integration complete and pins unchanged. Do not remove/move web dependencies or edit either frontend in this documentation update.
 
 | Package                 | Version   | Kind        |
 | ----------------------- | --------- | ----------- |
@@ -34,6 +36,12 @@ ESLint `9.39.5` is a compatibility pin: the React plugin shipped by the selected
 | `@types/react`          | `19.2.18` | Development |
 | `@types/react-dom`      | `19.2.7`  | Development |
 | `eslint-config-next`    | `16.3.8`  | Development |
+
+## Existing API workspace
+
+`apps/api/package.json` now defines `@beyond/api` with `@beyond/shared` `0.0.0`, `@supabase/supabase-js` `2.117.2`, Next.js `16.3.8`, React/React DOM `19.2.3`, and `server-only` `0.0.1`. Its development dependencies reuse `@types/react` `19.2.18`, `@types/react-dom` `19.2.7`, and `eslint-config-next` `16.3.8`. Step003 implements verified writing identity/persistence with these existing pins; library presence alone is not proof of any later feature.
+
+API dev/start binds `127.0.0.1:3002`; backend scripts, Vitest, health smoke and writing acceptance exist. GitHub Actions run `37958461995` completed **SUCCESS** for source commit `b192bde`; both backend and real-database jobs passed. Linux CI verified clean root-lock `npm ci`, `npm run check:deps`, root `npm run format:check`, backend lint/types, **536 unit tests across 9 files** (including **216 writing and 20 output-contract tests**), the normal repository production Next build and HTTP health, without a temporary root workaround. **123 pgTAP checks** and **15 real Auth/Postgres two-user groups** passed with identity/RLS/grants, races, replay/tombstones/paging/deleting-profile denial, configured readiness `200` and fixture-user/server cleanup. Body deadline/cancellation regressions passed. This success covers `b192bde`, not later changes or the final documentation-record commit, which is not yet created.
 
 ## Native mobile
 
@@ -82,6 +90,10 @@ npm 11 records install-script decisions in the root `allowScripts` field. The re
 
 Only the coordinator integrates root lockfile changes. Add a dependency to the workspace that imports it; portable validation belongs in shared, framework packages belong in each app, and repository tools belong at the root. Native modules must remain compatible with the Expo SDK.
 
-No AI provider SDK is installed yet because the provider is an implementation decision. Use a provider adapter and add the selected SDK in the web workspace when that task begins. Playwright browsers, local Supabase container images, native SDKs, and EAS signing/store credentials are separate setup items; npm installation does not provision them.
+Keep Node.js `24.20.0` / npm `11.19.0`, pins/overrides, root lockfile and frontend manifests unchanged. API/shared writing input/resource/cursor/output contracts and local profiles/entries/RLS/grants/RPC migrations/tests are implemented with existing dependencies; the shared API client remains deferred. API example is writing-only and fixed to local Supabase port `55321`; frontend examples remain legacy. Writing uses bearer/publishable credentials only, no API admin/AI/job keys or AI health. Jobs/reflections/accepted todos/memory/voice/durable account deletion remain unimplemented; deleting-profile denial is not a deletion endpoint. API/AI deploy/tests/environments remain independent; AI implementation/tooling/provider credentials belong to its owner, no DB admin keys.
+
+No AI provider/model or provider SDK is selected/installed; future SDK/provider key belongs only to `services/ai`. Fake independent AI HTTP fixtures remain future tests, not production fallback. Real local writing fixture exists: run `db:start`, `db:test`, `build:api`, then `test:api:writing`; it guards local target/captures runtime keys without dotenv or committed secrets/cleans fixture users and server. Local Supabase ports API `55321`, DB `55322`, Mailpit `55324`, Studio `55323` configured but not started avoid Windows exclusions `54290..54489` without OS changes. Root `npm run db:start` now configures writing-only exclusions by default and is the restart command. Supabase Docker default `0.0.0.0` binds are local-dev only, never production. The Beyond local Supabase stack is stopped; auth fixture users `0`, local data preserved in a Docker volume. Unrelated `usthing` services are running and untouched; Docker Desktop remains running. Restart with `npm run db:start`. No reset/hosted changes. Feature-branch push/local Docker/backend work is authorized, not main overwrite/force-push, hosted DB/deploy/PR or cross-owner implementation. Browsers/native SDKs/EAS credentials are separate prerequisites; preserve SDK-compatible voice requirements rather than upgrade native pins here.
+
+Record actual runtime, dependency validation and environment blockers in `docs/backend-changes.txt` for each step. The architecture commit changes no dependency pins; the already-authorized backend foundation must use the pinned toolchain and preserve frontend manifests.
 
 References: [Expo SDK compatibility](https://docs.expo.dev/versions/latest/), [Expo monorepos](https://docs.expo.dev/guides/monorepos/), [Expo Router setup](https://docs.expo.dev/router/installation/), [ESLint support](https://eslint.org/version-support/), [npm install-script settings](https://docs.npmjs.com/cli/v11/commands/npm-install-scripts/).

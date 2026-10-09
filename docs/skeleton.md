@@ -1,66 +1,82 @@
 # Folder structure and deferred files
 
-Every feature folder in the supplied plan is represented. Git does not store empty directories, so empty leaves contain `.gitkeep`; remove a placeholder when that directory gets a real file. Asset folders are reserved without dummy images.
+Step001 (`93e473b`) is historical architecture-only work; step002 established health/configuration/input schemas/unit tooling. **Step003 implements non-opted-in writing** in the independent API, shared contracts and local Supabase migrations/tests. Frontends and unused legacy web API/server placeholders remain untouched; no AI implementation or cloud setup is claimed. Git does not store empty directories; deferred leaves retain `.gitkeep`, assets have no dummy images.
 
-## Structure
+## Existing scaffold and current backend inventory
+
+This groups implemented areas without inventing filenames for deferred modules:
 
 ```text
 beyond/
 ├── apps/
-│   ├── web/
-│   │   ├── package.json, tsconfig.json, .env.example
-│   │   ├── public/fonts/
+│   ├── api/
+│   │   ├── package.json, tsconfig.json, next.config.ts, eslint.config.mjs, .env.example
 │   │   └── src/
-│   │       ├── app/
-│   │       │   ├── (auth)/login/, signup/
-│   │       │   ├── auth/callback/
-│   │       │   ├── (app)/journal/[id]/, reflections/[id]/, memory/, settings/
-│   │       │   └── api/
-│   │       │       ├── health/, entries/[id]/, reflections/[id]/, memories/[id]/
-│   │       │       ├── settings/, account/
-│   │       │       └── internal/jobs/process/
-│   │       ├── components/ui/
-│   │       ├── lib/supabase/
-│   │       └── server/services/, ai/prompts/, jobs/
+│   │       ├── app/api/health/live/, ready/ (Node handlers/tests)
+│   │       ├── app/api/v1/entries/, entries/[id]/ (GET/POST/PATCH/DELETE)
+│   │       └── server/ (config, health, HTTP, verified identity and writing modules/tests)
+│   ├── web/
+│   │   ├── package.json, tsconfig.json, .env.example, public/fonts/
+│   │   └── src/
+│   │       ├── app/(auth)/login/, signup/, auth/callback/
+│   │       ├── app/(app)/journal/[id]/, reflections/[id]/, memory/, settings/
+│   │       ├── app/api/ (unused legacy placeholders, no handlers)
+│   │       │   ├── health/, entries/[id]/, reflections/[id]/, memories/[id]/
+│   │       │   └── settings/, account/, internal/jobs/process/
+│   │       ├── components/ui/, lib/supabase/
+│   │       └── server/services/, ai/prompts/, jobs/ (legacy placeholders)
 │   └── mobile/
-│       ├── package.json, tsconfig.json, app.json, eas.json, .env.example
-│       ├── assets/fonts/
-│       └── src/
-│           ├── app/(auth)/, auth/, (app)/journal/, (app)/reflections/
-│           ├── components/ui/
-│           └── lib/
+│       ├── package.json, tsconfig.json, app.json, eas.json, .env.example, assets/fonts/
+│       └── src/app/(auth)/, auth/, (app)/journal/, (app)/reflections/, components/ui/, lib/
 ├── packages/shared/
-│   ├── package.json, tsconfig.json
-│   └── src/types/, validation/, api/, constants/
-├── supabase/config.toml, migrations/, tests/
-├── tests/integration/, e2e/
+│   ├── package.json, tsconfig.json, eslint.config.mjs
+│   └── src/ (index; writing input/resource/cursor/output and health/error schemas/tests)
+├── supabase/
+│   ├── config.toml
+│   ├── migrations/ (profiles/Auth trigger/backfill, entries/RLS/grants/RPCs/schema readiness)
+│   └── tests/ (transactional writing pgTAP)
+├── tests/
+│   ├── api-health-smoke.mjs
+│   └── local writing acceptance runner; deferred AI integration/client E2E
 ├── evals/README.md
-├── docs/ (plans, contracts, workstreams, task template)
+├── docs/ (plans, contracts, workstreams, task template, backend-changes.txt)
 ├── .github/workflows/ci.yml, pull_request_template.md
-├── package.json, package-lock.json, tsconfig.base.json
+├── package.json, package-lock.json, tsconfig.base.json, vitest.config.ts
 ├── .nvmrc, .npmrc, .prettierrc.json, .prettierignore
 ├── .env.example, .gitignore, .dockerignore
 └── README.md, AGENTS.md
 ```
 
-## Files intentionally deferred
+API writing freshly verifies bearer and active profile every call, uses exact-origin CORS/preflight/no-store and no admin credentials. Public live is dependency-free; ready bounds actual `api_schema_ready` catalog-checking RPC to 1500 ms and returns `200` only for successful boolean `true`. Configured readiness `200` was tested; AI health is not required.
 
-The instruction is to prepare the repository without writing coding files. These files from the proposal are future implementation work, not missing completed work:
+Shared writing includes strict create (UUID key, literal `false` opt-in, nonblank <=20000 UTF-16 text preserving whitespace and valid Unicode/no NUL), PATCH text/expected revision, UUID params, resource/output and canonical limit/cursor contracts. The shared API client remains deferred. Resource contains ID/text/revision/false opt-in/UTC created/updated; cursor strict base64url `{ created_at, id }` preserves positive-year UTC microseconds. See API for exact contracts.
 
-| Area                       | Future files                                                                                                   |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Web framework/tooling      | `next.config.ts`, `eslint.config.mjs`, generated `next-env.d.ts`                                               |
-| Web pages                  | Root/auth/app layouts and pages, `globals.css`, error/not-found pages                                          |
-| Web API                    | `route.ts` handlers inside the prepared API folders                                                            |
-| Web components             | UI primitives, shell, editor, reflection card                                                                  |
-| Web/browser adapters       | `api.ts`, `env.ts`, browser/server Supabase adapters                                                           |
-| Backend                    | Auth/env/errors/DB/admin modules, service modules, AI provider/prompts, job processor/tests                    |
-| Mobile screens             | `_layout.tsx`, `index.tsx`, auth callbacks/screens, journal/reflection/detail/settings/memory screens          |
-| Mobile adapters/components | API, Supabase, secure storage, environment modules, UI/editor/reflection components                            |
-| Shared package             | `index.ts`, generated DB types, journal/reflection/API types, validation schemas, API client modules, limits   |
-| Database                   | Initial schema, RLS, reflection-job/scheduler migrations, fictional `seed.sql`, access-policy SQL tests        |
-| Tests/evaluations          | Integration/E2E source, `vitest.config.ts`, `playwright.config.ts`, fictional scenario JSON, evaluation runner |
-| Assets                     | Logo, fonts, icons, splash images, store art                                                                   |
-| Optional Docker            | `Dockerfile.dev` and `compose.yaml` after apps launch                                                          |
+Writing persistence includes public active/deleting profiles and trigger/backfill, active-own-live entries RLS, private original/key grants and authenticated validated `entry_create/update/delete/get/list` RPCs with empty search path/active lock. Unique original-payload replay returns current resource; atomic revisions conflict on stale updates. Deletion NULLs original/text/consent/revision/create/update timestamps and leaves minimum IDs, owner/key/deleted_at. DELETE returns ID only; tombstones cannot be read or resurrected. No AI/job table exists.
 
-Mobile uses declarative `app.json` rather than the proposed executable `app.config.ts`, to keep this scaffold free of JavaScript/TypeScript source. Switch to a dynamic app config later only if required. The manifest's Expo Router entry and shared package exports intentionally point to future implementation entry points.
+## Validation inventory
+
+Root API/backend lint/typecheck/unit/build/health-smoke and `test:api:writing` scripts exist. For writing run `db:start`, `db:test`, `build:api`, then `test:api:writing`; the guarded local runner captures runtime keys without dotenv/committed secrets and cleans fixture users/server. Health smoke remains the separate deliberately unconfigured live `200`/ready `503` scenario on free port 3002 after build, without configured API env file.
+
+GitHub Actions run `37958461995` completed **SUCCESS** for source commit `b192bde`; both backend and real-database jobs passed. Linux CI verified clean root-lock `npm ci`, dependency resolution, root formatting, backend lint/types, **536 unit tests across 9 files** (including **216 writing and 20 output-contract tests**), the normal repository production Next build and HTTP health, without a temporary root workaround. **123 pgTAP checks** and **15 real Auth/Postgres two-user groups** passed with identity/RLS/grants, races, replay/tombstones/paging/deleting-profile denial, configured readiness `200` and fixture-user/server cleanup. Body deadline/cancellation regressions passed. Reproducibility is verified on Linux; this success covers `b192bde`, not later changes or the final documentation-record commit, which is not yet created. Main owns the log. Pins/overrides/root lock are unchanged; no package addition or vulnerability audit is claimed.
+
+Local Supabase API `55321`, DB `55322`, Mailpit `55324`, Studio `55323` configured but not started avoid Windows exclusions `54290..54489` without OS changes. Root `npm run db:start` configures writing-only exclusions by default and restarts the stack; the API env sample is fixed to `55321`. CLI Docker binds `0.0.0.0` by default: local-dev only, never production. The Beyond local Supabase stack is stopped; auth fixture users `0`, local data preserved in a Docker volume. Unrelated `usthing` services are running and untouched; Docker Desktop remains running. Restart with `npm run db:start`. No resets/hosted changes.
+
+## Intentionally deferred work
+
+| Area                      | Future files / behavior                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------------------- |
+| Web framework/pages/UI    | Framework config, layouts/pages/styles, shell/editor/reflection UI                       |
+| Web/browser adapters      | Separately authorized independent API-origin/bearer/shared-client/env migration          |
+| Independent product API   | Reflections/actions/todos/memories/settings/account/internal-job handlers                |
+| Product backend           | Durable jobs/claim/lease/fencing/retry/finalize, isolated privileged account cleanup     |
+| Independent AI            | AI-owner HTTP service/prompts/providers; optional owned RAG/transcription                |
+| Mobile screens/adapters   | Routes/screens, API/Auth/secure-storage/env modules and UI; native previews              |
+| Shared package            | Generated DB types, API client, reflection/AI schemas and remaining feature limits       |
+| Database                  | Jobs/reflections/approved memories/todos, source cascades/account cleanup; private media |
+| Tests/evaluations         | Scheduling/lease/recovery/fake AI HTTP, decisions/source/account/voice and client E2E    |
+| Assets                    | Logo/fonts/icons/splash/store art                                                        |
+| Optional Docker packaging | `Dockerfile.dev`, `compose.yaml` if needed; local Supabase already uses Docker           |
+
+Deleting-profile denial is implemented, not durable account deletion. Writing and its resource/cursor/output contracts are implemented; Linux CI clean-install/dependency/root-format, backend unit/lint/types, normal production build, health and real DB checks passed. The shared API client remains deferred. Opt-in stays false until atomic entry/job plus tested UTC/IANA next-morning/lease/fencing/backoff/recovery gates. Voice later needs private media, separate consent and reviewed transcript. Proposed source cascades remove linked memories/derived todos, leaving standalone todos. Full patterns/Life Film remain deferred; never fabricate statistics.
+
+Mobile retains declarative `app.json`, provisional identifiers, EAS conventions and SDK-compatible pins; JS export is not native-build proof. Backend/environment work and feature-branch push/local Docker are authorized, not frontend/AI-owner implementation, main overwrite/force-push, hosted DB/deploy/account changes or PR creation. Shared stays portable. Detailed session validation belongs in main's existing log, not this inventory.

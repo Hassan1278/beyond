@@ -1,0 +1,136 @@
+step001
+Title: Approve independent product API and AI service architecture before implementation
+Date: 2026-10-08
+Status: Documentation-only step prepared for local commit after validation. Architecture target, not implemented behavior.
+
+Affected areas/files:
+- AGENTS.md: backend boundaries, ownership, identity, validation and handoff rules.
+- README.md: docs-first branch status, target services, writing-first gate and link to this log.
+- .env.example: root documentation overview only; separate API/AI secret scopes and frontend migration follow-up.
+- docs/architecture.md: superseding topology, authority, schema, scheduling, replay and deletion target.
+- docs/api.md: /api/v1 bearer product API, split health, versioned AI HTTP contract, explicit actions/todos and replay/revision rules.
+- docs/workstreams.md: independent API and AI ownership, shared contract handoffs and ordered gates.
+- docs/build-plan.md: real local writing proof before durable scheduling/AI, explicit decisions, later voice and releases.
+- docs/deployment.md: separate website/API/AI deploys, environments/tests, scheduler and rollback; native EAS instructions preserved.
+- docs/setup.md: pinned runtime, target environment inventory, local testing and unmodified frontend-example migration.
+- docs/skeleton.md: existing legacy placeholders versus future API/AI folders and deferred files.
+- docs/mvp-scope.md: writing-first acceptance, opted-in generation, explicit actions, later voice and deferred patterns/Life Film.
+- docs/data-handling.md: RLS/grants/validated RPCs, privacy-first proposed deletion, minimal tombstones, consent and honest limits.
+- docs/dependencies.md: existing pins preserved; future provider dependencies belong only to AI service.
+- docs/demo.md: future gated fictional staging rehearsal, no forced production delivery or fabricated results.
+- docs/backend-changes.txt: this explicitly requested new plain-text log.
+
+Why:
+The user authorized architecture documentation before implementation. The prior all-in-one web API design conflicts with independent backend ownership/deployment and writing availability during AI outages. The new target keeps one monorepo and portable shared contracts but separates API, AI and frontend deploy/test/environment boundaries. API owns auth/RLS/database/queue/jobs/finalize/deletion; AI owns prompts/providers and optional RAG/transcription without DB admin keys. Both first-party clients use freshly verified Supabase bearer tokens and active profiles; Supabase retains password/sign-in/reset/refresh ownership. Exact browser CORS is not auth, and private responses are not cached.
+
+Design recorded:
+- Public cheap liveness and bounded config/DB-schema readiness are independent of AI and expose no secrets. Protected dependency/queue status is later.
+- Writing acceptance uses real local Supabase Auth/Postgres and two users for save/read/edit/delete, creation equality/replay and revisions; AI downtime cannot prevent saves.
+- Atomic entry plus eligible job is opt-in only. Tested next-local-calendar-morning UTC/IANA resolution and leases/fencing/backoff/recovery precede processing. Tones: friend, mentor, future, diary. Morning times: 07:00, 07:30, 08:00. Preference changes affect future jobs; edits invalidate old revisions.
+- Independent versioned AI HTTP generation returns letter/actions/provenance from entry/revision/tone/bounded authorized context. Fake independent AI HTTP service is tests only, never a production fallback. No provider is selected. No automatic todos/memories; decisions and corrections are explicit/separate.
+- Proposed profiles, journal_entries, reflection_jobs, reflections, approved_memories and todos schema includes RLS, grants and validated RPCs. Unique owner/key plus immutable original creation equality prevents duplicates; equivalent replay returns current persisted state without reverting edits or duplicating jobs. Deletion clears original payload, content and consent before retaining minimum IDs/owner/key/deleted_at only. APIs/RLS/RPC resource visibility excludes tombstones; ordinary deleted reads return 404 and own retired-key creation returns 409 before payload comparison.
+- Proposed privacy-first source deletion removes reflections, source-linked approved memories and derived todos; standalone todos remain. Account deleting gate and durable retry precede Auth deletion. Runtime deletion tests do not exist yet.
+- Voice is a later second core input: private Storage, metadata/transcription job kind, separate consent and reviewed transcript into text flow. Optional RAG requires user-scoped source/provenance/deletion contracts. Full patterns/Life Film are later; no fake counts or AI end-to-end-encryption/perfect-safety guarantees.
+
+Scope preserved:
+Only existing documentation and the root environment overview were edited inside backend-worktree, plus this requested new log. No gratuitous Markdown files, source, migrations or tests were added. No cloud setup. No apps/web or apps/mobile edits or legacy placeholder removal. No root package/lockfile edits or dependency/native upgrades. Local inspection, scoped Git operations and formatting validation were performed; no push or hosted action. Existing user authorization covers this commit and subsequent backend/environment implementation, not frontend or AI-owner implementation. Node.js 24.20.0, npm 11.19.0, dependency pins, one root lockfile and native release conventions remain.
+
+Validation performed during documentation handoff:
+Required existing guidance/docs/environment examples were directly read before editing. Changed files were directly re-read; dedicated content search reviewed obsolete backend paths, routes and cookie/deployment assumptions. Legacy paths remaining in edited docs are explicitly marked historical/unimplemented. This is a static documentation review only, not formatting, build, runtime, database, native or cloud validation.
+
+Validation performed before commit:
+Reviewed Git changed-file scope and core diffs, and independently reviewed all documentation for architecture/API/environment consistency. Corrected stale creation-replay behavior and subtask-only restrictions; clarified deleted-key conflicts, todo deletion replay and phase-specific environment requirements. Confirmed no frontend, manifests, lockfile, source, SQL or tests changed. Original main checkout remains clean. Scoped Git ownership exception resolves linked WSL worktree access without global configuration changes.
+
+Validation pass/result:
+PASS: Prettier 3.9.9 formatted and checked AGENTS.md, README.md and all docs/*.md; all matched files use Prettier style. Executed this formatter with managed Node 22.22.2, supported by Prettier, not as proof of repository Node 24 compatibility. PASS: git diff --check. Line-ending conversion warnings were non-failing; global Git settings unchanged. No npm ci, dependency resolution, build, auth/database, AI, native or cloud acceptance tests are claimed for this documentation-only step.
+
+Planned implementation validation, not passed:
+Real local two-user bearer/active-profile and RLS/grants/RPC writing, replay/revisions/tombstones, no private caching, exact CORS and AI-down saves; opted-in atomic jobs and UTC/date/DST resolver; bounded lease/fencing/retry/crash recovery with fake independent AI HTTP failures and late results; explicit action acceptance/rejection/unique todos and corrections; memory/source deletion and interrupted account cleanup; later private voice consent/reviewed transcript, optional source-scoped RAG, real AI evaluations and separately authorized cross-client/native releases.
+
+Blockers:
+WSL command execution remains restricted. Repository-required Node/npm and local Docker/Supabase availability must be established separately before implementation validation; documentation formatting does not prove those prerequisites. No API app source, migrations or executable tests exist for target product runtime checks at step001.
+
+Remaining intentional mismatches/follow-ups:
+Unmodified frontend environment examples still show combined-web server/provider/job slots and mobile legacy API path/origin comments; docs/setup.md explicitly documents separate-owner migration. Existing unused web API/server placeholders and manifests remain as historical scaffold, not the target service. New API manifest/scripts/examples and portable contracts are next in the already-authorized backend foundation; AI implementation, frontend migration and cloud setup remain separate-owner work. Exact schema bounds, DST gap/overlap policy tests, other suggestion decision conflicts, credential version/rotation and AI provider/model/retention remain future gates. Repeat acceptance after explicit todo deletion conflicts without recreating the todo. Writing requires URL/publishable key/exact allowed origins but not AI credentials or AI reachability. Material static review contradictions were corrected; runtime guarantees remain unverified.
+
+Commit:
+Prepared for the authorized local documentation commit: docs(backend): define independent services and writing-first gates. This entry travels in that commit; verify the actual hash in Git history. No push, hosted migration or deployment.
+
+step002
+Title: Add independent API health/configuration and portable writing input foundation
+Date: 2026-10-08
+Status: Health/contract foundation validated and prepared for local commit. Not a completed writing flow.
+
+Affected areas:
+- apps/api: API-only Next workspace, exact existing pins, local environment example, strict lazy server configuration, health handlers and unit tests.
+- packages/shared/src: portable strict entry input, health/error schemas, inferred types and contract tests; packages/shared/eslint.config.mjs supplies lint configuration.
+- Root package.json and vitest.config.ts: backend-scoped development, lint/typecheck/test/build entry points and test project. tests/api-health-smoke.mjs proves built health handlers over loopback HTTP, not database acceptance; .github/workflows/ci.yml runs validated backend checks and smoke test.
+- Root package-lock.json: only API workspace metadata and its link added; existing package entries/pins unchanged compared with architecture commit.
+- AGENTS.md, README.md, .env.example and existing docs: distinguish implemented foundation from target product acceptance; no frontend edits.
+
+Decisions:
+- Create input permits reflection_opt_in false only until scheduling prerequisites pass. Text preserves exact whitespace, rejects blank/overlong text, NUL and unpaired Unicode; maximum 20000 UTF-16 code units. PATCH requires integer expected revision 1..2147483647. Strict bodies reject owner injection and unknown fields.
+- Writing config requires a publishable key, Supabase HTTPS origin (loopback HTTP allowed) and exact HTTPS browser origins (loopback HTTP allowed); no AI/admin/job credential requirement.
+- Public process liveness has no DB/AI call. Bounded readiness performs the required api_schema_ready RPC and accepts only boolean true; missing configuration/schema/dependency errors return generic no-store 503, not fake ready. RPC/migration is deliberately not implemented in this foundation.
+- Error envelopes use safe fixed messages and generated request_id; no private content/key logging. Product auth, CORS/preflight middleware, entries/database, jobs, todos, AI and voice remain unimplemented.
+
+Validation so far:
+- Static independent code review; corrected PostgreSQL-incompatible text acceptance and added real readiness-route unit wiring tests.
+- Official Node24.20.0 archive SHA-256 verified against release checksum; bundled npm11.19.0 confirmed. All installs stay in isolated runtime workspace, not user/global environment.
+- Prettier3.9.9 formatting and git diff --check passed on current owned files.
+- Direct Node assertions for config/liveness/readiness passed using fixture HTTP results; not live database acceptance.
+- Initial Vitest execution could not load four suites because an interrupted isolated install lacked Zod files. Repaired only missing exact-pin files from a complete isolated install, without deleting files. Final suite PASS: 7 files, 300 tests. Full backend typecheck and lint both PASS in the refreshed isolated repository mirror.
+- npm install completed in the isolated repository mirror, but npm ci clean deletion was blocked by host bulk-delete protection. Cleanup warnings leave ignored transient install directories; no cleanup was attempted. Clean-install reproducibility remains unverified and must be checked in CI. Existing repository dependency pins remain unchanged.
+- First API build failed on a truncated Windows SWC binary left by interrupted install. Repaired exact-pin compiler files from the complete isolated install; final production build PASS with only dynamic /api/health/live and /api/health/ready routes. Production HTTP smoke PASS: liveness 200, unconfigured readiness 503, both no-store with safe envelopes and generated request IDs. Server stopped after test.
+- Existing pinned ESLint/transitive packages emitted deprecation warnings; no dependency upgrade performed. These warnings are not a vulnerability audit. CI backend lint/typecheck/unit/build/production-health steps added after local checks passed; remote CI has not run.
+
+Blockers and remaining work:
+Docker Desktop Linux engine is unavailable; WSL commands remain restricted, so real Supabase Auth/Postgres acceptance cannot run. Clean npm ci remains a separate host/CI validation blocker, not a claimed pass. Final root format:check in the Windows mirror flagged only 11 untouched baseline files with Git-converted CRLF; read-only Prettier check with end-of-line auto passed those files. Frontend/baseline files were not changed to normalize line endings. Owned new/edited files pass default formatting; Linux CI must confirm the root format/dependency gates. Final backend typecheck/lint/unit300/production HTTP checks passed; production build passed. These checks support the limited foundation commit, not real writing acceptance. Next product work requires migrations/RLS/grants/validated RPCs, verified bearer/active-profile auth and real two-user writing/replay/revision/deletion tests. Keep AI/voice deferred. No push, cloud setup or paid AI call.
+
+step003
+Title: Implement real authenticated writing persistence and prove isolation/replay
+Date: 2026-10-09 (final validation continued across local midnight)
+Status: Writing gate implemented and validated; prepared for feature-branch commits/push. Not full MVP completion.
+
+Affected areas:
+- supabase/migrations/20261009150000_writing.sql: profiles/Auth trigger/backfill; journal entries with immutable original payload, revision checks and content-free tombstones; RLS/read grants; active-identity validated RPCs with fixed search paths; actual catalog-based schema readiness.
+- supabase/tests/writing.test.sql: transactional fictional two-user pgTAP permission/input/replay/revision/deletion/inactive tests.
+- apps/api/src/server/writing*.ts and api/v1/entries routes: fresh Supabase bearer and active-profile verification; user-token database RPC access; exact CORS/preflight, safe no-store errors, bounded streamed JSON and strict input/output validation; text CRUD and microsecond-preserving cursor pagination.
+- packages/shared/src/schemas/entries.ts/index.ts/entries-output.test.ts: portable writing resource, cursor and page contracts and regression tests.
+- tests/api-writing-acceptance.mjs: local-only guarded production HTTP acceptance; creates and cleans only captured fictional Auth users; admin keys restricted to test setup and local SQL checks, never API configuration.
+- package.json: writing acceptance script and writing-only Supabase startup exclusions. Existing dependency pins and root lockfile remain unchanged.
+- .github/workflows/ci.yml: real database/HTTP writing job with cleanup; feature-branch push trigger. Remote execution remains unverified.
+- supabase/config.toml and API environment example: local ports 5532x; root env overview and existing architecture/API/setup/workstream/build/deletion/demo documentation synchronized.
+
+Behavior and security decisions:
+- Normal writing needs only URL/publishable key/exact browser origins plus verified user bearer. No API admin key or AI reachability required; reflection opt-in false only, no jobs created.
+- Equal creation retries compare immutable original UTF8 bytes and return CURRENT edited state. Unique owner/key plus locked expected revisions resolve concurrent races. Other-owner/deleted reads return safe product 404. Retired-key creation returns 409 without restoring content.
+- Delete clears text, original text, consent, revision, created/updated timestamps; minimal id/owner/key/deleted_at tombstone remains. Deleting-profile denial is not a complete account deletion endpoint.
+- Body bounds:128000 bytes, fatal UTF8/no NUL or lone surrogate,5000ms total stream timeout/cancellation. Text max20000 UTF16 units and exact whitespace preserved. List limit canonical1..100 default20; canonical base64url cursor retains UTC microseconds and rejects year zero.
+- Direct PostgREST P0001 maps to HTTP400; product API safely maps fixed not_found/forbidden/conflict codes to404/403/409. Direct access never reveals unauthorized content.
+
+Actual validation:
+PASS: pinned Node24.20.0/npm11.19.0 retained, no dependency upgrade.
+PASS: final backend unit536 tests in9 files (writing216; shared output20 plus prior suites).
+PASS: final backend lint and typecheck.
+PASS: real local Postgres pgTAP123 assertions, one transactional rollback file.
+PASS: final Next16.3.8 production build; dynamic health and collection/item entries routes.
+PASS: production unconfigured health200 live/503 ready, safe request IDs/no-store.
+PASS: final production writing15 real Auth/Postgres groups: configured readiness200 with unreachable AI; signed expired/forged token rejection; browser/native bearer boundary; equal/unequal replay and owner injection; two-user API/RLS/grants/RPC isolation; eight concurrent creates one row; concurrent edits one winner/conflict; replay current edited state; scrubbed tombstone/no resurrection; limit-one pagination exact microseconds; bad input; deleting/revoked identity; captured test-user/server cleanup.
+PASS: independent security review findings fixed: actual container port5432 host55322 binding; bounded body reads/abort; positive timestamp years. Initial leading-zero limit fixture corrected to canonical contract. Direct RPC HTTP expectation corrected to documented PostgREST400 rather than fabricating product404 behavior.
+
+Environment/validation caveats:
+Docker Desktop Linux engine started successfully without modifying other running stacks. Windows reserves54290..54489, including old5432x ports; changed Beyond config to5532x rather than alter OS exclusions. Writing-only Auth/Postgres/Kong/REST/Mailpit stack started and applied migration, optional AI/storage/Studio/analytics excluded. CLI binds published local ports on all interfaces; development only, stack shutdown planned after checks.
+Repeated Next builds hit host bulk-delete guard on old .next artifacts. Preserved existing artifacts and used a fresh isolated source mirror sharing existing pinned dependencies; temporary mirror-only Turbopack root points to the isolated parent so junction resolution works. Repository Next configuration is unchanged. Final source built and production acceptance passed; clean npm ci/install reproducibility and remote CI remain unverified. No vulnerability audit or native/front-end build claimed; existing non-failing Vitest module-native warning remains.
+Windows Git lacks usable private-repo credentials; existing WSL Git credentials now work. Remote main has advanced independently; only this feature branch will be pushed, no automatic merge/overwrite/rebase/force. Original checkout and frontends remain untouched.
+
+Remaining work:
+Durable jobs/IANA scheduling/fencing/retries, API-side independent AI client, real AI-owner service, explicit accepted-action todos, approved memory, private reviewed voice and durable account cleanup remain unimplemented. Frontend integration remains separately owned. No hosted DB change/deployment/paid AI calls.
+
+Publication and final reproducibility update:
+PASS: authorized backend implementation commit published to feat/backend-foundation using existing WSL credentials; remote feature ref verified, main unchanged. No merge/force-push/PR/deployment.
+PASS: GitHub Actions run37958461995 completed SUCCESS for the source implementation commit. Both jobs passed Linux clean root-lock npm ci, dependency resolution, root formatting, backend lint/types/unit536, ordinary repository Next production build (no Windows mirror config adjustment), health smoke, real local pgTAP123 and production Auth/Postgres writing15 groups, with CI stack cleanup.
+Clean-install reproducibility is now VERIFIED in Linux CI. The local Windows bulk-delete guard remains an environment limitation, not a project acceptance blocker. No vulnerability audit is claimed.
+PASS: local test Auth fixture count0; stopped only Beyond Supabase and retained local Docker-volume data. Docker Desktop/unrelated existing services remain running/untouched. Restart Beyond using npm run db:start (writing-only exclusions).
+PASS: final owned formatting and git diff --check. Frontend paths and root package-lock remain unchanged.
+Final documentation-record commit follows the code commit and will be pushed to the same feature branch; the successful CI run above applies to the implementation source, not an unexecuted future commit.

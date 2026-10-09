@@ -1,37 +1,44 @@
 # Workstreams and coding harnesses
 
-Use the same repository, task briefs, contracts, and acceptance checks regardless of each friend's coding tool. A harness is the terminal, IDE, or cloud coding environment an owner uses; it is not a separate repository or backend. Tool choice is independent of work ownership.
+Use one monorepo, shared contracts and acceptance gates regardless of harness. Step001 (`93e473b`) is historical architecture-only work; step002 established health/configuration/input schemas/unit tooling. **Step003 implements non-opted-in writing**: bearer/active-profile checks, entries CRUD/resource/cursor contracts, profiles/Auth trigger/backfill, RLS/grants/validated RPCs and real schema readiness. Frontends/legacy web backend placeholders and `services/ai` remain untouched.
+
+GitHub Actions run `37958461995` completed **SUCCESS** for source commit `b192bde`; both backend and real-database jobs passed. Linux CI verified clean root-lock `npm ci`, dependency resolution, root formatting, backend lint/types, **536 unit tests across 9 files** (including **216 writing and 20 output-contract tests**), the normal repository production Next build and HTTP health, without a temporary root workaround. **123 pgTAP checks** and **15 real Auth/Postgres two-user groups** passed with identity/RLS/grants, races, replay/tombstones/paging/deleting-profile denial, configured readiness `200` and fixture-user/server cleanup. Body deadline/cancellation regressions passed. Reproducibility is verified on Linux; this success covers `b192bde`, not later changes. The final documentation-record commit is not yet created. Main owns `docs/backend-changes.txt`; pins/overrides are unchanged, with no package addition or vulnerability-audit claim.
 
 ## Suggested ownership
 
-| Lane                        | Human owner                                    | Owned paths                                                                                          | First implementation result                                                                       |
-| --------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Integration / shared        | Hassan or nominated coordinator                | Root config/lockfile, `packages/shared`, `.github`, cross-team docs                                  | Freeze health/API contracts, portable shared exports/client, lint/test config, merge coordination |
-| Web                         | Friend A                                       | `apps/web/src/app` excluding `api`, `apps/web/src/components`, `apps/web/src/lib`, `apps/web/public` | Web shell → auth → journal UI calling shared API                                                  |
-| Mobile                      | Friend B                                       | `apps/mobile`                                                                                        | Expo shell → secure auth → matching journal UI; Android/iOS preview builds                        |
-| API / database / deployment | Friend C with Hassan for cloud account actions | `apps/web/src/app/api`, `apps/web/src/server` excluding `ai`/`jobs`, `supabase`, deployment docs     | Health, auth/ownership, schema/RLS, entry CRUD, job database primitives, staging setup            |
-| AI / jobs                   | Friend D                                       | `apps/web/src/server/ai`, `apps/web/src/server/jobs`, `evals`                                        | Provider adapter, validated reflection output, durable processing/retry orchestration             |
-| Product / QA / demo         | Friend E                                       | `tests`, MVP/demo docs, task acceptance notes                                                        | Fictional two-user fixtures, cross-client flow checks, browser E2E, beta/demo feedback            |
+| Lane                        | Human owner                     | Owned paths                                                           | Current / next result                                                             |
+| --------------------------- | ------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Integration / shared        | Hassan or nominated coordinator | Root config/lockfile, shared, CI, cross-team docs                     | Writing resource/output contracts + CI implemented; shared API client deferred    |
+| Web                         | Hao                             | `apps/web` frontend                                                   | Separately authorized auth/journal independent API client migration               |
+| Mobile                      | Hao                             | `apps/mobile`                                                         | Expo auth/journal client and Android/iOS previews; preserve native conventions    |
+| API / database / deployment | Hassan for cloud actions        | `apps/api`, `supabase`, API acceptance tests, backend/deployment docs | Writing/final local checks passed; next durable jobs/finalization/account cleanup |
+| AI service                  | Kyle/Gatik                      | `services/ai`, `evals`, independent AI tests                          | Unimplemented versioned HTTP generation/evaluations; optional RAG/transcription   |
+| Product / QA / demo         | Peter                           | `tests`, MVP/demo docs, acceptance notes                              | Real writing checks passed; later durable AI/decisions/client acceptance          |
 
-These are proposed owners, not invitations or assignments already made. With fewer people, combine integration + API/deployment, and AI + QA; keep web and mobile distinct if possible. One mobile lane owns both Android and iOS because they share the Expo codebase.
+These are proposed human owners, not invitations/assignments. Combine lanes only without blurring authority. Coordinator owns contract/root-dependency integration; keep Node.js `24.20.0`, npm `11.19.0`, SDK-compatible native pins and one root lockfile.
 
-Workspace manifests/tsconfigs and root dependency changes remain coordinated, even where an app folder has an owner. Web and API share `apps/web`, so their ownership split is by subfolder. QA coordinates API/service test files placed beside implementation with those owners.
+Backend does not edit frontends or implement `services/ai`. Legacy `apps/web/src/app/api` and `apps/web/src/server` placeholders are unused, not running backend services; their removal and web/mobile origin/bearer/shared-client/env migration require separate owner authorization.
 
-## Start sequence
+## Authority and handoffs
 
-1. Hassan assigns human owners and creates a task brief using `docs/tasks/TEMPLATE.md`.
-2. Integration and API owners agree on health response, request/error shapes, auth, data revisions, limits, and job claim/finalize interfaces. Merge the first shared contract/config PR.
-3. Web/mobile owners create app shells in parallel against those agreed contracts. API/database owner implements the corresponding endpoints; AI/jobs owner uses a mocked provider/claim interface until upstream pieces land.
-4. QA defines acceptance scenarios early, then adds executable tests as real flows become available.
-5. Merge small PRs with explicit upstream dependencies. Integrate one feature across web + mobile + backend before widening scope.
+- Implemented writing API freshly verifies bearer/active profile, derives owner, uses user-scoped DB without admin credentials and no-store/exact-origin CORS/preflight. Supabase owns password/sign-in/reset/refresh. RLS/grants and authenticated validated RPCs independently enforce the boundary; security-definer writing RPCs have empty search path and active-profile lock.
+- Writing compares live retries to private immutable original creation payload; equivalent replay returns current resource `200`, different original/retired key `409`. Revisions increment atomically. Tombstones NULL original/text/consent/revision/created/updated and retain minimum IDs, owner/key and `deleted_at`; DELETE returns `{ data: { id } }`, deleted/other-owner `404`. Direct PostgREST `P0001` HTTP `400` differs from product not_found/forbidden/conflict `404`/`403`/`409`; DB never returns wrong-owner content.
+- Creation stays literal `false` opt-in: no AI/job table or AI-health prerequisite. Text is nonblank <=20000 UTF-16 units, whitespace preserved, no NUL/unpaired surrogates. Resource/cursor and canonical limit rules are in API. Body 128000-byte/total-5000-ms deadline and cancellation regressions passed final validation.
+- API owns future queue/leases/fencing/backoff/recovery/finalization/deletion. AI owns prompts/providers and optional RAG/transcription behind versioned authenticated HTTP; no DB admin keys or automatic todos/memories. Backend AI client/fake HTTP fixture remain future work, never production fallback.
+- Accepted-action decisions/todos, corrections, memory approval and source cascades remain unimplemented. Repeat acceptance must return surviving current todo, `409` after explicit deletion. Proposed source cascades leave unrelated standalone todos.
+- Deleting-profile denial is implemented, not a durable account-deletion endpoint. Later cleanup needs durable retry before Auth deletion. Voice needs private Storage, separate consent and reviewed transcript; optional RAG needs owned provenance/deletion. No AI encryption/perfect-safety promise.
 
-The scaffolding phase does not authorize implementation by itself. These tasks are ready for the team's implementation kickoff; no coding sessions, branches, issues, or harness jobs have been started here.
+## Start sequence and acceptance gates
+
+1. Step003 Linux CI clean-install/dependency/root-format, backend unit/lint/types, normal production build, health and real DB checks passed for source commit `b192bde`; main records actual outcomes in the log. Docs-only delegates edit only assigned existing docs, without commands or log changes.
+2. Writing acceptance order: `npm run db:start`, `npm run db:test`, `npm run build:api`, `npm run test:api:writing`. The local-only runner captures runtime keys without dotenv/committed secrets and cleans fixture users/server. Root `db:start` now configures writing-only exclusions by default and is the restart command. API port/sample `55321`, DB `55322`, Mailpit `55324`, Studio `55323` configured but not started avoid Windows exclusions `54290..54489` without OS changes. Docker default `0.0.0.0` binds are local-dev only, never production. The Beyond local Supabase stack is stopped; auth fixture users `0`, local data preserved in a Docker volume. Unrelated `usthing` services are running and untouched; Docker Desktop remains running. Restart with `npm run db:start`. No resets/hosted changes.
+3. Test UTC/IANA next-local-calendar-morning/date/DST resolution before opt-in; prototype times `07:00 | 07:30 | 08:00`, tones `friend | mentor | future | diary`. Add atomic opted-in entry/job, leases/fencing/backoff/recovery before AI. No production forced demo delivery.
+4. Test API-side AI HTTP failure/stale-finalization fixtures; AI owner implements real service later. Add explicit decisions/unique todos, separate corrections and memory approval/removal/deletion.
+5. Add durable account cleanup and voice proof, then separately authorized client migration/native release. Full patterns/Life Film are deferred; never fabricate statistics.
 
 ## Separate sessions safely
 
-Each friend uses their own clone. If one developer runs several harnesses locally, give each session a different worktree and branch. Do not point several sessions at `/home/hassan/projects/beyond` concurrently.
-
-For example, once the foundation contract is merged:
+Use one clone/worktree and task branch per session, never concurrent harnesses editing a checkout. Guidance only; execution/results belong in main's log:
 
 ```sh
 git fetch origin
@@ -40,25 +47,12 @@ git worktree add ../beyond-mobile -b feat/mobile-shell origin/main
 git worktree add ../beyond-api -b feat/api-foundation origin/main
 ```
 
-Run `npm ci` separately in each worktree. Keep local environment files out of Git and configure each session's working directory explicitly. Multiple dev servers need different ports. Use one agreed local Supabase instance or configure independent ports; do not have unrelated sessions reset a shared database.
+Install from each worktree root; keep env files out of Git. Use distinct service ports and an agreed local Supabase instance or independent ports; do not reset another owner's DB.
 
-## Task prompt to use in any harness
+## Future harness prompt
 
-Copy this text into the chosen tool and replace its fields:
+> Work in branch `<branch>` in checkout `<path>`. Read `AGENTS.md`, architecture/API/build-plan/workstreams and task `<task brief>`. Backend/environment implementation, relevant local checks, small validated commits, feature-branch push and local Docker/backend work are authorized. Implement only `<owned paths>` for `<observable result>`. Preserve implemented step003 writing, portable contracts, pins and independent API/AI boundaries; leave frontend and AI-owner implementation untouched. Coordinate cross-owner/manifest/lockfile/schema/contract changes. Use fictional data and report actual results/missing checks/dependencies. Main maintains the backend log and final current validation. No main overwrite/force-push, hosted DB/deploy/account actions or PR creation without separate authorization if needed. Honor narrower task limits without making them repository-wide prohibitions.
 
-> Work in branch `<branch>` in checkout `<path>`. Read `AGENTS.md`, `docs/architecture.md`, `docs/api.md`, `docs/build-plan.md`, and task `<task brief>`. Implement only `<owned paths>` to deliver `<observable result>`. Follow the merged shared contracts and pinned dependencies. Coordinate changes to another owner's paths, root manifests, lockfile, migrations, or contracts before editing them. Use fictional data. Run the relevant available checks and report their results, unavailable checks, and remaining dependencies. Prepare a small pull request; deployment and account changes follow the assigned release task.
+## PR and release conventions
 
-Starter task scopes after contract kickoff:
-
-- **Web:** Create the root layout/homepage and shared health-client integration. Add basic loading/error states. Own web UI paths only; coordinate Next.js config with integration.
-- **Mobile:** Create router layouts and first screen, import shared client, and call the same health endpoint. Confirm physical-device networking. Own mobile source/assets; coordinate manifest changes.
-- **API/database:** Create health and verified identity boundaries, initial schema/RLS, and two-user tests. Agree on atomic entry/job and claim/finalize interfaces with AI. Own API/database paths.
-- **AI/jobs:** Define provider input/output contracts and fictional evaluation scenarios first; then implement generation, lease/retry handling, and stale/deleted-entry checks using the merged database interface.
-- **QA:** Define the login/save/read/delete and two-user scenarios; implement tests once corresponding source exists. Record real platform results and known gaps.
-- **Integration/shared:** Implement portable types/schemas/client and coordinated config/CI, review API compatibility, integrate dependency changes, and verify cross-client behavior.
-
-## PR and handoff rules
-
-Use names such as `feat/web-journal`, `feat/mobile-journal`, `feat/api-entries`, `feat/reflection-jobs`, or `test/journal-flow`. The branch name describes one deliverable. Pull requests name the owner, upstream contract/PR, actual checks, and follow-up needed.
-
-Only the coordinator merges dependency changes to the root lockfile. Feature owners propose needed packages rather than independently upgrading React/Expo. Rebase against merged contracts regularly, keep changes small, and let another human review access, deletion, and credential-related changes. Add branch protection/rules only after Hassan confirms the desired policy and available GitHub plan; none has been assumed here.
+Use deliverable branches such as `feat/api-entries`, `feat/reflection-jobs`, `test/journal-flow`. Handoffs name owner, upstream contract/PR if any, actual checks and follow-ups. Source commit `b192bde` is pushed to `feat/backend-foundation` and passed both Linux CI jobs; remote `main` remains unchanged at `2c9fa7e`. The final documentation-record commit is not yet created and is distinct from that tested source. No merge, main overwrite or deployment occurred; no automatic main merge/overwrite/force-push or PR creation is authorized. Coordinator integrates root dependencies/lockfile; do not upgrade React/Expo independently or bypass peers. Keep changes small, obtain auth/deletion/credential review and preserve old-client release compatibility. Deploy/cloud accounts/permissions/branch protection/native release need Hassan's separate authorization.

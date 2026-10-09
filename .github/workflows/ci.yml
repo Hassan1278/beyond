@@ -3,7 +3,7 @@ name: Scaffold checks
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, feat/backend-foundation]
   workflow_dispatch:
 
 permissions:
@@ -32,4 +32,44 @@ jobs:
         run: npm run check:deps
       - name: Check documentation and configuration formatting
         run: npm run format:check
-      # Foundation work will add lint, types, tests, web build, and mobile export.
+      - name: Check backend lint
+        run: npm run lint:backend
+      - name: Check backend types
+        run: npm run typecheck:backend
+      - name: Run backend unit tests
+        run: npm run test:backend
+      - name: Build independent product API
+        run: npm run build:api
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Smoke-test production API health
+        run: npm run test:api:smoke
+      # Frontend builds and native exports remain separate gates.
+
+  writing:
+    name: Real local Auth and Postgres writing acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Pin npm
+        run: npm install --global npm@11.19.0
+      - name: Install from the root lockfile
+        run: npm ci --no-audit --no-fund
+      - name: Start writing-only local Supabase
+        run: npx --no-install supabase start --exclude realtime,storage-api,imgproxy,studio,edge-runtime,logflare,vector,supavisor,postgres-meta
+      - name: Test database permissions and writing RPCs
+        run: npm run db:test
+      - name: Build independent API
+        run: npm run build:api
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Test production writing with two real local users
+        run: npm run test:api:writing
+      - name: Stop local Supabase
+        if: always()
+        run: npx --no-install supabase stop
