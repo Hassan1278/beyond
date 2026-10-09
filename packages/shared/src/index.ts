@@ -25,4 +25,5 @@ export {
 export type { HealthLive, HealthReady, ApiErrorCode, ApiError } from './schemas/health';
 
 export * from './schemas/product';
+export * from './schemas/export';
 export { createApiClient, ApiClientError } from './api/client';

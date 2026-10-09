@@ -39,12 +39,19 @@ export const memorySchema = z.strictObject({
   text: shortText,
   source_entry_id: z.uuid().nullable(),
   created_at: timestamp,
+  revision,
+  updated_at: timestamp,
 });
 export const createMemorySchema = z.strictObject({
   text: shortText,
   source_entry_id: z.uuid().nullable(),
   approved: z.literal(true),
   idempotency_key: z.uuid(),
+});
+export const patchMemorySchema = z.strictObject({
+  text: shortText,
+  approved: z.literal(true),
+  expected_revision: revision,
 });
 export const todoSchema = z.strictObject({
   id: z.uuid(),
@@ -75,6 +82,7 @@ export type Settings = z.infer<typeof settingsSchema>;
 export type PatchSettings = z.infer<typeof patchSettingsSchema>;
 export type Memory = z.infer<typeof memorySchema>;
 export type CreateMemory = z.infer<typeof createMemorySchema>;
+export type PatchMemory = z.infer<typeof patchMemorySchema>;
 export type Todo = z.infer<typeof todoSchema>;
 export type CreateTodo = z.infer<typeof createTodoSchema>;
 export type PatchTodo = z.infer<typeof patchTodoSchema>;

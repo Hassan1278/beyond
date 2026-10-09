@@ -3,6 +3,7 @@ import {
   createMemorySchema,
   patchSettingsSchema,
   patchTodoSchema,
+  patchMemorySchema,
   timezoneSchema,
 } from './product';
 const id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -49,5 +50,19 @@ describe('explicit private product inputs', () => {
       true,
     );
     expect(patchTodoSchema.safeParse({ completed: true }).success).toBe(false);
+  });
+  it('requires renewed explicit approval and a revision for memory edits', () => {
+    const body = { text: 'Corrected fictional memory', expected_revision: 1, approved: true };
+    expect(patchMemorySchema.safeParse(body).success).toBe(true);
+    for (const invalid of [
+      { ...body, approved: false },
+      { text: body.text, expected_revision: 1 },
+      { ...body, expected_revision: 0 },
+      { ...body, text: '\ud800' },
+      { ...body, text: '😀'.repeat(1001) },
+      { ...body, source_entry_id: id },
+      { ...body, owner_id: id },
+    ])
+      expect(patchMemorySchema.safeParse(invalid).success).toBe(false);
   });
 });

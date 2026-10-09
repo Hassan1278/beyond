@@ -3,6 +3,7 @@ import {
   patchSettingsSchema,
   memorySchema,
   createMemorySchema,
+  patchMemorySchema,
   todoSchema,
   createTodoSchema,
   patchTodoSchema,
@@ -39,9 +40,7 @@ export function createProductHandler(config: WritingConfig, injectedFetch: typeo
           ? ['GET', 'PATCH']
           : id === undefined
             ? ['GET', 'POST']
-            : kind === 'todos'
-              ? ['GET', 'PATCH', 'DELETE']
-              : ['GET', 'DELETE'];
+            : ['GET', 'PATCH', 'DELETE'];
       if (request.method === 'OPTIONS')
         return withCors(preflight(request, origin, methods), origin, true);
       if (!methods.includes(request.method)) fail('bad_request');
@@ -107,20 +106,34 @@ export function createProductHandler(config: WritingConfig, injectedFetch: typeo
           );
         }
       } else if (request.method === 'PATCH') {
-        const { expected_revision, ...patch } = parse(
-          patchTodoSchema,
-          await readBody(request),
-          'bad_request',
-        );
-        data = parse(
-          todoSchema,
-          await call('todo_update', {
-            p_id: entryId,
-            p_patch: patch,
-            p_expected_revision: expected_revision,
-          }),
-          'internal_error',
-        );
+        if (kind === 'memories') {
+          const body = parse(patchMemorySchema, await readBody(request), 'bad_request');
+          data = parse(
+            memorySchema,
+            await call('memory_update', {
+              p_id: entryId,
+              p_text: body.text,
+              p_approved: body.approved,
+              p_expected_revision: body.expected_revision,
+            }),
+            'internal_error',
+          );
+        } else {
+          const { expected_revision, ...patch } = parse(
+            patchTodoSchema,
+            await readBody(request),
+            'bad_request',
+          );
+          data = parse(
+            todoSchema,
+            await call('todo_update', {
+              p_id: entryId,
+              p_patch: patch,
+              p_expected_revision: expected_revision,
+            }),
+            'internal_error',
+          );
+        }
       } else if (request.method === 'DELETE') {
         data = parse(
           entryParamsSchema,

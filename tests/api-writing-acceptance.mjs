@@ -573,8 +573,8 @@ async function main() {
           'unauthorized',
         );
         if (hasLegacySecret) {
-          const sign = (exp) => {
-            const data = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ ...claims, exp })}`;
+          const sign = (exp, amr) => {
+            const data = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ ...claims, exp, ...(amr ? { amr } : {}) })}`;
             return `${data}.${createHmac('sha256', status.JWT_SECRET).update(data).digest('base64url')}`;
           };
           // A fresh control proves this local legacy key is accepted before expiry is tested.
@@ -590,6 +590,45 @@ async function main() {
             }),
             401,
             'unauthorized',
+          );
+          const fresh = sign(now + 600, [{ method: 'password', timestamp: now }]);
+          const old = sign(now + 600, [{ method: 'password', timestamp: now - 600 }]);
+          statusIs(
+            await api('/api/v1/account/export?section=settings', undefined, {
+              headers: { Authorization: `Bearer ${fresh}` },
+            }),
+            200,
+          );
+          // A currently valid signed JWT with an old sign-in must fail after fresh Auth verification.
+          statusIs(
+            await api('/api/v1/account/export?section=settings', undefined, {
+              headers: { Authorization: `Bearer ${old}` },
+            }),
+            403,
+            'forbidden',
+          );
+          const params = {
+            p_section: 'settings',
+            p_limit: null,
+            p_before_created_at: null,
+            p_before_id: null,
+          };
+          statusIs(
+            await rest(
+              first,
+              '/rpc/account_export_page',
+              json('POST', params, { Authorization: `Bearer ${fresh}` }),
+            ),
+            200,
+          );
+          rpcFailure(
+            await rest(
+              first,
+              '/rpc/account_export_page',
+              json('POST', params, { Authorization: `Bearer ${old}` }),
+            ),
+            400,
+            'forbidden',
           );
         }
       },
@@ -1138,10 +1177,16 @@ async function main() {
       if (removedUserIds.size > 0) {
         const ids = [...removedUserIds].map((id) => `'${validUuid(id)}'::uuid`).join(', ');
         try {
+          // Failure cleanup is scoped only to captured fictional UUIDs whose Auth deletion succeeded.
+          sql(`DELETE FROM private.account_deletions WHERE user_id IN (${ids});`);
           same(
             sql(`SELECT (SELECT count(*) FROM auth.users WHERE id IN (${ids})) +
             (SELECT count(*) FROM public.profiles WHERE id IN (${ids})) +
-            (SELECT count(*) FROM public.journal_entries WHERE owner_id IN (${ids}));`),
+            (SELECT count(*) FROM public.journal_entries WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM public.user_settings WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM public.approved_memories WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM public.todos WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM private.account_deletions WHERE user_id IN (${ids}));`),
             '0',
             'Captured fictional users and their rows must be removed.',
           );

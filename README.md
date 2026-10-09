@@ -6,21 +6,21 @@ Beyond targets web and native Android/iOS writing-first journaling, opted-in del
 
 ## Current state
 
-The private-backend milestone on `feat/private-backend` adds settings, explicitly approved memories, standalone todos, a portable authenticated API client, and recoverable account deletion to the existing journal API. See [current product API and privacy limits](docs/product-api.md) for routes, migrations, enablement and acceptance checks.
+The private-backend milestone on `feat/private-backend` adds settings, explicitly approved and revisioned memories, standalone todos, a portable authenticated API client, recoverable account deletion and paginated private exports to the existing journal API. Memory corrections require explicit approval and reject stale edits. Exports require recent sign-in in both the API and database RPC, with no server-stored export copies. See [current product API and privacy limits](docs/product-api.md) for routes, migrations, enablement and acceptance checks.
 
-The writing backend and pitch prototype were merged into `main` at `6ef74e9`. Private milestone source `f155dc6` passed [all three feature CI jobs](https://github.com/Hassan1278/beyond/actions/runs/37970549760): 600 unit tests, 186 database checks, 20 real HTTP acceptance groups and the independent prototype's regression/render/build checks. The prototype is in `prototypes/pitch-demo` and is independent of the product API. `apps/web` and `apps/mobile` remain undesigned scaffolds.
+The writing backend and pitch prototype were merged into `main` at `6ef74e9`. Previous private milestone source `f155dc6` passed [all three feature CI jobs](https://github.com/Hassan1278/beyond/actions/runs/37970549760): 600 unit tests, 186 database checks, 20 real HTTP acceptance groups and the independent prototype's regression/render/build checks. Acceptance for the memory-edit/export extension is recorded separately in the current product API guide. The prototype is in `prototypes/pitch-demo` and is independent of the product API. `apps/web` and `apps/mobile` remain undesigned scaffolds.
 
 Production AI processing/reflection jobs, voice, patterns/Life Film and frontend integration remain unimplemented. Journal creation remains explicitly non-opted-in; no AI credentials or reachability are required. Account deletion is a separate optional privileged feature, disabled until its credentials and scheduler are configured.
 
 ## Workspaces
 
-| Path              | Responsibility and status                                                                 |
-| ----------------- | ----------------------------------------------------------------------------------------- |
-| `apps/web`        | Unchanged `@beyond/web` frontend scaffold and legacy backend placeholders                 |
-| `apps/mobile`     | Unchanged `@beyond/mobile` Expo / React Native Android/iOS scaffold                       |
-| `packages/shared` | Portable product contracts, validated bearer API client and tests                         |
-| `apps/api`        | API-only product backend: writing, settings, memories, todos and optional account cleanup |
-| `services/ai`     | Independent AI HTTP target; reserved for AI owner and unimplemented                       |
+| Path              | Responsibility and status                                                                          |
+| ----------------- | -------------------------------------------------------------------------------------------------- |
+| `apps/web`        | Unchanged `@beyond/web` frontend scaffold and legacy backend placeholders                          |
+| `apps/mobile`     | Unchanged `@beyond/mobile` Expo / React Native Android/iOS scaffold                                |
+| `packages/shared` | Portable product contracts, validated bearer API client and tests                                  |
+| `apps/api`        | API-only product backend: writing, settings, memories, todos, exports and optional account cleanup |
+| `services/ai`     | Independent AI HTTP target; reserved for AI owner and unimplemented                                |
 
 One monorepo/root lockfile remains; API workspace integration is complete and step003 adds no package or pin changes. Clean-install reproducibility is verified on Linux CI. Local Windows `npm ci` remains host-guard constrained, not a project-wide blocker. No vulnerability audit is claimed; existing deprecation/non-failing warnings remain in main's log. Writing migrations/access tests and health/writing runners exist; Independent AI fixtures/evaluations remain deferred; the shared product API client is implemented in this feature branch.
 

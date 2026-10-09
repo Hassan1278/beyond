@@ -139,4 +139,41 @@ describe('private product HTTP boundaries', () => {
         .status,
     ).toBe(500);
   });
+  it('dispatches approved memory edits with the expected revision and unchanged source', async () => {
+    const memory = {
+      id,
+      text: 'Corrected fictional memory',
+      source_entry_id: null,
+      revision: 2,
+      created_at: settings.updated_at,
+      updated_at: settings.updated_at,
+    };
+    const f = fetcher(memory);
+    const res = await createProductHandler(config, f)(
+      request('PATCH', { text: memory.text, approved: true, expected_revision: 1 }),
+      'memories',
+      id,
+    );
+    expect(res.status).toBe(200);
+    expect(f.mock.calls[2]?.[0]).toBe(config.supabaseUrl + '/rest/v1/rpc/memory_update');
+    expect(JSON.parse(f.mock.calls[2]?.[1]?.body as string)).toEqual({
+      p_id: id,
+      p_text: memory.text,
+      p_approved: true,
+      p_expected_revision: 1,
+    });
+  });
+  it('rejects unapproved memory changes before any write', async () => {
+    const f = fetcher(settings);
+    expect(
+      (
+        await createProductHandler(config, f)(
+          request('PATCH', { text: 'Fictional edit', expected_revision: 1, approved: false }),
+          'memories',
+          id,
+        )
+      ).status,
+    ).toBe(400);
+    expect(f).toHaveBeenCalledTimes(2);
+  });
 });

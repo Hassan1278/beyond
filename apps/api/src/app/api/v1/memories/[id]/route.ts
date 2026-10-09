@@ -9,6 +9,9 @@ export async function GET(request: Request, context: Context): Promise<Response>
 export async function DELETE(request: Request, context: Context): Promise<Response> {
   return handleProductRequest(request, 'memories', (await context.params).id);
 }
+export async function PATCH(request: Request, context: Context): Promise<Response> {
+  return handleProductRequest(request, 'memories', (await context.params).id);
+}
 export async function OPTIONS(request: Request, context: Context): Promise<Response> {
   return handleProductRequest(request, 'memories', (await context.params).id);
 }

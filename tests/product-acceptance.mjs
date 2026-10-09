@@ -177,12 +177,216 @@ export async function runProductAcceptance({
     statusIs(await api('/api/v1/memories/' + memory.id, first), 404, 'not_found');
     same(
       sql(
-        `SELECT count(*) FROM public.approved_memories WHERE id='${memory.id}'::uuid AND text IS NULL AND original_payload IS NULL AND source_entry_id IS NULL;`,
+        `SELECT count(*) FROM public.approved_memories WHERE id='${memory.id}'::uuid AND text IS NULL AND original_payload IS NULL AND source_entry_id IS NULL AND revision IS NULL AND updated_at IS NULL;`,
       ),
       '1',
       'Source-linked memory not scrubbed.',
     );
   });
+  let editedMemory;
+  await group(
+    'approved memory corrections, revision races and immutable creation replay',
+    async () => {
+      const body = {
+        text: 'Fictional editable memory',
+        source_entry_id: null,
+        approved: true,
+        idempotency_key: randomUUID(),
+      };
+      const memory = data(await api('/api/v1/memories', first, json('POST', body)));
+      check(
+        memory.revision === 1 && memory.updated_at === memory.created_at,
+        'Missing initial memory revision.',
+      );
+      statusIs(
+        await api(
+          '/api/v1/memories/' + memory.id,
+          first,
+          json('PATCH', { text: 'Unapproved correction', approved: false, expected_revision: 1 }),
+        ),
+        400,
+        'bad_request',
+      );
+      statusIs(
+        await api(
+          '/api/v1/memories/' + memory.id,
+          first,
+          json('PATCH', {
+            text: 'Source injection',
+            source_entry_id: randomUUID(),
+            approved: true,
+            expected_revision: 1,
+          }),
+        ),
+        400,
+        'bad_request',
+      );
+      const races = await Promise.all(
+        ['Fictional correction one', 'Fictional correction two'].map((text) =>
+          api(
+            '/api/v1/memories/' + memory.id,
+            first,
+            json('PATCH', { text, approved: true, expected_revision: 1 }),
+          ),
+        ),
+      );
+      same(
+        races.map((r) => r.response.status).sort(),
+        [200, 409],
+        'Memory revision race must have one winner.',
+      );
+      editedMemory = data(races.find((r) => r.response.status === 200));
+      check(
+        editedMemory.revision === 2 &&
+          editedMemory.source_entry_id === null &&
+          editedMemory.created_at === memory.created_at,
+        'Correction changed source/creation metadata.',
+      );
+      same(
+        data(await api('/api/v1/memories', first, json('POST', body))),
+        editedMemory,
+        'Creation retry did not return corrected memory.',
+      );
+      statusIs(
+        await api('/api/v1/memories', first, json('POST', { ...body, text: editedMemory.text })),
+        409,
+        'conflict',
+      );
+      statusIs(
+        await api(
+          '/api/v1/memories/' + memory.id,
+          second,
+          json('PATCH', { text: 'Other owner correction', approved: true, expected_revision: 2 }),
+        ),
+        404,
+        'not_found',
+      );
+      statusIs(
+        await rest(
+          first,
+          '/approved_memories?id=eq.' + memory.id,
+          json('PATCH', { text: 'Bypass revision' }),
+        ),
+        403,
+      );
+    },
+  );
+  await group(
+    'private paginated exports, current corrections and deleted-content exclusion',
+    async () => {
+      const readPage = async (user, section, params = '') => {
+        const result = await api('/api/v1/account/export?section=' + section + params, user);
+        const page = data(result);
+        check(
+          page.section === section &&
+            page.format_version === 1 &&
+            typeof page.exported_at === 'string',
+          'Invalid export page metadata.',
+        );
+        check(
+          result.response.headers.get('Cache-Control') === 'no-store' &&
+            result.response.headers.get('Content-Disposition') ===
+              `attachment; filename="beyond-${section}.json"`,
+          'Export cache/download headers are missing.',
+        );
+        check(
+          !/"(?:owner_id|original_payload|original_text|original_title|idempotency_key|deleted_at)":/.test(
+            JSON.stringify(page),
+          ),
+          'Export exposes internal metadata.',
+        );
+        return page;
+      };
+      const settings = await readPage(first, 'settings');
+      same(
+        settings.settings,
+        data(await api('/api/v1/settings', first)),
+        'Exported preferences differ from current settings.',
+      );
+      const memories = await readPage(first, 'memories');
+      same(memories.items, [editedMemory], 'Export omitted corrected or included deleted memory.');
+      same((await readPage(second, 'memories')).items, [], 'Memory export crossed owners.');
+      const exportedEntry = data(
+        await api(
+          '/api/v1/entries',
+          first,
+          json('POST', {
+            text: 'Fictional export-only entry',
+            reflection_opt_in: false,
+            idempotency_key: randomUUID(),
+          }),
+        ),
+      );
+      let cursor = null;
+      const exportedIds = [];
+      do {
+        const page = await readPage(
+          first,
+          'entries',
+          '&limit=1' + (cursor ? '&cursor=' + cursor : ''),
+        );
+        check(page.items.length <= 1, 'Export exceeded requested page size.');
+        for (const row of page.items) {
+          check(!exportedIds.includes(row.id), 'Export cursor repeated a row.');
+          exportedIds.push(row.id);
+        }
+        cursor = page.next_cursor;
+        check(
+          exportedIds.length <= 100,
+          'Export failed to terminate on bounded fictional fixture.',
+        );
+      } while (cursor);
+      check(exportedIds.includes(exportedEntry.id), 'Export missed active own journal entry.');
+      const expectedEntryIds = JSON.parse(
+        sql(
+          `SELECT COALESCE(jsonb_agg(id ORDER BY created_at DESC,id DESC),'[]'::jsonb)::text FROM public.journal_entries WHERE owner_id='${first.id}'::uuid AND deleted_at IS NULL;`,
+        ),
+      );
+      same(
+        exportedIds,
+        expectedEntryIds,
+        'Journal export paging lost, leaked or included deleted entries.',
+      );
+      const todos = await readPage(first, 'todos');
+      same(
+        todos.items.map((row) => row.id),
+        JSON.parse(
+          sql(
+            `SELECT COALESCE(jsonb_agg(id ORDER BY created_at DESC,id DESC),'[]'::jsonb)::text FROM public.todos WHERE owner_id='${first.id}'::uuid AND deleted_at IS NULL;`,
+          ),
+        ),
+        'Todo export lost or included deleted tasks.',
+      );
+      statusIs(
+        await api('/api/v1/account/export?section=entries&limit=51', first),
+        400,
+        'bad_request',
+      );
+      statusIs(
+        await api('/api/v1/account/export?section=entries&owner_id=' + second.id, first),
+        400,
+        'bad_request',
+      );
+      statusIs(
+        await api('/api/v1/account/export?section=settings&limit=1', first),
+        400,
+        'bad_request',
+      );
+      statusIs(await api('/api/v1/memories/' + editedMemory.id, first, { method: 'DELETE' }), 200);
+      same(
+        (await readPage(first, 'memories')).items,
+        [],
+        'Export retained forgotten corrected text.',
+      );
+      same(
+        sql(
+          `SELECT count(*) FROM public.approved_memories WHERE id='${editedMemory.id}'::uuid AND text IS NULL AND original_payload IS NULL AND revision IS NULL AND updated_at IS NULL;`,
+        ),
+        '1',
+        'Forgotten correction metadata remains.',
+      );
+    },
+  );
   await group(
     'recoverable account deletion, access gate and protected cleanup trigger',
     async () => {
@@ -225,6 +429,7 @@ export async function runProductAcceptance({
         '/api/v1/settings',
         '/api/v1/todos',
         '/api/v1/memories',
+        '/api/v1/account/export?section=settings',
       ])
         statusIs(await api(route, victim), 403, 'forbidden');
       statusIs(
@@ -268,6 +473,7 @@ export async function runProductAcceptance({
         'Account or queue remains.',
       );
       statusIs(await api('/api/v1/settings', victim), 401, 'unauthorized');
+      statusIs(await api('/api/v1/account/export?section=settings', victim), 401, 'unauthorized');
       statusIs(await api('/api/v1/settings', second), 200);
     },
   );

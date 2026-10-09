@@ -124,4 +124,88 @@ describe('portable authenticated API client', () => {
       }).account.delete(),
     ).toEqual({ status: 'deleting' });
   });
+  it('sends explicitly approved memory edits with the caller revision', async () => {
+    const memory = {
+      id,
+      text: 'Fictional corrected memory',
+      source_entry_id: null,
+      revision: 2,
+      created_at: settings.updated_at,
+      updated_at: settings.updated_at,
+    };
+    const f = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ data: memory }));
+    const client = createApiClient({
+      origin: 'https://api.example.test',
+      getAccessToken: () => 'token',
+      fetcher: f,
+    });
+    const patch = { text: memory.text, approved: true as const, expected_revision: 1 };
+    expect(await client.memories.update(id, patch)).toEqual(memory);
+    expect(f.mock.calls[0]?.[0]).toBe(`https://api.example.test/api/v1/memories/${id}`);
+    expect(f.mock.calls[0]?.[1]?.method).toBe('PATCH');
+    expect(JSON.parse(f.mock.calls[0]?.[1]?.body as string)).toEqual(patch);
+    expect(() => client.memories.update(id, { ...patch, approved: false } as never)).toThrow();
+    expect(f).toHaveBeenCalledOnce();
+  });
+  it('exports bounded pages with a fresh token and no cached copies', async () => {
+    const page = {
+      format_version: 1,
+      exported_at: settings.updated_at,
+      section: 'todos',
+      items: [],
+      next_cursor: null,
+    };
+    const f = vi.fn<typeof fetch>().mockImplementation(async () => Response.json({ data: page }));
+    const token = vi.fn().mockReturnValueOnce('first.token').mockReturnValueOnce('second.token');
+    const client = createApiClient({
+      origin: 'https://api.example.test',
+      getAccessToken: token,
+      fetcher: f,
+    });
+    expect(await client.account.exportPage({ section: 'todos', limit: '1' })).toEqual(page);
+    await client.account.exportPage({ section: 'todos' });
+    expect(f.mock.calls[0]?.[0]).toBe(
+      'https://api.example.test/api/v1/account/export?section=todos&limit=1',
+    );
+    expect(f.mock.calls[1]?.[1]?.headers).toEqual({ Authorization: 'Bearer second.token' });
+    expect(f.mock.calls[1]?.[1]?.cache).toBe('no-store');
+    await expect(client.account.exportPage({ section: 'settings', limit: '1' })).rejects.toThrow();
+    expect(f).toHaveBeenCalledTimes(2);
+  });
+  it('rejects an export response for a different section', async () => {
+    const f = vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        data: {
+          format_version: 1,
+          exported_at: settings.updated_at,
+          section: 'settings',
+          settings,
+        },
+      }),
+    );
+    await expect(
+      createApiClient({
+        origin: 'https://api.example.test',
+        getAccessToken: () => 'token',
+        fetcher: f,
+      }).account.exportPage({ section: 'entries' }),
+    ).rejects.toMatchObject({ code: 'invalid_response' });
+  });
+  it('returns a safe export reauthentication error without upstream details', async () => {
+    const f = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        Response.json(
+          { error: { code: 'forbidden', message: 'Private session details', request_id: id } },
+          { status: 403 },
+        ),
+      );
+    const promise = createApiClient({
+      origin: 'https://api.example.test',
+      getAccessToken: () => 'token',
+      fetcher: f,
+    }).account.exportPage({ section: 'entries' });
+    await expect(promise).rejects.toMatchObject({ code: 'forbidden', status: 403 });
+    await promise.catch((e) => expect(e.message).not.toContain('Private'));
+  });
 });

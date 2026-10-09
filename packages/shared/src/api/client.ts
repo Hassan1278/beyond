@@ -12,6 +12,7 @@ import {
   settingsSchema,
   patchSettingsSchema,
   createMemorySchema,
+  patchMemorySchema,
   memorySchema,
   memoryListSchema,
   createTodoSchema,
@@ -21,7 +22,18 @@ import {
   deletingAccountSchema,
 } from '../schemas/product';
 import type { CreateEntryBody, PatchEntryBody } from '../schemas/entries';
-import type { PatchSettings, CreateMemory, CreateTodo, PatchTodo } from '../schemas/product';
+import type {
+  PatchSettings,
+  CreateMemory,
+  PatchMemory,
+  CreateTodo,
+  PatchTodo,
+} from '../schemas/product';
+import {
+  accountExportQuerySchema,
+  accountExportPageSchema,
+  type AccountExportQuery,
+} from '../schemas/export';
 
 export class ApiClientError extends Error {
   constructor(
@@ -140,6 +152,14 @@ export function createApiClient(options: {
         call(`/memories/${id(value)}`, 'GET', memorySchema, undefined, signal),
       create: (body: CreateMemory, signal?: AbortSignal) =>
         call('/memories', 'POST', memorySchema, createMemorySchema.parse(body), signal),
+      update: (value: string, body: PatchMemory, signal?: AbortSignal) =>
+        call(
+          `/memories/${id(value)}`,
+          'PATCH',
+          memorySchema,
+          patchMemorySchema.parse(body),
+          signal,
+        ),
       delete: (value: string, signal?: AbortSignal) =>
         call(`/memories/${id(value)}`, 'DELETE', entryParamsSchema, undefined, signal),
     },
@@ -156,6 +176,21 @@ export function createApiClient(options: {
         call(`/todos/${id(value)}`, 'DELETE', entryParamsSchema, undefined, signal),
     },
     account: {
+      exportPage: async (page: AccountExportQuery, signal?: AbortSignal) => {
+        const validated = accountExportQuerySchema.parse(page);
+        const params = new URLSearchParams();
+        for (const [key, value] of Object.entries(validated))
+          if (value !== undefined) params.set(key, value);
+        const result = await call(
+          `/account/export?${params}`,
+          'GET',
+          accountExportPageSchema,
+          undefined,
+          signal,
+        );
+        if (result.section !== validated.section) throw new ApiClientError('invalid_response', 200);
+        return result;
+      },
       delete: (signal?: AbortSignal) =>
         call('/account', 'DELETE', deletingAccountSchema, undefined, signal),
     },

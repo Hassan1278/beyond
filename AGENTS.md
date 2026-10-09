@@ -2,7 +2,7 @@
 
 ## Current milestone and session authority
 
-The user authorized building the backend, committing and pushing feature work until a useful milestone. Follow `docs/product-api.md` for the current settings/memory/todo/client/account-cleanup contract. This supersedes historical Step003/remote-main/unimplemented shared-client and account-cleanup statements below. `main` includes the writing backend and pitch prototype at `6ef74e9`; current work is isolated on `feat/private-backend`.
+The user authorized building the backend, committing and pushing feature work until a useful milestone. Follow `docs/product-api.md` for the current settings/memory/todo/client/account-cleanup/export contract, including approved revisioned memory corrections and recent-sign-in page exports. This supersedes historical Step003/remote-main/unimplemented shared-client and account-cleanup statements below. `main` includes the writing backend and pitch prototype at `6ef74e9`; current work is isolated on `feat/private-backend`.
 
 Keep production AI generation/reflection jobs and `services/ai` unimplemented. Keep undesigned `apps/web` and `apps/mobile` scaffolds empty. Existing pitch-demo fixes may change implemented behavior/copy without creating new product screens. Privileged account operations use isolated optional credentials; ordinary product routes remain user-scoped. No automatic main merge, force-push or hosted deployment/database mutation is included. Actual local and CI results must be distinguished. Update privacy cleanup whenever future owned storage is introduced.
 
