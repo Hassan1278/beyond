@@ -72,7 +72,8 @@ export function PatternsPage(): ReactElement {
                 <h3>Your Life Film</h3>
                 <p>
                   Each month becomes one frame. Over a year it adds up to a film of who you were
-                  becoming, with nobody else in it to compare against.
+                  becoming, with nobody else in it to compare against. These frames are fictional
+                  samples; they do not analyze your entries.
                 </p>
               </div>
               <div className="site-film">
@@ -127,7 +128,8 @@ export function PatternsPage(): ReactElement {
               </div>
               {state.paused && (
                 <p className="paused-msg">
-                  Memory is paused. Tonight&rsquo;s letter will only use tonight&rsquo;s entry.
+                  Memory is paused. Kept memories and corrections stay out of live requests.
+                  Tonight&rsquo;s entry is still sent when live AI is enabled.
                 </p>
               )}
               <ul className={`mem-list${state.paused ? ' paused' : ''}`}>

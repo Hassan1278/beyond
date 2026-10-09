@@ -22,11 +22,11 @@ export function Home({ state, live }: ScreenProps): ReactElement {
         </button>
       </div>
       <button type="button" className="last" onClick={() => go('letter')}>
-        <span className="k">Letters &middot; 12 so far</span>
+        <span className="k">Letters &middot; sample</span>
         <b>Your latest letter from your {voice.name}</b>
         <span className="go">Read &rarr;</span>
       </button>
-      <p className="k">Coming back this week</p>
+      <p className="k">Coming back this week &middot; sample patterns</p>
       <div className="chips">
         <span>Feeling behind &middot; 3</span>
         <span>Photography &middot; 2</span>

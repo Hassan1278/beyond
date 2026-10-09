@@ -47,7 +47,7 @@ jobs:
       # Frontend builds and native exports remain separate gates.
 
   writing:
-    name: Real local Auth and Postgres writing acceptance
+    name: Real local Auth and Postgres backend acceptance
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -62,14 +62,39 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Start writing-only local Supabase
         run: npx --no-install supabase start --exclude realtime,storage-api,imgproxy,studio,edge-runtime,logflare,vector,supavisor,postgres-meta
-      - name: Test database permissions and writing RPCs
+      - name: Test database permissions and private RPCs
         run: npm run db:test
       - name: Build independent API
         run: npm run build:api
         env:
           NEXT_TELEMETRY_DISABLED: '1'
-      - name: Test production writing with two real local users
+      - name: Test production private API and recoverable account cleanup
         run: npm run test:api:writing
       - name: Stop local Supabase
         if: always()
         run: npx --no-install supabase stop
+
+  prototype:
+    name: Pitch demo behavior and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: prototypes/pitch-demo
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: prototypes/pitch-demo/package-lock.json
+      - name: Pin npm
+        run: npm install --global npm@11.19.0
+      - name: Install isolated prototype dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Test privacy and letter-flow regressions with mocked responses
+        run: npm test
+      - name: Render all designed screens and pages
+        run: npm run smoke
+      - name: Build pitch demo
+        run: npm run build

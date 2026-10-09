@@ -48,9 +48,11 @@ export function Letter({ state, live }: ScreenProps): ReactElement {
           Written for this entry by <b>{state.ai.model ?? 'Claude'}</b>
           {state.ai.ms ? ` · ${(state.ai.ms / 1000).toFixed(1)}s` : ''}
         </p>
-      ) : null}
+      ) : (
+        <p className="src">Scripted letter for the fictional sample entry.</p>
+      )}
 
-      <p className="k">Coming back</p>
+      <p className="k">Coming back &middot; sample patterns</p>
       <div className="chips">
         <span>Feeling behind &middot; 3 nights</span>
         <span>Photography &middot; 2 entries</span>
@@ -63,9 +65,7 @@ export function Letter({ state, live }: ScreenProps): ReactElement {
         <p className="sw">{letter.step}</p>
         {state.step ? (
           <p className="note">
-            {state.step === 'try'
-              ? 'Added to today. No reminders unless you ask.'
-              : 'Okay. Tomorrow’s letter will suggest something else.'}
+            {state.step === 'try' ? 'Marked for today in this demo.' : 'Skipped in this demo.'}
           </p>
         ) : (
           <div className="row">
@@ -97,6 +97,7 @@ export function Letter({ state, live }: ScreenProps): ReactElement {
           <textarea
             id="fixText"
             value={state.fixText}
+            maxLength={600}
             readOnly={!live}
             tabIndex={live ? 0 : -1}
             placeholder="e.g. I'm not into photography, I just liked being outside."

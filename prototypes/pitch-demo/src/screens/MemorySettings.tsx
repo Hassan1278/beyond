@@ -12,7 +12,7 @@ export function MemorySettings({ state, live }: ScreenProps): ReactElement {
     <div className="v pad">
       <h2>What Beyond remembers</h2>
       <p className="muted" style={{ marginTop: -4 }}>
-        Used only to write your letters. Only you can see this.
+        Sample memories, saved in this browser without encryption. Use fictional content.
       </p>
 
       <button
@@ -27,7 +27,8 @@ export function MemorySettings({ state, live }: ScreenProps): ReactElement {
       </button>
       {state.paused && (
         <p className="pmsg">
-          Letters will only use each night&rsquo;s entry until you turn memory back on.
+          Kept memories and corrections stay out of live requests. Tonight&rsquo;s entry is still
+          sent.
         </p>
       )}
 
@@ -76,9 +77,9 @@ export function MemorySettings({ state, live }: ScreenProps): ReactElement {
             Letter writer
             <small>
               {state.source === 'ai'
-                ? 'Claude writes from what you actually wrote'
+                ? 'Your entry is sent through this host to Anthropic'
                 : aiReady
-                  ? 'Fixed demo letters. Tap to use live AI.'
+                  ? 'Enable live AI to send your entry and allowed context to Anthropic.'
                   : 'Fixed demo letters. No AI key on this host.'}
             </small>
           </span>
@@ -94,7 +95,10 @@ export function MemorySettings({ state, live }: ScreenProps): ReactElement {
         </button>
         {state.delAsk ? (
           <div className="confirm">
-            <p>Delete all entries, letters and memories? This can&rsquo;t be undone.</p>
+            <p>
+              Clear this browser&rsquo;s entry, letter, correction and memories? Data already sent
+              to live AI cannot be recalled.
+            </p>
             <div className="row">
               <button
                 type="button"

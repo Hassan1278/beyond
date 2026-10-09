@@ -27,6 +27,8 @@ Memory text and todo titles preserve whitespace and valid Unicode, are nonblank 
 
 Normal product operations use only the publishable key and verified user token. Database grants prohibit direct writes and private original/key reads. Active-owner RLS and validated security-definer RPCs independently enforce ownership, revision/replay rules and deletion. New SQL is additive; do not edit previously applied migrations.
 
+Readiness remains a catalog-only boolean with no user data or AI dependency. The additive readiness migration preserves the writing gate and checks the product tables, validated key/cleanup constraints, RLS policies, indexes, source-cleanup trigger and RPC security/grants. Missing RLS, disabled source cleanup, exposed queue RPCs or direct client write grants make the API unready.
+
 ## Recoverable account deletion
 
 The feature is disabled unless all of these server-only values are configured:
@@ -51,4 +53,4 @@ Queue records contain only UUIDs, request/retry times, attempt count and lease m
 
 Access isolation is not end-to-end encryption. Hosting transport/at-rest encryption and backup retention must be verified and disclosed at deployment. Active database cleanup cannot erase historical provider backups instantly. No data is sent to AI by this backend milestone; future processing requires an explicit consent/retention contract. Memory pause excludes memories from future context, not the current entry. Avoid journal content, tokens or email addresses in routine logs.
 
-Local validation uses the pinned Node/npm toolchain, original/new unit tests, backend lint/types and the production API build/health smoke. Embedded PostgreSQL checks exercise migrations, RLS and cleanup behavior. GitHub CI also runs pgTAP and the guarded production HTTP runner against real local Supabase Auth/Postgres; CI outcomes must be checked before claiming this milestone validated there. No hosted database changes, deployment or native build is included.
+Local validation uses the pinned Node/npm toolchain, 600 unit tests, backend lint/types and the production API build/health smoke. Embedded PostgreSQL checks exercise all migrations, RLS, readiness and cleanup behavior. Core backend source `3c6f357` passed GitHub CI run [37969433509](https://github.com/Hassan1278/beyond/actions/runs/37969433509), including 180 pgTAP checks and 20 guarded production HTTP acceptance groups against real local Supabase Auth/Postgres. The subsequent readiness extension adds six pgTAP checks; CI also now checks the existing pitch prototype's mocked regressions, render smoke and build. Use the branch's latest checks for those subsequent changes. No hosted database changes, deployment or native build is included.

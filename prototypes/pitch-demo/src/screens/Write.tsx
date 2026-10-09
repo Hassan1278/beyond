@@ -47,6 +47,7 @@ export function Write({ state, live }: ScreenProps): ReactElement {
             className="area"
             aria-label="Tonight's entry"
             value={state.entry}
+            maxLength={6000}
             readOnly={!live}
             tabIndex={live ? 0 : -1}
             onChange={(e) => dispatch({ type: 'entry', entry: e.target.value })}
@@ -84,7 +85,7 @@ export function Write({ state, live }: ScreenProps): ReactElement {
           className="fine-btn"
           onClick={() => dispatch({ type: 'sheet', open: true })}
         >
-          Encrypted &middot; see what&rsquo;s sent to the AI
+          Demo storage &middot; see what&rsquo;s sent to AI
         </button>
       </div>
     </div>

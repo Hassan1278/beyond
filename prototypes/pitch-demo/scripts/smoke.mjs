@@ -126,7 +126,7 @@ try {
     '/privacy': [
       '/src/site/pages/PrivacyPage.tsx',
       'PrivacyPage',
-      ['Safe enough to be honest', 'Not therapy', '18111', 'Never sent'],
+      ['Safe enough to be honest', 'Not therapy', '18111', 'Not automatically collected'],
     ],
     '/schools': [
       '/src/site/pages/SchoolsPage.tsx',

@@ -38,13 +38,14 @@ npm install
 npm run dev          # http://localhost:5173, also on your LAN for phone testing
 ```
 
-| Command           | What it does                                            |
-| ----------------- | ------------------------------------------------------- |
-| `npm run dev`     | Dev server, including the `/api/letter` function        |
-| `npm run build`   | Typecheck, then build to `dist/`                        |
-| `npm run preview` | Serve the built `dist/` (no API; letters stay scripted) |
-| `npm run smoke`   | Render all nine screens in both shells and check them   |
-| `npm run icons`   | Regenerate the home-screen icons                        |
+| Command           | What it does                                                                    |
+| ----------------- | ------------------------------------------------------------------------------- |
+| `npm run dev`     | Dev server, including the `/api/letter` function                                |
+| `npm run build`   | Typecheck, then build to `dist/`                                                |
+| `npm run preview` | Serve the built `dist/` (no API; letters stay scripted)                         |
+| `npm run smoke`   | Render all nine screens in both shells and check them                           |
+| `npm test`        | Check privacy, cancellation, voice and safety regressions with mocked responses |
+| `npm run icons`   | Regenerate the home-screen icons                                                |
 
 ## The pages
 
@@ -83,8 +84,8 @@ heavy on stage and watch it fire. There is also a button for it in the presenter
 
 ## Letters: scripted or live
 
-**Scripted** is the default and needs nothing: four fixed letters, no network, no key, no risk
-on stage. **Live AI** sends the entry actually typed on the phone to Claude and shows the letter
+**Scripted** is the default: four fixed letters, no entry sent to AI and no key needed.
+The browser still makes an availability check. **Live AI** sends the entry actually typed on the phone to Claude and shows the letter
 it writes back. Switch between them in the app under **You → Letter writer**, or from the
 presenter notes on the entry, sealed and letter screens.
 
@@ -104,6 +105,32 @@ back in seconds), structured JSON output so the five parts of the letter always 
 with `BEYOND_MODEL` / `BEYOND_EFFORT`. The endpoint throttles to 30 letters per IP per hour
 (`BEYOND_RATE_LIMIT`) — the demo link is public during a pitch, so also set a spend limit on the
 key.
+
+The existing demo endpoint now rejects entries over 6000 characters, more than 20 memory
+lines or lines over 2000 characters, corrections over 600 characters, and unexpected fields.
+Bodies have a 128000-byte cap and a five-second total read deadline; the existing provider
+call is bounded to 50 seconds without automatic retries. These are prototype safeguards,
+not an implementation of the separate production AI service.
+
+## Prototype privacy and regression checks
+
+Use fictional content. The demo saves its entry, letter, correction and kept memories in
+unencrypted browser storage. It has no account and is not connected to the product backend.
+“Delete everything” clears all of that saved content; only a deletion marker remains so a
+reload does not restore fictional defaults. Restart deliberately restores the sample data.
+Neither control can recall text already sent to a live provider.
+
+Pausing memory omits kept memories and corrections from live requests, while the current
+entry, voice and date/time labels are still sent. Text is not redacted: names, contacts or
+locations typed into an entry are included. The privacy sheet shows the current text/context.
+Local deletion, reset and input/context changes cancel requests and fence late responses.
+Voice changes on the site regenerate using the new voice. Both site and app sealing use the
+same limited keyword safety branch before sending; this can miss urgent text.
+
+Patterns, topic counts and Life Film frames are explicitly fictional samples, even with a
+live letter. Accepted steps are marked locally, not saved as backend todos. `npm test` uses
+jsdom and mocked responses; it performs no paid/provider calls. CI clean-installs this folder's
+own lockfile, runs these checks and the 25 screen/page render checks, then builds the demo.
 
 ## Deploy, then show it on a phone
 
