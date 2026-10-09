@@ -106,7 +106,7 @@ try {
     '/problem': [
       '/src/site/pages/ProblemPage.tsx',
       'ProblemPage',
-      ['The Great Distraction', 'What students told us', '91%', 'aidan.lifts'],
+      ['The Great Distraction', 'What young people told us', '91%', 'aidan.lifts'],
     ],
     '/how': [
       '/src/site/pages/HowPage.tsx',

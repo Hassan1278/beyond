@@ -24,6 +24,7 @@ import { WhyPage } from './site/pages/WhyPage';
 import { PrivacyPage } from './site/pages/PrivacyPage';
 import { SchoolsPage } from './site/pages/SchoolsPage';
 import { useRoute } from './router';
+import { useRouteTransition, useRevealOnScroll } from './site/motion';
 
 type Shell = 'app' | 'present';
 
@@ -106,17 +107,24 @@ function Routes(): ReactElement {
   const path = useRoute();
   const isDemo = path === '/app' || path.startsWith('/app/');
 
+  // The visible page lags the URL just long enough for the old one to leave.
+  const { shown, leaving } = useRouteTransition(isDemo ? path : path, 220);
+  const visible = isDemo ? path : shown;
+  useRevealOnScroll(visible);
+
   useEffect(() => {
     if (!isDemo) document.body.dataset.mode = 'site';
   }, [isDemo, path]);
 
   if (isDemo) return <Demo sub={path.slice('/app/'.length)} />;
 
-  const Page = SITE[path] ?? HomePage;
-  const meta = PAGES.find((p) => p.path === path) ?? PAGES[0];
+  const Page = SITE[visible] ?? HomePage;
+  const navMeta = PAGES.find((p) => p.path === path) ?? PAGES[0];
   return (
-    <SiteShell path={meta.path} time={meta.time}>
-      <Page />
+    <SiteShell path={navMeta.path} time={navMeta.time}>
+      <div className={`page${leaving ? ' is-leaving' : ''}`} key={visible}>
+        <Page />
+      </div>
     </SiteShell>
   );
 }

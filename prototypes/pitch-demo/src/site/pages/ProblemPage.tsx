@@ -4,11 +4,11 @@ import { FeedTicker } from '../FeedWall';
 
 /**
  * The evidence page. Laid out as a descent: the feed across the top, then the
- * naming, then what students actually said. The lead statistic is set large
+ * naming, then what young people actually said. The lead statistic is set large
  * and alone so the four findings are a hierarchy rather than a row of tiles.
  */
 
-/** Dots fill in once, when the figures come into view: 42 students answering. */
+/** Dots fill in once, when the figures come into view: 42 people answering. */
 function Dots({ n, live }: { n: number; live: boolean }): ReactElement {
   return (
     <div className="dots" aria-hidden="true">
@@ -58,13 +58,13 @@ export function ProblemPage(): ReactElement {
           <p className="eyebrow">A name for it</p>
           <ol className="eras">
             {ERAS.map((e) => (
-              <li key={e.era} className={e.now ? 'now' : undefined}>
+              <li key={e.era} className={e.now ? 'now' : undefined} data-reveal="">
                 <span className="yr">{e.yr}</span>
                 <span className="era">{e.era}</span>
               </li>
             ))}
           </ol>
-          <div className="two">
+          <div className="two" data-reveal="">
             <p className="big">
               Every feed has a version of you that is further ahead. Scroll long enough and it gets
               hard to tell which goals were yours to begin with.
@@ -80,9 +80,9 @@ export function ProblemPage(): ReactElement {
 
       <section className="sec night figures" style={{ paddingTop: 0 }}>
         <div className="wrap" ref={figures}>
-          <div className="lead-stat">
+          <div className="lead-stat" data-reveal="lead">
             <div>
-              <p className="eyebrow">What students told us</p>
+              <p className="eyebrow">What young people told us</p>
               <p className="lead-num">{lead.num}</p>
               <p className="lead-cap">{lead.caption}</p>
             </div>
@@ -91,7 +91,7 @@ export function ProblemPage(): ReactElement {
 
           <dl className="findings">
             {rest.map((s) => (
-              <div key={s.num}>
+              <div key={s.num} data-reveal="">
                 <dt>{s.num}</dt>
                 <dd>{s.caption}</dd>
                 <Dots n={s.n} live={live} />

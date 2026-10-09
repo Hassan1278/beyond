@@ -26,7 +26,7 @@ export function PrivacyPage(): ReactElement {
   return (
     <section className="sec night">
       <div className="wrap">
-        <div className="sec-head">
+        <div className="sec-head" data-reveal="lead">
           <p className="eyebrow">Privacy &amp; limits</p>
           <h2>Safe enough to be honest.</h2>
           <p className="sub">
@@ -35,7 +35,7 @@ export function PrivacyPage(): ReactElement {
           </p>
         </div>
 
-        <div className="manifest">
+        <div className="manifest" data-reveal="">
           <div className="manifest-col">
             <p className="kicker">Sent, to write your letter</p>
             <ul className="yeslist">
@@ -56,14 +56,14 @@ export function PrivacyPage(): ReactElement {
 
         <dl className="commitments">
           {SAFEGUARDS.map((s) => (
-            <div key={s.title}>
+            <div key={s.title} data-reveal="">
               <dt>{s.title}</dt>
               <dd>{s.body}</dd>
             </div>
           ))}
         </dl>
 
-        <div className="crisis">
+        <div className="crisis" data-reveal="">
           <p>
             If you&rsquo;re struggling right now, please don&rsquo;t wait for a letter. In Hong Kong
             you can reach someone tonight.

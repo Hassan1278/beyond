@@ -14,18 +14,18 @@ export function SchoolsPage(): ReactElement {
     <>
       <section className="sec night">
         <div className="wrap">
-          <div className="sec-head">
+          <div className="sec-head" data-reveal="lead">
             <p className="eyebrow">For institutions</p>
             <h2>Somewhere to put it down, provided by the people who look after you.</h2>
             <p className="sub">
-              Universities, schools and employers can offer Beyond to their students and staff. Each
+              Universities, schools and employers can offer Beyond to the people in their care. Each
               person gets their own private space, and the institution never sees inside it.
             </p>
           </div>
 
           <div className="audiences">
             {SCHOOLS.map((s) => (
-              <section key={s.big}>
+              <section key={s.big} data-reveal="">
                 <p className="big">{s.big}</p>
                 <h3>{s.title}</h3>
                 <p>{s.body}</p>
@@ -40,7 +40,7 @@ export function SchoolsPage(): ReactElement {
           <p className="eyebrow">Beta</p>
           <h2>Tonight, write without an audience.</h2>
           <p className="sub">
-            We&rsquo;re opening a small beta for students. Tell us where to reach you, and help
+            We&rsquo;re opening a small beta for young people. Tell us where to reach you, and help
             shape what Beyond becomes.
           </p>
           <form

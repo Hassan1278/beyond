@@ -71,7 +71,7 @@ const VOICE_BRIEF: Record<VoiceId, string> = {
 };
 
 const SYSTEM = [
-  'You write the morning letter for Beyond, a journaling app for students.',
+  'You write the morning letter for Beyond, a journaling app for young people.',
   '',
   'How Beyond works: the person writes or speaks freely at night and nothing replies. The next',
   'morning they receive one letter about what they wrote. You are that letter.',

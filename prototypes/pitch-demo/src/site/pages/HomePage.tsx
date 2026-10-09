@@ -3,6 +3,7 @@ import { NoiseHero } from '../NoiseHero';
 import { Beats } from '../Beats';
 import { FeedWall } from '../FeedWall';
 import { Link } from '../../router';
+import { Presence } from '../motion';
 
 /**
  * The argument, in order: the noise, then the feed behind it, then what
@@ -30,32 +31,36 @@ export function HomePage(): ReactElement {
               you until you close it. Scroll long enough and it gets hard to tell which goals were
               ever yours.
             </p>
-            {down ? (
-              <div className="quiet-state" aria-live="polite">
-                <p className="quiet-line">Quiet.</p>
-                <p className="sub">
-                  Nothing is asking for your attention now. That is the whole idea behind Beyond:
-                  one place that does not compete for it.
-                </p>
-                <div className="ctas">
-                  <Link to="/how" className="btn btn-light">
-                    See what happens next
-                  </Link>
-                  <button type="button" className="btn btn-ghost" onClick={() => setDown(false)}>
-                    Let it back in
-                  </button>
+            {/* The two states cross in the same spot, each with its own exit. */}
+            <div className="swap-stack">
+              <Presence show={down}>
+                <div className="quiet-state" aria-live="polite">
+                  <p className="quiet-line">Quiet.</p>
+                  <p className="sub">
+                    Nothing is asking for your attention now. That is the whole idea behind Beyond:
+                    one place that does not compete for it.
+                  </p>
+                  <div className="ctas">
+                    <Link to="/how" className="btn btn-light">
+                      See what happens next
+                    </Link>
+                    <button type="button" className="btn btn-ghost" onClick={() => setDown(false)}>
+                      Let it back in
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="ctas">
-                <button type="button" className="btn btn-light" onClick={() => setDown(true)}>
-                  Put it down
-                </button>
-                <Link to="/problem" className="btn btn-ghost">
-                  Why it works on us
-                </Link>
-              </div>
-            )}
+              </Presence>
+              <Presence show={!down}>
+                <div className="ctas">
+                  <button type="button" className="btn btn-light" onClick={() => setDown(true)}>
+                    Put it down
+                  </button>
+                  <Link to="/problem" className="btn btn-ghost">
+                    Why it works on us
+                  </Link>
+                </div>
+              </Presence>
+            </div>
           </div>
 
           <div className="feed-frame">
@@ -66,7 +71,7 @@ export function HomePage(): ReactElement {
 
       <section className="sec day">
         <div className="wrap">
-          <div className="sec-head">
+          <div className="sec-head" data-reveal="lead">
             <p className="eyebrow">How Beyond works</p>
             <h2>Say it tonight. Understand it tomorrow.</h2>
             <p className="sub">
@@ -88,12 +93,12 @@ export function HomePage(): ReactElement {
 
       <section className="sec night">
         <div className="wrap">
-          <div className="sec-head">
-            <p className="eyebrow">What students told us</p>
+          <div className="sec-head" data-reveal="lead">
+            <p className="eyebrow">What young people told us</p>
             <h2>80%+ feel lost about where they&rsquo;re heading.</h2>
             <p className="sub">
-              We asked 42 high school and university students across three continents. Nine in ten
-              have things to get off their chest and no right person to tell.
+              We asked 42 young people across three continents. Nine in ten have things to get off
+              their chest and no right person to tell.
             </p>
           </div>
           <div className="ctas">

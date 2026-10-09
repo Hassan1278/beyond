@@ -16,20 +16,20 @@ export function WhyPage(): ReactElement {
     <>
       <section className="sec day">
         <div className="wrap">
-          <div className="why-head">
+          <div className="why-head" data-reveal="lead">
             <h2>
               Three places to put
               <br />a hard night.
             </h2>
             <p className="sub">
-              Each of them is good at something. None of them is built for a student who simply
+              Each of them is good at something. None of them is built for a young person who just
               wants to slow down and work out which direction is theirs.
             </p>
           </div>
 
           <div className="ledger">
             {others.map((c) => (
-              <div className="ledger-row" key={c.name}>
+              <div className="ledger-row" key={c.name} data-reveal="">
                 <h3>{c.name}</h3>
                 <p className="good">{c.good}</p>
                 <p className="short">{c.bad}</p>
@@ -41,7 +41,7 @@ export function WhyPage(): ReactElement {
 
       {us && (
         <section className="sec night us-band">
-          <div className="wrap us-grid">
+          <div className="wrap us-grid" data-reveal="lead">
             <div>
               <p className="eyebrow">The gap</p>
               <h2 className="us-mark">beyond.</h2>

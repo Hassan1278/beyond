@@ -35,7 +35,7 @@ export const SYMPTOMS = [
   'Nowhere to think out loud without being judged',
 ];
 
-/** n is out of 42 respondents; each dot is one student. */
+/** n is out of 42 respondents; each dot is one person. */
 export const STATS = [
   { n: 34, num: '80%+', caption: 'feel lost about where they’re heading' },
   { n: 38, num: '91%', caption: 'have things to get off their chest, but no right person to tell' },
@@ -44,9 +44,9 @@ export const STATS = [
 ];
 
 export const SURVEY_NOTE =
-  'Beyond team survey, 2026, n = 42 high school and university students across Asia, Europe ' +
-  'and North America. Each dot is one student. It is a small sample, so our beta will test ' +
-  'these findings with more people.';
+  'Beyond team survey, 2026, n = 42 young people in high school and university across Asia, ' +
+  'Europe and North America. Each dot is one respondent. It is a small sample, so our beta ' +
+  'will test these findings with more people.';
 
 /* ------------------------------------------------------------ how it works */
 
@@ -94,7 +94,7 @@ export const COMPARE = [
   },
   {
     name: 'beyond.',
-    good: 'Students who don’t need therapy or another instant answer, but want to slow down and find their direction.',
+    good: 'Young people who don’t need therapy or another instant answer, but want to slow down and find their direction.',
     bad: 'Expression first, reflection later. A letter in the voice you choose, with one small step instead of ten.',
     us: true,
   },

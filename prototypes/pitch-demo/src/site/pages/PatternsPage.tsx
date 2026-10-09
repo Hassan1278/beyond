@@ -39,7 +39,7 @@ export function PatternsPage(): ReactElement {
     <>
       <section className="sec day">
         <div className="wrap">
-          <div className="sec-head">
+          <div className="sec-head" data-reveal="lead">
             <p className="eyebrow">Monthly review &amp; Life Film</p>
             <h2>Your patterns. Not their highlight reel.</h2>
             <p className="sub">
@@ -48,7 +48,7 @@ export function PatternsPage(): ReactElement {
             </p>
           </div>
 
-          <div className="pat-grid">
+          <div className="pat-grid" data-reveal="">
             <div className="review">
               <div className="review-head">
                 <h3>{monthSoFar()}</h3>
@@ -94,7 +94,7 @@ export function PatternsPage(): ReactElement {
 
       <section className="sec day-2">
         <div className="wrap">
-          <div className="mem-grid">
+          <div className="mem-grid" data-reveal="">
             <div>
               <p className="eyebrow">Memory you control</p>
               <h2 style={{ marginTop: 20 }}>You decide what Beyond remembers.</h2>
