@@ -1,9 +1,58 @@
-import type { ReactElement } from 'react';
+import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { ERAS, STATS, SURVEY_NOTE, SYMPTOMS } from '../../data/site';
+import { FeedTicker } from '../FeedWall';
+
+/**
+ * The evidence page. Laid out as a descent: the feed across the top, then the
+ * naming, then what students actually said. The lead statistic is set large
+ * and alone so the four findings are a hierarchy rather than a row of tiles.
+ */
+
+/** Dots fill in once, when the figures come into view: 42 students answering. */
+function Dots({ n, live }: { n: number; live: boolean }): ReactElement {
+  return (
+    <div className="dots" aria-hidden="true">
+      {Array.from({ length: 42 }, (_, i) => (
+        <span
+          key={i}
+          className={live && i < n ? 'on' : undefined}
+          style={{ transitionDelay: `${i * 16}ms` }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function ProblemPage(): ReactElement {
+  const [live, setLive] = useState(false);
+  const figures = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = figures.current;
+    if (!el) return;
+    if (!('IntersectionObserver' in window)) {
+      setLive(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setLive(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: '-15% 0px -15% 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const [lead, ...rest] = STATS;
+
   return (
     <>
+      <FeedTicker />
+
       <section className="sec night">
         <div className="wrap">
           <p className="eyebrow">A name for it</p>
@@ -29,25 +78,27 @@ export function ProblemPage(): ReactElement {
         </div>
       </section>
 
-      <section className="sec night" style={{ paddingTop: 0 }}>
-        <div className="wrap">
-          <div className="sec-head">
-            <p className="eyebrow">What students told us</p>
-            <h2>We asked 42 students how it feels.</h2>
+      <section className="sec night figures" style={{ paddingTop: 0 }}>
+        <div className="wrap" ref={figures}>
+          <div className="lead-stat">
+            <div>
+              <p className="eyebrow">What students told us</p>
+              <p className="lead-num">{lead.num}</p>
+              <p className="lead-cap">{lead.caption}</p>
+            </div>
+            <Dots n={lead.n} live={live} />
           </div>
-          <div className="stat-grid">
-            {STATS.map((s) => (
-              <figure className="stat" key={s.num}>
-                <p className="num">{s.num}</p>
-                <div className="dots" aria-hidden="true">
-                  {Array.from({ length: 42 }, (_, i) => (
-                    <span key={i} className={i < s.n ? 'on' : undefined} />
-                  ))}
-                </div>
-                <figcaption>{s.caption}</figcaption>
-              </figure>
+
+          <dl className="findings">
+            {rest.map((s) => (
+              <div key={s.num}>
+                <dt>{s.num}</dt>
+                <dd>{s.caption}</dd>
+                <Dots n={s.n} live={live} />
+              </div>
             ))}
-          </div>
+          </dl>
+
           <p className="foot">{SURVEY_NOTE}</p>
         </div>
       </section>

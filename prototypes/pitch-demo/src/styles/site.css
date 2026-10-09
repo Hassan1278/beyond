@@ -373,27 +373,6 @@ body[data-mode='site'] .wrap {
 }
 
 /* ----------------------------------------------------------------- stats */
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 18px;
-}
-.stat {
-  margin: 0;
-  background: var(--night-2);
-  border: 1px solid var(--night-line);
-  border-radius: 22px;
-  padding: 24px 22px;
-  display: grid;
-  gap: 16px;
-  align-content: start;
-}
-.stat .num {
-  font-size: clamp(42px, 4.4vw, 60px);
-  font-weight: 800;
-  letter-spacing: -0.06em;
-  line-height: 0.9;
-}
 .dots {
   display: grid;
   grid-template-columns: repeat(14, 1fr);
@@ -406,11 +385,6 @@ body[data-mode='site'] .wrap {
 }
 .dots span.on {
   background: var(--paper);
-}
-.stat figcaption {
-  color: var(--mist);
-  font-size: 15px;
-  line-height: 1.45;
 }
 
 /* ------------------------------------------------------------ three beats */
@@ -705,57 +679,6 @@ body[data-mode='site'] .wrap {
 }
 
 /* --------------------------------------------------------------- compare */
-.cmp {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-}
-.cmp article {
-  border: 1px solid var(--paper-line);
-  border-radius: 22px;
-  padding: 24px;
-  display: grid;
-  gap: 16px;
-  align-content: start;
-  background: var(--paper);
-}
-.cmp h3 {
-  font-size: 19px;
-}
-.cmp dl {
-  margin: 0;
-  display: grid;
-  gap: 12px;
-}
-.cmp dt {
-  font-family: var(--f-mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-.cmp dd {
-  margin: 4px 0 0;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--ink-soft);
-}
-.cmp article.us {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
-}
-.cmp .us dt {
-  color: var(--moon);
-}
-.cmp .us dd {
-  color: #d6d5cf;
-}
-.cmp .us h3 {
-  font-weight: 800;
-  font-size: 24px;
-  letter-spacing: -0.04em;
-}
 
 /* -------------------------------------------------------------- patterns */
 .pat-grid {
@@ -1017,23 +940,6 @@ body[data-mode='site'] .wrap {
 }
 
 /* ---------------------------------------------------------------- safety */
-.safe-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-}
-.safe-grid article {
-  border-top: 1px solid var(--night-line);
-  padding-top: 20px;
-  display: grid;
-  gap: 10px;
-  align-content: start;
-}
-.safe-grid p {
-  color: var(--mist);
-  font-size: 15px;
-  line-height: 1.55;
-}
 .crisis {
   margin-top: clamp(36px, 4vw, 56px);
   border: 1px solid var(--night-line);
@@ -1072,31 +978,6 @@ body[data-mode='site'] .wrap {
 }
 
 /* --------------------------------------------------------------- schools */
-.school-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-.school-grid article {
-  background: var(--night-2);
-  border: 1px solid var(--night-line);
-  border-radius: 22px;
-  padding: 26px;
-  display: grid;
-  gap: 12px;
-  align-content: start;
-}
-.school-grid p {
-  color: var(--mist);
-  font-size: 15px;
-  line-height: 1.55;
-}
-.school-grid .big {
-  font-size: 38px;
-  font-weight: 800;
-  letter-spacing: -0.05em;
-  line-height: 1;
-}
 
 /* ------------------------------------------------------------------ join */
 .join {
@@ -1195,11 +1076,6 @@ body[data-mode='site'] .wrap {
 
 /* ------------------------------------------------------------ responsive */
 @media (max-width: 1040px) {
-  .stat-grid,
-  .cmp,
-  .safe-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 @media (max-width: 820px) {
   .two,
@@ -1215,9 +1091,6 @@ body[data-mode='site'] .wrap {
     min-height: 0;
     padding-top: 90px;
   }
-  .school-grid {
-    grid-template-columns: 1fr;
-  }
   .nav-in {
     gap: 12px;
   }
@@ -1226,11 +1099,6 @@ body[data-mode='site'] .wrap {
   }
 }
 @media (max-width: 560px) {
-  .stat-grid,
-  .cmp,
-  .safe-grid {
-    grid-template-columns: 1fr;
-  }
   .eras li {
     grid-template-columns: 1fr;
     gap: 4px;

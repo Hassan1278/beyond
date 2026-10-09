@@ -1,38 +1,67 @@
 import type { ReactElement } from 'react';
 import { COMPARE } from '../../data/site';
+import { Link } from '../../router';
 
+/**
+ * Not a row of tiles. The three alternatives are a ledger of hairline rows,
+ * deliberately even and unremarkable, and Beyond then breaks out of that
+ * format entirely into a dark full-bleed band. The layout makes the argument
+ * before the words do.
+ */
 export function WhyPage(): ReactElement {
-  return (
-    <section className="sec day">
-      <div className="wrap">
-        <div className="sec-head">
-          <p className="eyebrow">Why Beyond</p>
-          <h2>Less noise. More you.</h2>
-          <p className="sub">
-            Your feed is optimised for attention. Beyond is designed for reflection. Write without
-            interruption, come back later, and see your own patterns instead of everyone
-            else&rsquo;s highlight reel.
-          </p>
-        </div>
+  const others = COMPARE.filter((c) => !c.us);
+  const us = COMPARE.find((c) => c.us);
 
-        <div className="cmp">
-          {COMPARE.map((c) => (
-            <article key={c.name} className={c.us ? 'us' : undefined}>
-              <h3>{c.name}</h3>
-              <dl>
-                <div>
-                  <dt>{c.us ? 'Built for' : 'Good for'}</dt>
-                  <dd>{c.good}</dd>
-                </div>
-                <div>
-                  <dt>{c.us ? "What's different" : 'Falls short'}</dt>
-                  <dd>{c.bad}</dd>
-                </div>
-              </dl>
-            </article>
-          ))}
+  return (
+    <>
+      <section className="sec day">
+        <div className="wrap">
+          <div className="why-head">
+            <h2>
+              Three places to put
+              <br />a hard night.
+            </h2>
+            <p className="sub">
+              Each of them is good at something. None of them is built for a student who simply
+              wants to slow down and work out which direction is theirs.
+            </p>
+          </div>
+
+          <div className="ledger">
+            {others.map((c) => (
+              <div className="ledger-row" key={c.name}>
+                <h3>{c.name}</h3>
+                <p className="good">{c.good}</p>
+                <p className="short">{c.bad}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      {us && (
+        <section className="sec night us-band">
+          <div className="wrap us-grid">
+            <div>
+              <p className="eyebrow">The gap</p>
+              <h2 className="us-mark">beyond.</h2>
+            </div>
+            <div className="us-cols">
+              <div>
+                <p className="kicker">Built for</p>
+                <p>{us.good}</p>
+              </div>
+              <div>
+                <p className="kicker">What&rsquo;s different</p>
+                <p>{us.bad}</p>
+              </div>
+              <Link to="/how" className="btn btn-light">
+                Try one night
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+    </>
   );
 }

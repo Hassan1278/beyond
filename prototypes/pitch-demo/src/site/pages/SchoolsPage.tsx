@@ -1,6 +1,11 @@
 import { useState, type ReactElement } from 'react';
 import { SCHOOLS } from '../../data/site';
 
+/**
+ * Closes the site. The three audiences sit in a band divided by rules rather
+ * than cut into cards, and the beta sign-up is set as the largest type on the
+ * site, because leaving an address is the only thing this page asks for.
+ */
 export function SchoolsPage(): ReactElement {
   const [email, setEmail] = useState('');
   const [msg, setMsg] = useState('');
@@ -11,28 +16,29 @@ export function SchoolsPage(): ReactElement {
         <div className="wrap">
           <div className="sec-head">
             <p className="eyebrow">For institutions</p>
-            <h2>Beyond for schools and teams.</h2>
+            <h2>Somewhere to put it down, provided by the people who look after you.</h2>
             <p className="sub">
-              Universities, schools and employers can offer Beyond to the people they look after.
-              Each person gets their own private space.
+              Universities, schools and employers can offer Beyond to their students and staff. Each
+              person gets their own private space, and the institution never sees inside it.
             </p>
           </div>
-          <div className="school-grid">
+
+          <div className="audiences">
             {SCHOOLS.map((s) => (
-              <article key={s.big}>
+              <section key={s.big}>
                 <p className="big">{s.big}</p>
                 <h3>{s.title}</h3>
                 <p>{s.body}</p>
-              </article>
+              </section>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="sec night join" style={{ paddingTop: 0 }}>
+      <section className="sec night join">
         <div className="wrap">
           <p className="eyebrow">Beta</p>
-          <h2 style={{ marginTop: 20 }}>Tonight, write without an audience.</h2>
+          <h2>Tonight, write without an audience.</h2>
           <p className="sub">
             We&rsquo;re opening a small beta for students. Tell us where to reach you, and help
             shape what Beyond becomes.

@@ -96,12 +96,17 @@ try {
     '/': [
       '/src/site/pages/HomePage.tsx',
       'HomePage',
-      ['Everyone is telling you who to become', 'Say it tonight'],
+      [
+        'Everyone is telling you who to become',
+        'It never runs out',
+        'Put it down',
+        'Say it tonight',
+      ],
     ],
     '/problem': [
       '/src/site/pages/ProblemPage.tsx',
       'ProblemPage',
-      ['The Great Distraction', 'We asked 42 students', '91%'],
+      ['The Great Distraction', 'What students told us', '91%', 'aidan.lifts'],
     ],
     '/how': [
       '/src/site/pages/HowPage.tsx',
@@ -116,17 +121,17 @@ try {
     '/why': [
       '/src/site/pages/WhyPage.tsx',
       'WhyPage',
-      ['Less noise', 'AI journaling apps', 'beyond.'],
+      ['Three places to put', 'AI journaling apps', 'beyond.'],
     ],
     '/privacy': [
       '/src/site/pages/PrivacyPage.tsx',
       'PrivacyPage',
-      ['Safe enough to be honest', 'Not therapy', '18111'],
+      ['Safe enough to be honest', 'Not therapy', '18111', 'Never sent'],
     ],
     '/schools': [
       '/src/site/pages/SchoolsPage.tsx',
       'SchoolsPage',
-      ['Beyond for schools', 'Join the beta', 'Employers'],
+      ['Somewhere to put it down', 'Join the beta', 'Employers'],
     ],
   };
 

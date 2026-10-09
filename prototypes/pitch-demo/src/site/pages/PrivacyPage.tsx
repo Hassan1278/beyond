@@ -1,6 +1,27 @@
 import type { ReactElement } from 'react';
 import { CRISIS, SAFEGUARDS } from '../../data/site';
 
+/**
+ * Read as a document, not a dashboard: a plain manifest of what leaves the
+ * device, then the commitments as a definition list on full-width rules. No
+ * cards here on purpose - the subject is candour, and boxes look like
+ * marketing.
+ */
+
+const SENT = [
+  'Tonight’s entry',
+  'Memories you have kept',
+  'Short snippets from past entries, only when relevant',
+  'Your letter voice',
+];
+
+const NEVER = [
+  'Your name, email or contact details',
+  'Anything you have forgotten',
+  'Your location',
+  'Anything at all, if you pause memory',
+];
+
 export function PrivacyPage(): ReactElement {
   return (
     <section className="sec night">
@@ -9,19 +30,38 @@ export function PrivacyPage(): ReactElement {
           <p className="eyebrow">Privacy &amp; limits</p>
           <h2>Safe enough to be honest.</h2>
           <p className="sub">
-            People only write honestly when they trust where the words go. So Beyond is clear about
-            what it keeps, what it sends, and what it isn&rsquo;t.
+            People only write honestly when they trust where the words go. So here is the whole of
+            it, before you write anything.
           </p>
         </div>
 
-        <div className="safe-grid">
-          {SAFEGUARDS.map((s) => (
-            <article key={s.title}>
-              <h3>{s.title}</h3>
-              <p>{s.body}</p>
-            </article>
-          ))}
+        <div className="manifest">
+          <div className="manifest-col">
+            <p className="kicker">Sent, to write your letter</p>
+            <ul className="yeslist">
+              {SENT.map((s) => (
+                <li key={s}>{s}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="manifest-col">
+            <p className="kicker">Never sent</p>
+            <ul className="nolist">
+              {NEVER.map((s) => (
+                <li key={s}>{s}</li>
+              ))}
+            </ul>
+          </div>
         </div>
+
+        <dl className="commitments">
+          {SAFEGUARDS.map((s) => (
+            <div key={s.title}>
+              <dt>{s.title}</dt>
+              <dd>{s.body}</dd>
+            </div>
+          ))}
+        </dl>
 
         <div className="crisis">
           <p>
