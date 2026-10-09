@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { runProductAcceptance } from './product-acceptance.mjs';
 import { execFileSync, spawn } from 'node:child_process';
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
@@ -18,6 +19,7 @@ const deniedOrigin = 'http://127.0.0.1:3001';
 const container = 'supabase_db_beyond';
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
+const accountTriggerSecret = randomBytes(32).toString('hex');
 const capturedUsers = new Map();
 const removedUserIds = new Set();
 const capturedEntries = new Map();
@@ -385,6 +387,9 @@ function startServer() {
     SUPABASE_PUBLISHABLE_KEY: publishableKey,
     CORS_ALLOWED_ORIGINS: allowedOrigin,
     AI_SERVICE_URL: 'http://127.0.0.1:59999',
+    ACCOUNT_DELETION_ENABLED: 'true',
+    SUPABASE_SECRET_KEY: adminKey,
+    ACCOUNT_JOB_TRIGGER_SECRET: accountTriggerSecret,
   });
   server = spawn(
     process.execPath,
@@ -1054,6 +1059,22 @@ async function main() {
         statusIs(await api(`${collection}?${query}`, first), 400, 'bad_request');
       }
       statusIs(await api(`${collection}/not-a-uuid`, first), 400, 'bad_request');
+    });
+
+    await runProductAcceptance({
+      api,
+      rest,
+      sql,
+      json,
+      statusIs,
+      check,
+      same,
+      group,
+      first,
+      second,
+      createUser,
+      randomUUID,
+      triggerSecret: accountTriggerSecret,
     });
 
     await group(

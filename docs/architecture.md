@@ -1,5 +1,7 @@
 # Architecture
 
+> Current feature-branch status: [private backend milestone](product-api.md) supersedes the Step003 status and unimplemented-route statements below. Settings, approved memories, standalone todos, the shared client and optional durable account cleanup now exist on `feat/private-backend`. Writing and the pitch prototype were merged into `main` at `6ef74e9`. Earlier source/CI/authorization notes below are historical; current user authorization permits backend implementation, commits and feature-branch pushes. AI/reflection processing and undesigned frontends remain deferred.
+
 ## Status and superseding decision
 
 Step001 is historical documentation-only architecture commit `93e473b`; step002 established health/configuration, shared input schemas and unit tooling. **Step003 implements the non-opted-in writing gate.** Broader jobs/AI/client/account-cleanup architecture below remains a target, not completed functionality. The all-in-one web/API design is superseded: `apps/web` and `apps/mobile`, including unused legacy web API/server placeholders, remain untouched.

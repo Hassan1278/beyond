@@ -23,3 +23,6 @@ export {
   apiErrorSchema,
 } from './schemas/health';
 export type { HealthLive, HealthReady, ApiErrorCode, ApiError } from './schemas/health';
+
+export * from './schemas/product';
+export { createApiClient, ApiClientError } from './api/client';

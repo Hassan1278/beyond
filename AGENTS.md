@@ -1,5 +1,11 @@
 # Working in Beyond
 
+## Current milestone and session authority
+
+The user authorized building the backend, committing and pushing feature work until a useful milestone. Follow `docs/product-api.md` for the current settings/memory/todo/client/account-cleanup contract. This supersedes historical Step003/remote-main/unimplemented shared-client and account-cleanup statements below. `main` includes the writing backend and pitch prototype at `6ef74e9`; current work is isolated on `feat/private-backend`.
+
+Keep production AI generation/reflection jobs and `services/ai` unimplemented. Keep undesigned `apps/web` and `apps/mobile` scaffolds empty. Existing pitch-demo fixes may change implemented behavior/copy without creating new product screens. Privileged account operations use isolated optional credentials; ordinary product routes remain user-scoped. No automatic main merge, force-push or hosted deployment/database mutation is included. Actual local and CI results must be distinguished. Update privacy cleanup whenever future owned storage is introduced.
+
 ## Context and phase
 
 Read `README.md`, `docs/architecture.md`, `docs/api.md`, and the assigned task before editing. For backend architecture/environment work also read workstreams, build-plan, deployment, setup, skeleton, MVP scope, data-handling, dependencies and root `.env.example`. Step001 is the historical documentation-only architecture commit `93e473b`; step002 established health/configuration, shared input contracts and unit-test tooling. **Step003 implements the non-opted-in writing gate**: fresh bearer/active-profile checks, `/api/v1/entries` CRUD, resource/cursor contracts, real Auth/Postgres profiles/entries, RLS/grants and validated RPCs. Linux CI clean-install/dependency/root-format, backend unit/lint/types, normal production build, health and real DB checks passed for `b192bde`; this is not full MVP acceptance. Writing resource/cursor/output contracts are implemented; the shared API client remains deferred.

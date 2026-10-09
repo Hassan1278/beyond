@@ -3,7 +3,7 @@ name: Scaffold checks
 on:
   pull_request:
   push:
-    branches: [main, feat/backend-foundation]
+    branches: [main, feat/backend-foundation, feat/private-backend]
   workflow_dispatch:
 
 permissions:

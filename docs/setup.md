@@ -1,5 +1,7 @@
 # Setup and commands
 
+> Current feature-branch status: [private backend milestone](product-api.md) supersedes the Step003 status and unimplemented-route statements below. Settings, approved memories, standalone todos, the shared client and optional durable account cleanup now exist on `feat/private-backend`. Writing and the pitch prototype were merged into `main` at `6ef74e9`. Earlier source/CI/authorization notes below are historical; current user authorization permits backend implementation, commits and feature-branch pushes. AI/reflection processing and undesigned frontends remain deferred.
+
 ## Status and tools
 
 This is guidance, not a fresh execution report. Step001 (`93e473b`) is historical architecture-only work; step002 established health/configuration/input schemas/unit tooling. **Step003 implements non-opted-in writing**, fresh bearer/active-profile checks, entries CRUD/resource/cursor contracts, profiles/Auth trigger/backfill, RLS/grants/validated RPCs and real schema readiness. Frontends/legacy placeholders and AI implementation remain untouched; no cloud setup is claimed.

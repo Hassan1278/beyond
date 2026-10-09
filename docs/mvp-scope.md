@@ -1,5 +1,7 @@
 # MVP scope
 
+> Current feature-branch status: [private backend milestone](product-api.md) supersedes the Step003 status and unimplemented-route statements below. Settings, approved memories, standalone todos, the shared client and optional durable account cleanup now exist on `feat/private-backend`. Writing and the pitch prototype were merged into `main` at `6ef74e9`. Earlier source/CI/authorization notes below are historical; current user authorization permits backend implementation, commits and feature-branch pushes. AI/reflection processing and undesigned frontends remain deferred.
+
 Target one writing-first product across web, Android and iOS, with independent API and opted-in delayed AI reflections. Step001 (`93e473b`) is historical architecture-only work; step002 established health/configuration/input/unit tooling. **Step003 implements non-opted-in backend writing, not the full MVP.** Frontends/unused legacy backend placeholders and AI-owner implementation remain untouched; no cloud setup is claimed.
 
 ## Current implemented writing slice

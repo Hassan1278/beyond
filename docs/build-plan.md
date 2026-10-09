@@ -1,5 +1,7 @@
 # Build plan
 
+> Current feature-branch status: [private backend milestone](product-api.md) supersedes the Step003 status and unimplemented-route statements below. Settings, approved memories, standalone todos, the shared client and optional durable account cleanup now exist on `feat/private-backend`. Writing and the pitch prototype were merged into `main` at `6ef74e9`. Earlier source/CI/authorization notes below are historical; current user authorization permits backend implementation, commits and feature-branch pushes. AI/reflection processing and undesigned frontends remain deferred.
+
 Backend/environment implementation, small validated local commits, feature-branch push and local Docker/backend work are authorized. Main overwrite/force-push, hosted database/deployment/account actions, PR creation and frontend/AI-owner implementation are not. Follow `docs/workstreams.md`; narrower delegated restrictions apply only to that task.
 
 Step001 (`93e473b`) is historical architecture-only work; step002 established health/configuration/input schemas/unit tooling. **Step003 implements Gate 1 non-opted-in writing**, with Linux CI clean-install/dependency/root-format, backend unit/lint/types, normal production build, health and real DB checks passed for `b192bde`. Frontends/legacy web backend placeholders remain untouched; `services/ai` belongs to its separate owner.
