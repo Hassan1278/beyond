@@ -263,8 +263,15 @@ function validateJsonStrings(value: unknown): void {
   }
 }
 
-export async function readBody(request: Request): Promise<unknown> {
-  if (!jsonContentType.test(request.headers.get('Content-Type') ?? '') || !request.body) {
+export async function readBody(
+  request: Request,
+  { mustBeEmpty = false }: { mustBeEmpty?: boolean } = {},
+): Promise<unknown> {
+  if (!mustBeEmpty && !jsonContentType.test(request.headers.get('Content-Type') ?? '')) {
+    fail('bad_request');
+  }
+  if (!request.body) {
+    if (mustBeEmpty) return undefined;
     fail('bad_request');
   }
   let reader: ReadableStreamDefaultReader<Uint8Array>;
@@ -299,12 +306,13 @@ export async function readBody(request: Request): Promise<unknown> {
         break;
       }
       bytes += value.byteLength;
-      if (bytes > maxBodyBytes) {
+      if (bytes > maxBodyBytes || (mustBeEmpty && bytes > 0)) {
         fail('bad_request');
       }
       text += decoder.decode(value, { stream: true });
     }
     text += decoder.decode();
+    if (mustBeEmpty) return undefined;
     if (text.includes('\u0000') || unpairedSurrogate.test(text)) {
       fail('bad_request');
     }

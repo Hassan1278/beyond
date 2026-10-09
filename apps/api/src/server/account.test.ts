@@ -102,6 +102,35 @@ describe('account deletion authorization and durable worker', () => {
     expect(res.headers.get('Cache-Control')).toBe('no-store');
     expect(JSON.parse(f.mock.calls[1]?.[1]?.body as string)).toEqual({ p_user_id: id });
   });
+  it('accepts a Next-style empty DELETE stream', async () => {
+    const f = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({ id }))
+      .mockResolvedValueOnce(Response.json({ status: 'deleting' }));
+    const request = new Request(deletion(), { body: '' });
+    expect(request.body).not.toBeNull();
+    expect((await createAccountDeleteHandler(config, () => account, f)(request)).status).toBe(202);
+  });
+  it('rejects nonempty DELETE bytes without enqueueing any account', async () => {
+    const f = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ id }));
+    const request = new Request(deletion(), { body: JSON.stringify({ user_id: id }) });
+    expect((await createAccountDeleteHandler(config, () => account, f)(request)).status).toBe(400);
+    expect(f).toHaveBeenCalledTimes(1);
+  });
+  it('bounds and cancels a stalled DELETE stream', async () => {
+    vi.useFakeTimers();
+    const cancel = vi.fn();
+    const f = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ id }));
+    const request = new Request(deletion(), {
+      body: new ReadableStream({ cancel }),
+      duplex: 'half',
+    } as RequestInit);
+    const pending = createAccountDeleteHandler(config, () => account, f)(request);
+    await vi.advanceTimersByTimeAsync(5001);
+    expect((await pending).status).toBe(400);
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(f).toHaveBeenCalledTimes(1);
+  });
   it.each(['wrong', 'user-access-token'])('rejects wrong internal credentials %s', async (auth) => {
     const f = vi.fn<typeof fetch>();
     expect((await createAccountProcessor(config, account, f)(processRequest(auth))).status).toBe(

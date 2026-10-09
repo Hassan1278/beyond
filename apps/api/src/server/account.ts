@@ -73,10 +73,12 @@ export function createAccountDeleteHandler(
       }
       if (request.method === 'OPTIONS')
         return withCors(preflight(request, origin, ['DELETE']), origin, true);
-      if (request.method !== 'DELETE' || new URL(request.url).search || request.body !== null)
-        fail('bad_request');
+      if (request.method !== 'DELETE' || new URL(request.url).search) fail('bad_request');
       const { userId } = await verifyIdentity(request, config, fetcher);
       if (!hasRecentSignIn(request.headers.get('Authorization'))) fail('forbidden');
+      // Next.js may wrap a bodyless DELETE in an empty stream; inspect bytes,
+      // with the same deadline/cancellation boundary as other private requests.
+      await readBody(request, { mustBeEmpty: true });
       let account: AccountConfig;
       try {
         account = enabled();
