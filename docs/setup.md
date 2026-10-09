@@ -1,6 +1,6 @@
 # Setup and commands
 
-> Current feature-branch status: [private backend milestone](product-api.md) supersedes the Step003 status and unimplemented-route statements below. Settings, approved memories, standalone todos, the shared client and optional durable account cleanup now exist on `feat/private-backend`. Writing and the pitch prototype were merged into `main` at `6ef74e9`. Earlier source/CI/authorization notes below are historical; current user authorization permits backend implementation, commits and feature-branch pushes. AI/reflection processing and undesigned frontends remain deferred.
+> Current feature-branch status: [private backend milestone](product-api.md) supersedes the Step003 status and unimplemented-route statements below. Settings, approved revisioned memory corrections, standalone todos, the shared client, recent-sign-in paginated exports and optional durable account cleanup now exist on `feat/private-backend`. Run all additive migrations with the matching API/shared contracts; exports use only normal user-scoped configuration. Writing and the pitch prototype were merged into `main` at `6ef74e9`. Earlier source/CI/authorization notes below are historical; current user authorization permits backend implementation, commits and feature-branch pushes. AI/reflection processing and undesigned frontends remain deferred.
 
 ## Status and tools
 
@@ -36,7 +36,7 @@ Frontend examples remain legacy: do not populate old privileged/provider fields.
 | `npm run dev:api`           | Health/writing development API at `127.0.0.1:3002`                                 |
 | `npm run lint:backend`      | API/shared lint; final pass                                                        |
 | `npm run typecheck:backend` | API/shared types; final pass                                                       |
-| `npm run test:backend`      | Final pass: 536 tests / 9 files, including 216 writing + 20 outputs                |
+| `npm run test:backend`      | API/shared units; current tested source/counts in the product API guide            |
 | `npm run build:api`         | Normal repository production build passed on Linux CI                              |
 | `npm run test:api:smoke`    | Built API, free 3002, no configured API env file; deliberately unconfigured health |
 | `npm run test:api:writing`  | Built API + running local Supabase; real fixture-user writing acceptance           |
