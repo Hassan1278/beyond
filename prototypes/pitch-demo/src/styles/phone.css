@@ -33,7 +33,7 @@
   color-scheme: light;
 }
 .screen.nt {
-  background: linear-gradient(180deg, #0b0c0e 0%, #141829 62%, #1e2338);
+  background: linear-gradient(180deg, var(--night) 0%, var(--g3) 62%, var(--g4));
   color: var(--paper);
   color-scheme: dark;
 }
@@ -466,7 +466,7 @@
   background: none;
   border: 0;
   resize: none;
-  color: #d9d8d2;
+  color: var(--paper);
   font: 400 17px/1.6 var(--f-letter);
   outline: none;
   padding: 0;
@@ -619,7 +619,7 @@
   display: grid;
   gap: 12px;
   font: 400 16.5px/1.6 var(--f-letter);
-  color: #1f201d;
+  color: var(--ink);
 }
 .lb .greet {
   font-style: italic;
@@ -734,7 +734,7 @@
   padding: 14px 22px;
   background: #000;
   scrollbar-width: none;
-  --hole: radial-gradient(circle, #2b2c31 0 2.6px, transparent 2.8px);
+  --hole: radial-gradient(circle, var(--night-line) 0 2.6px, transparent 2.8px);
   background-image: var(--hole), var(--hole);
   background-size:
     16px 10px,
@@ -929,7 +929,7 @@
 .sheet-bg {
   position: absolute;
   inset: 0;
-  background: #0b0c0e99;
+  background: rgb(0 0 0 / 0.6);
   z-index: 5;
   display: flex;
   align-items: flex-end;

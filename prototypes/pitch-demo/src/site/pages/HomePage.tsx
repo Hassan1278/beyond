@@ -40,9 +40,6 @@ export function HomePage(): ReactElement {
                     one place that does not compete for it.
                   </p>
                   <div className="ctas">
-                    <Link to="/how" className="btn btn-light">
-                      See what happens next
-                    </Link>
                     <button type="button" className="btn btn-ghost" onClick={() => setDown(false)}>
                       Let it back in
                     </button>

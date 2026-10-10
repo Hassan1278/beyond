@@ -48,7 +48,7 @@
 }
 /* Once it is quiet, the section itself exhales. */
 .feed-sec.is-quiet {
-  background: linear-gradient(180deg, var(--night), #101218);
+  background: linear-gradient(180deg, var(--night), var(--g1));
 }
 
 /* ----------------------------------------------------------------- ticker */
@@ -211,7 +211,7 @@
 .us-cols p:not(.kicker) {
   font-size: clamp(17px, 1.8vw, 21px);
   line-height: 1.55;
-  color: #d6d5cf;
+  color: var(--mist);
   max-width: 46ch;
 }
 .us-cols .kicker {

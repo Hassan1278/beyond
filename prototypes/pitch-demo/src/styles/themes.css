@@ -1,0 +1,142 @@
+/* Four palettes.
+ *
+ * Every theme redefines the same token set, so nothing in the rest of the CSS
+ * needs to know which one is active. Each keeps the same structure the design
+ * depends on - a near-black night, a warm-ish paper, one accent that carries
+ * the dawn - and only moves the hue and temperature.
+ *
+ * Named for their character rather than for an audience. Gendered colour is a
+ * stereotype more often than it is a preference, and labelling a palette
+ * "for women" in a pitch invites an argument you do not want to be having.
+ * If you want them mapped to audiences, it is one string each in data/themes.ts.
+ */
+
+/* Night - the original. Neutral graphite, cream, peach dawn. */
+:root,
+:root[data-theme='night'] {
+  --g1: #121419;
+  --g2: #1a1d29;
+  --g3: #1e2338;
+  --g4: #3a3554;
+  --warm: #f0cdaa;
+}
+
+/* Ember - warm, grounded, low and earthy. Brown-black and amber. */
+:root[data-theme='ember'] {
+  --night: #0d0a08;
+  --night-2: #17120e;
+  --night-3: #231b15;
+  --night-line: #332720;
+  --paper: #f6f1e8;
+  --paper-2: #eee7da;
+  --paper-hi: #fdfaf4;
+  --paper-line: #ddd2bf;
+  --ink: #0d0a08;
+  --ink-soft: #655b4e;
+  --ink-faint: #8f8475;
+  --moon: #b0a08c;
+  --mist: #a4947f;
+  --dusk: #8a6b55;
+  --dawn: #e2863f;
+  --ok: #5c7a3d;
+  --alert: #c0452c;
+  --phone: #1a1410;
+  --g1: #15100c;
+  --g2: #241a12;
+  --g3: #2b1d16;
+  --g4: #4a3324;
+  --warm: #f3c58c;
+}
+
+/* Bloom - plum night, blush paper, rose dawn. Softer and cooler-warm. */
+:root[data-theme='bloom'] {
+  --night: #0c0910;
+  --night-2: #16101d;
+  --night-3: #221829;
+  --night-line: #332540;
+  --paper: #f7f1f4;
+  --paper-2: #efe6ec;
+  --paper-hi: #fdf9fb;
+  --paper-line: #ded0d8;
+  --ink: #0c0910;
+  --ink-soft: #645667;
+  --ink-faint: #8d8090;
+  --moon: #b2a0b8;
+  --mist: #a596ab;
+  --dusk: #8f7bc4;
+  --dawn: #e2799f;
+  --ok: #4a7a5f;
+  --alert: #c24a63;
+  --phone: #171022;
+  --g1: #130f1a;
+  --g2: #211a2e;
+  --g3: #281c3a;
+  --g4: #4a3a63;
+  --warm: #f2c3d4;
+}
+
+/* Tide - petrol night, cool paper, seafoam dawn. The coldest of the four. */
+:root[data-theme='tide'] {
+  --night: #060e10;
+  --night-2: #0d181b;
+  --night-3: #152428;
+  --night-line: #1f3339;
+  --paper: #eef4f3;
+  --paper-2: #e2ebea;
+  --paper-hi: #f8fcfb;
+  --paper-line: #c9d8d6;
+  --ink: #060e10;
+  --ink-soft: #4f6360;
+  --ink-faint: #7b908d;
+  --moon: #92aeab;
+  --mist: #88a3a0;
+  --dusk: #5b8fb0;
+  --dawn: #4fc2a8;
+  --ok: #3d8a6b;
+  --alert: #c0564a;
+  --phone: #0f1c1f;
+  --g1: #0a1518;
+  --g2: #122a2f;
+  --g3: #143038;
+  --g4: #27525c;
+  --warm: #a9e3d4;
+}
+
+/* ------------------------------------------------------------- the picker */
+.themes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.themes button {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 1px solid var(--night-line);
+  padding: 0;
+  background: var(--sw);
+  position: relative;
+  transition:
+    transform 0.18s var(--ease-out),
+    box-shadow 0.18s var(--ease-out);
+}
+.themes button:hover {
+  transform: scale(1.14);
+}
+.themes button[aria-pressed='true'] {
+  box-shadow: 0 0 0 2px var(--night);
+  outline: 1.5px solid var(--paper);
+  outline-offset: 0;
+  transform: scale(1.1);
+}
+
+@media (max-width: 560px) {
+  .themes {
+    gap: 5px;
+  }
+  .themes button {
+    width: 15px;
+    height: 15px;
+  }
+}

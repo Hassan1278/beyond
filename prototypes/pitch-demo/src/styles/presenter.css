@@ -173,7 +173,7 @@
   padding: 11px 0;
   border-top: 1px solid var(--night-line);
   font-size: 14.5px;
-  color: #d3d2cc;
+  color: var(--mist);
   display: flex;
   gap: 12px;
   line-height: 1.45;
@@ -299,7 +299,7 @@
 .qr-bg {
   position: fixed;
   inset: 0;
-  background: #0b0c0ee0;
+  background: rgb(0 0 0 / 0.88);
   z-index: 20;
   display: grid;
   place-items: center;

@@ -74,7 +74,7 @@
   height: 26px;
   border-radius: 50%;
   flex: none;
-  background: conic-gradient(from 210deg, var(--dawn), #c2577f, #7183b0, var(--dawn));
+  background: conic-gradient(from 210deg, var(--dawn), #c2577f, var(--dusk), var(--dawn));
   position: relative;
 }
 .post-ring::after {
@@ -125,7 +125,7 @@
 .post-cap {
   font-size: 13.5px;
   line-height: 1.4;
-  color: #d3d2cc;
+  color: var(--mist);
 }
 .post-num {
   display: inline-flex;
