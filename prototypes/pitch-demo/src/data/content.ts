@@ -7,7 +7,6 @@
  */
 import type { CSSProperties } from 'react';
 import type {
-  FilmFrame,
   LetterContent,
   Memory,
   ScreenId,
@@ -15,6 +14,7 @@ import type {
   Trend,
   Voice,
   VoiceId,
+  Wrapped,
 } from '../types';
 
 export const SAMPLE_ENTRY =
@@ -102,28 +102,57 @@ export const TRENDS: Trend[] = [
   { name: 'Sleep', w: [1, 1, 1, 1], up: false },
 ];
 
-export const FILM: FilmFrame[] = [
+/**
+ * Four quarters, wrapped. The arc is the product's whole claim: "feeling
+ * behind" fades quarter on quarter while photography climbs, until by Q4 the
+ * thing they actually care about is the thing they write about most.
+ */
+export const WRAPPED: Wrapped[] = [
   {
-    month: 'Jul',
-    text: "The summer of saving other people's advice.",
-    grad: 'linear-gradient(160deg,#3b4258,#1a1d29)',
+    quarter: 'Q1 2026',
+    topTheme: 'Feeling behind',
+    topThemeCount: '41 nights',
+    entries: '48',
+    words: '8,900',
+    steps: '6',
+    rising: 'Sleep',
+    risingBy: '2x',
+    grad: 'linear-gradient(155deg,#3b4258,#1a1d29)',
   },
   {
-    month: 'Aug',
-    text: 'You moved, and wrote mostly about being nervous.',
-    grad: 'linear-gradient(160deg,#5a4a5e,#22202c)',
+    quarter: 'Q2 2026',
+    topTheme: 'Feeling behind',
+    topThemeCount: '44 nights',
+    entries: '57',
+    words: '11,200',
+    steps: '9',
+    rising: 'Internships',
+    risingBy: '2x',
+    grad: 'linear-gradient(155deg,#5a4a5e,#22202c)',
   },
   {
-    month: 'Sep',
-    text: '“Behind” shows up eleven times.',
-    grad: 'linear-gradient(160deg,#6e5a52,#2a2422)',
+    quarter: 'Q3 2026',
+    topTheme: 'Feeling behind',
+    topThemeCount: '38 nights',
+    entries: '61',
+    words: '12,400',
+    steps: '14',
+    rising: 'Photography',
+    risingBy: '3x',
+    grad: 'linear-gradient(155deg,#6e5a52,#2a2422)',
   },
   {
-    month: 'Oct',
-    text: 'The camera comes back.',
-    grad: 'linear-gradient(160deg,#c49a72,#5b4436)',
+    quarter: 'Q4 2026',
+    topTheme: 'Photography',
+    topThemeCount: '9 nights',
+    entries: '22',
+    words: '4,600',
+    steps: '7',
+    rising: 'Photography',
+    risingBy: '2x',
+    grad: 'linear-gradient(155deg,#c49a72,#5b4436)',
+    open: true,
   },
-  { month: 'Nov', text: 'Not written yet.', grad: null },
 ];
 
 /** The noise words that drift behind the welcome screen. */
@@ -229,12 +258,12 @@ export const SCREENS: ScreenMeta[] = [
   },
   {
     id: 'patterns',
-    title: 'Patterns & Life Film',
+    title: 'Patterns & Wrapped',
     time: '12:40',
     theme: 'lt',
     tab: 'patterns',
-    short: 'Monthly themes and one film frame per month.',
-    lead: 'Over weeks, Beyond shows which themes are growing and which are fading. Each month becomes one frame of your Life Film.',
+    short: 'Monthly themes, and every quarter wrapped.',
+    lead: 'Over weeks, Beyond shows which themes are growing and which are fading. Every quarter is totalled up as a Wrapped card.',
     notes: ['Trends are counts of entries per week', 'Sample data for one person’s October'],
   },
   {

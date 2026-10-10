@@ -9,7 +9,6 @@ import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { SCRIPTED_LETTERS, VOICES, voiceById } from '../data/content';
 import { morning, tonight } from '../lib/date';
 import { useBeyond } from '../state/store';
-import { Link } from '../router';
 
 type Phase = 'writing' | 'overnight' | 'morning';
 
@@ -209,8 +208,7 @@ export function TryOneNight(): ReactElement {
             ? `Written for your entry by ${state.ai.model ?? 'Claude'}${
                 state.ai.ms ? ` in ${(state.ai.ms / 1000).toFixed(1)}s` : ''
               }. `
-            : 'Demo letter written for the sample entry. In the app, Beyond writes it from your entry and the memories you allow. '}
-          <Link to="/app">Open the app demo &rarr;</Link>
+            : 'Demo letter written for the sample entry. In the app, Beyond writes it from your entry and the memories you allow.'}
         </p>
       </div>
     </div>

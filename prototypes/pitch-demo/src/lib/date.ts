@@ -40,12 +40,5 @@ export const monthSoFar = (): string =>
     ][new Date().getMonth()]
   } so far`;
 
-/** Month name of the frame that is still being written, for the Life Film note. */
-export const nextMonthFirst = (): string => {
-  const d = new Date();
-  const first = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-  return `${MONTHS[d.getMonth()]}’s frame is finished on 1 ${MONTHS[first.getMonth()]}.`;
-};
-
 export const mmss = (secs: number): string =>
   `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;

@@ -38,7 +38,7 @@ const EXPECT = {
   write: ['actually on your mind', 'Leave it for tonight', 'No replies'],
   sealed: ['Sealed for the night', 'Nothing needs solving tonight'],
   letter: ['One small step', 'Coming back', 'Correct it'],
-  patterns: ['Your patterns', 'Life Film', 'Feeling behind'],
+  patterns: ['Your patterns', 'Quarterly Wrapped', 'Feeling behind'],
   memory: ['What Beyond remembers', 'Memory on', 'Delete everything', 'Letter writer'],
   safety: ['That sounded heavy', '18111', 'Open Up', '999'],
 };
@@ -99,8 +99,8 @@ try {
       [
         'Everyone is telling you who to become',
         'It never runs out',
-        'Put it down',
-        'Say it tonight',
+        'Who it is for',
+        'more say in your plans',
       ],
     ],
     '/problem': [
@@ -111,12 +111,14 @@ try {
     '/how': [
       '/src/site/pages/HowPage.tsx',
       'HowPage',
-      ['Leave it for the night', 'One small step', 'Future you'],
-    ],
-    '/patterns': [
-      '/src/site/pages/PatternsPage.tsx',
-      'PatternsPage',
-      ['Life Film', 'What Beyond remembers', 'Photography'],
+      [
+        'Say it whenever',
+        'Any time',
+        'Leave it for the night',
+        'Quarterly Wrapped',
+        'Q3 2026',
+        'What Beyond remembers',
+      ],
     ],
     '/why': [
       '/src/site/pages/WhyPage.tsx',
@@ -128,10 +130,15 @@ try {
       'PrivacyPage',
       ['Safe enough to be honest', 'Not therapy', '18111', 'Never sent'],
     ],
-    '/schools': [
-      '/src/site/pages/SchoolsPage.tsx',
-      'SchoolsPage',
-      ['Somewhere to put it down', 'Join the beta', 'Employers'],
+    '/institutions': [
+      '/src/site/pages/InstitutionsPage.tsx',
+      'InstitutionsPage',
+      ['Somewhere to put it down', 'Employers', 'Join the beta'],
+    ],
+    '/beta': [
+      '/src/site/pages/BetaPage.tsx',
+      'BetaPage',
+      ['write without an audience', 'Open the app demo', 'Join the beta'],
     ],
   };
 

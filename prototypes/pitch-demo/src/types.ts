@@ -49,13 +49,21 @@ export interface Trend {
   up: boolean;
 }
 
-export interface FilmFrame {
-  month: string;
-  text: string;
-  /** CSS gradient for the frame, or null for the not-yet-written frame. */
-  grad: string | null;
+export interface Wrapped {
+  /** 'Q3 2026' */
+  quarter: string;
+  topTheme: string;
+  /** How often the top theme showed up, e.g. '38 nights'. */
+  topThemeCount: string;
+  entries: string;
+  words: string;
+  steps: string;
+  rising: string;
+  risingBy: string;
+  grad: string;
+  /** The quarter still being written. */
+  open?: boolean;
 }
-
 export type AiStatus = 'idle' | 'writing' | 'ready' | 'error';
 
 export interface AiState {

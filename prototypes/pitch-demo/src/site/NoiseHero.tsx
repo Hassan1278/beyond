@@ -3,7 +3,6 @@
  * argument the rest of the site makes in prose.
  */
 import { useState, type CSSProperties, type ReactElement } from 'react';
-import { Link } from '../router';
 
 interface Word {
   text: string;
@@ -108,9 +107,6 @@ export function NoiseHero(): ReactElement {
           <button type="button" className="btn btn-light" onClick={() => setQuiet(true)}>
             Step beyond the noise &rarr;
           </button>
-          <Link to="/how" className="btn btn-ghost">
-            Try one night
-          </Link>
         </div>
       </div>
 

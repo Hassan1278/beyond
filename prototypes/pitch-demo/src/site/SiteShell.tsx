@@ -100,9 +100,6 @@ export function SiteShell({
               <span className="label">Next</span>
               <Link to={next.path}>{next.title} &rarr;</Link>
             </span>
-            <Link to="/app" className="btn btn-ghost btn-sm">
-              Or open the app demo
-            </Link>
           </div>
         </section>
       )}
