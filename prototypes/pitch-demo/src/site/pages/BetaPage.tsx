@@ -24,9 +24,6 @@ export function BetaPage(): ReactElement {
           <Link to="/app" className="btn btn-light">
             Open the app demo
           </Link>
-          <Link to="/how" className="btn btn-ghost">
-            See how it works
-          </Link>
         </div>
 
         <form

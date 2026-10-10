@@ -54,9 +54,6 @@ export function HomePage(): ReactElement {
                   <button type="button" className="btn btn-light" onClick={() => setDown(true)}>
                     Put it down
                   </button>
-                  <Link to="/problem" className="btn btn-ghost">
-                    Why it works on us
-                  </Link>
                 </div>
               </Presence>
             </div>
@@ -71,8 +68,14 @@ export function HomePage(): ReactElement {
       <section className="sec day">
         <div className="wrap">
           <div className="who-head" data-reveal="lead">
-            <p className="eyebrow">Who it is for</p>
-            <h2>{WHO_FOR.lead}</h2>
+            <div>
+              <p className="eyebrow">Who it is for</p>
+              <h2>{WHO_FOR.lead}</h2>
+            </div>
+            <p className="who-note">
+              Beyond is a journal that answers you once, the next morning. It is not therapy, not a
+              chatbot, and not another feed.
+            </p>
           </div>
           <div className="who-grid">
             {WHO_FOR.points.map((p) => (
@@ -82,10 +85,6 @@ export function HomePage(): ReactElement {
               </div>
             ))}
           </div>
-          <p className="who-note" data-reveal="">
-            Beyond is a journal that answers you once, the next morning. It is not therapy, not a
-            chatbot, and not another feed.
-          </p>
         </div>
       </section>
 

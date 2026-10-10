@@ -1,6 +1,5 @@
 import type { ReactElement } from 'react';
 import { INSTITUTIONS } from '../../data/site';
-import { Link } from '../../router';
 
 /**
  * The three audiences sit in a band divided by rules rather than cut into
@@ -28,12 +27,6 @@ export function InstitutionsPage(): ReactElement {
               <p>{s.body}</p>
             </section>
           ))}
-        </div>
-
-        <div className="ctas" style={{ marginTop: 36 }} data-reveal="">
-          <Link to="/beta" className="btn btn-light">
-            Join the beta
-          </Link>
         </div>
       </div>
     </section>
