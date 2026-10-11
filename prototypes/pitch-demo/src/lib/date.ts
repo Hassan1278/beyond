@@ -21,6 +21,13 @@ export const tonight = (): string => shortDate(new Date());
 /** The morning the letter arrives. */
 export const morning = (): string => shortDate(addDays(new Date(), 1));
 
+/** Today as `2026-10-11`, which is how the journal stores a line's date. */
+export const todayIso = (): string => {
+  const d = new Date();
+  const p = (n: number): string => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+
 /** "October so far", for the patterns header. */
 export const monthSoFar = (): string =>
   `${

@@ -39,6 +39,11 @@ export interface LetterRequestBody {
   tomorrow?: string;
   /** Delivery time the person chose, e.g. "07:30". */
   time?: string;
+  /**
+   * Themes the person popped on the theme map. They asked not to be brought
+   * back to these, and a letter that raises one anyway breaks that promise.
+   */
+  avoid?: string[];
 }
 
 export interface LetterResponse {
@@ -124,6 +129,14 @@ function buildPrompt(b: LetterRequestBody): string {
       `"${b.correction.slice(0, 600).trim()}"`,
     );
   }
+  if (b.avoid?.length) {
+    parts.push(
+      '',
+      'They have asked Beyond to stop bringing these up. Do not raise them, do not ' +
+        'allude to them, and do not make the step about them:',
+      ...b.avoid.map((t) => `- ${t}`),
+    );
+  }
   parts.push(
     '',
     `The letter arrives ${b.tomorrow ?? 'this morning'} at ${b.time ?? '07:30'}. Write it now.`,
@@ -185,16 +198,16 @@ export async function writeLetter(b: LetterRequestBody): Promise<LetterResponse>
 
 /* ------------------------------------------------------------ http plumbing */
 
-type Req = IncomingMessage & { body?: unknown };
+export type Req = IncomingMessage & { body?: unknown };
 
-const json = (res: ServerResponse, status: number, body: unknown): void => {
+export const json = (res: ServerResponse, status: number, body: unknown): void => {
   res.statusCode = status;
   res.setHeader('content-type', 'application/json; charset=utf-8');
   res.setHeader('cache-control', 'no-store');
   res.end(JSON.stringify(body));
 };
 
-async function readBody(req: Req): Promise<unknown> {
+export async function readBody(req: Req): Promise<unknown> {
   if (req.body !== undefined && req.body !== null) {
     if (typeof req.body !== 'string') return req.body;
     try {
@@ -231,19 +244,23 @@ export function validate(input: unknown): LetterRequestBody | string {
     today: typeof b.today === 'string' ? b.today.slice(0, 40) : undefined,
     tomorrow: typeof b.tomorrow === 'string' ? b.tomorrow.slice(0, 40) : undefined,
     time: typeof b.time === 'string' ? b.time.slice(0, 10) : undefined,
+    avoid: Array.isArray(b.avoid)
+      ? b.avoid.filter((t): t is string => typeof t === 'string').slice(0, 10)
+      : [],
   };
 }
 
 /**
- * Coarse per-instance throttle. The demo link is public during a pitch and the key
- * behind it is real money. Serverless instances are short-lived, so this is a speed
+ * Coarse per-instance throttle, shared with `/api/themes` because both spend
+ * from the same key. The demo link is public during a pitch and the key behind
+ * it is real money. Serverless instances are short-lived, so this is a speed
  * bump rather than a guarantee - set a spend limit on the key as well.
  */
 const HOUR = 3_600_000;
 const seen = new Map<string, number[]>();
 const LIMIT = Number(process.env.BEYOND_RATE_LIMIT || 30);
 
-function overLimit(ip: string): boolean {
+export function overLimit(ip: string): boolean {
   const now = Date.now();
   const hits = (seen.get(ip) ?? []).filter((t) => now - t < HOUR);
   hits.push(now);
@@ -252,6 +269,14 @@ function overLimit(ip: string): boolean {
     for (const [k, v] of seen) if (!v.some((t) => now - t < HOUR)) seen.delete(k);
   }
   return hits.length > LIMIT;
+}
+
+/** The caller's address, as well as a proxy chain lets us know it. */
+export function clientIp(req: Req): string {
+  const fwd = req.headers['x-forwarded-for'];
+  return (Array.isArray(fwd) ? fwd[0] : fwd || req.socket?.remoteAddress || 'unknown')
+    .split(',')[0]
+    .trim();
 }
 
 export default async function handler(req: Req, res: ServerResponse): Promise<void> {
@@ -266,11 +291,8 @@ export default async function handler(req: Req, res: ServerResponse): Promise<vo
     return json(res, 503, { error: 'no ANTHROPIC_API_KEY on this host' });
   }
 
-  const fwd = req.headers['x-forwarded-for'];
-  const ip = (Array.isArray(fwd) ? fwd[0] : fwd || req.socket?.remoteAddress || 'unknown')
-    .split(',')[0]
-    .trim();
-  if (overLimit(ip)) return json(res, 429, { error: 'too many letters from here this hour' });
+  if (overLimit(clientIp(req)))
+    return json(res, 429, { error: 'too many letters from here this hour' });
 
   const parsed = validate(await readBody(req));
   if (typeof parsed === 'string') return json(res, 400, { error: parsed });

@@ -20,13 +20,16 @@ import type {
   LetterTime,
   ScreenId,
   StepChoice,
+  ThemeExtract,
+  ThemeId,
   VoiceId,
   WriteMode,
 } from '../types';
 import { MEMORIES, SAMPLE_ENTRY } from '../data/content';
+import { themeById } from '../data/themes';
 import { needsSafetyCheck } from '../lib/safety';
-import { checkAvailable, LetterUnavailable, requestLetter } from '../lib/ai';
-import { morning, tonight } from '../lib/date';
+import { checkAvailable, extractThemes, LetterUnavailable, requestLetter } from '../lib/ai';
+import { morning, todayIso, tonight } from '../lib/date';
 import * as store from '../lib/storage';
 
 export const freshState = (): BeyondState => ({
@@ -46,6 +49,10 @@ export const freshState = (): BeyondState => ({
   delAsk: false,
   deleted: false,
   secs: 372,
+  openTheme: null,
+  popped: [],
+  popMode: false,
+  extract: { status: 'idle', error: null, found: [] },
   source: 'scripted',
   ai: { status: 'idle', letter: null, error: null, ms: null, model: null, available: null },
 });
@@ -70,6 +77,13 @@ type Action =
   | { type: 'del/ask' }
   | { type: 'del/cancel' }
   | { type: 'del/confirm' }
+  | { type: 'theme/open'; id: ThemeId }
+  | { type: 'theme/pop'; id: ThemeId }
+  | { type: 'theme/restore'; id: ThemeId }
+  | { type: 'pop/mode' }
+  | { type: 'ex/start' }
+  | { type: 'ex/ready'; found: ThemeExtract[] }
+  | { type: 'ex/error'; error: string }
   | { type: 'source'; source: LetterSource }
   | { type: 'ai/available'; ok: boolean; model: string | null }
   | { type: 'ai/start' }
@@ -81,7 +95,7 @@ type Action =
 function reducer(s: BeyondState, a: Action): BeyondState {
   switch (a.type) {
     case 'go':
-      return { ...s, screen: a.screen, sheet: false, delAsk: false };
+      return { ...s, screen: a.screen, sheet: false, delAsk: false, popMode: false };
     case 'voice':
       // A different voice means a different letter; drop the one we have.
       return {
@@ -111,6 +125,7 @@ function reducer(s: BeyondState, a: Action): BeyondState {
         fixed: false,
         fixOpen: false,
         ai: { ...s.ai, status: 'idle', letter: null, error: null },
+        extract: { status: 'idle', error: null, found: [] },
       };
     case 'step':
       return { ...s, step: a.step };
@@ -142,6 +157,21 @@ function reducer(s: BeyondState, a: Action): BeyondState {
       return { ...s, delAsk: false };
     case 'del/confirm':
       return { ...s, delAsk: false, mems: [], deleted: true };
+    case 'theme/open':
+      // Opening a theme is reading, not editing, so pop mode ends here.
+      return { ...s, screen: 'theme', openTheme: a.id, popMode: false, sheet: false };
+    case 'theme/pop':
+      return s.popped.includes(a.id) ? s : { ...s, popped: [...s.popped, a.id] };
+    case 'theme/restore':
+      return { ...s, popped: s.popped.filter((id) => id !== a.id) };
+    case 'pop/mode':
+      return { ...s, popMode: !s.popMode };
+    case 'ex/start':
+      return { ...s, extract: { ...s.extract, status: 'writing', error: null } };
+    case 'ex/ready':
+      return { ...s, extract: { status: 'ready', error: null, found: a.found } };
+    case 'ex/error':
+      return { ...s, extract: { status: 'error', error: a.error, found: [] } };
     case 'source':
       return { ...s, source: a.source, ai: { ...s.ai, status: 'idle', error: null } };
     case 'ai/available':
@@ -179,7 +209,9 @@ type Persisted = Pick<
   | 'step'
   | 'fixed'
   | 'correction'
-> & { letter: LetterContent | null };
+  | 'popped'
+  | 'openTheme'
+> & { letter: LetterContent | null; found: ThemeExtract[] };
 
 function hydrate(): BeyondState {
   const base = freshState();
@@ -198,6 +230,14 @@ function hydrate(): BeyondState {
     step: saved.step ?? null,
     fixed: Boolean(saved.fixed),
     correction: typeof saved.correction === 'string' ? saved.correction : '',
+    // Unknown ids in storage would render an empty map, so only keep real ones.
+    popped: Array.isArray(saved.popped) ? saved.popped.filter((id) => themeById(id).id === id) : [],
+    openTheme: saved.openTheme ?? null,
+    extract: {
+      status: saved.found?.length ? 'ready' : 'idle',
+      error: null,
+      found: Array.isArray(saved.found) ? saved.found : [],
+    },
     ai: { ...base.ai, letter: saved.letter ?? null, status: saved.letter ? 'ready' : 'idle' },
   };
 }
@@ -215,7 +255,10 @@ const persist = (s: BeyondState): void =>
     step: s.step,
     fixed: s.fixed,
     correction: s.correction,
+    popped: s.popped,
+    openTheme: s.openTheme,
     letter: s.ai.letter,
+    found: s.extract.found,
   } satisfies Persisted);
 
 /* ------------------------------------------------------------------ context */
@@ -259,6 +302,22 @@ export function BeyondProvider({ children }: { children: ReactNode }): ReactNode
     if (inflight.current) return;
     inflight.current = true;
     dispatch({ type: 'ai/start' });
+    dispatch({ type: 'ex/start' });
+
+    // The theme lines come from the same entry, so they are pulled at the same
+    // time. They are a side dish: a failure here never costs anyone a letter.
+    void extractThemes({ entry: state.entry, today: todayIso() })
+      .then((found) => dispatch({ type: 'ex/ready', found }))
+      .catch((err: unknown) =>
+        dispatch({
+          type: 'ex/error',
+          error:
+            err instanceof LetterUnavailable
+              ? err.message
+              : 'Themes could not be read from this entry.',
+        }),
+      );
+
     try {
       const res = await requestLetter({
         entry: state.entry,
@@ -268,6 +327,7 @@ export function BeyondProvider({ children }: { children: ReactNode }): ReactNode
         today: tonight(),
         tomorrow: morning(),
         time: state.time,
+        avoid: state.popped.map((id) => themeById(id).name),
       });
       dispatch({ type: 'ai/ready', letter: res.letter, ms: res.ms, model: res.model });
     } catch (err) {
@@ -281,7 +341,15 @@ export function BeyondProvider({ children }: { children: ReactNode }): ReactNode
     } finally {
       inflight.current = false;
     }
-  }, [state.entry, state.voice, state.paused, state.mems, state.correction, state.time]);
+  }, [
+    state.entry,
+    state.voice,
+    state.paused,
+    state.mems,
+    state.correction,
+    state.time,
+    state.popped,
+  ]);
 
   const value = useMemo<Api>(
     () => ({

@@ -49,6 +49,26 @@ export const Moon = (): ReactElement => (
   </svg>
 );
 
+/** The Journal tab. A notebook, because entries are no longer a night-only act. */
+export const Journal = (): ReactElement => (
+  <svg viewBox="0 0 24 24" {...hide}>
+    <path
+      d="M6.5 3.5h11a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1Z"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M9 3.5v17M12 8h4M12 11.5h4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
 export const Mail = (): ReactElement => (
   <svg viewBox="0 0 24 24" {...hide}>
     <rect

@@ -70,6 +70,26 @@ const deltaE = (a, b) => {
   return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
 };
 
+/**
+ * Resolve a colour spec against one palette. A spec is either a token name, or
+ * `[spec, pct, spec]` meaning `color-mix(in srgb, first pct%, second)` - which
+ * also stands in for `opacity` over a known backdrop, since the two compute
+ * to the same thing. Nests, because several of these surfaces are a mix on a
+ * mix in the stylesheets.
+ */
+function resolve(spec, p) {
+  if (typeof spec === 'string') return hex(p[spec] ?? '');
+  const [a, pct, b] = spec;
+  const [x, y] = [resolve(a, p), resolve(b, p)];
+  if (!x || !y) return null;
+  const t = pct / 100;
+  return x.map((v, i) => v * t + y[i] * (1 - t));
+}
+
+/** How a spec reads in the report. */
+const label = (spec) =>
+  typeof spec === 'string' ? `--${spec}` : `${spec[1]}% ${label(spec[0])} over ${label(spec[2])}`;
+
 /* ------------------------------------------------------------- what to check
    fg, bg, where it appears, and the AA floor: 4.5 for body and small text,
    3.0 for text at 24px+ or 19px+ bold, and for non-text separators. */
@@ -101,6 +121,24 @@ const PAIRS = [
   ['alert', 'night', 'the alert state', 3.0],
 ];
 
+/* Surfaces built with color-mix in the stylesheets. These are new, nobody has
+   looked at them yet, and a mix is exactly the kind of value that drifts out
+   of contrast without anyone noticing. */
+const HARD_BUB = ['ink', 9, 'paper-2'];
+const WARM_BUB = ['dawn', 58, 'paper-hi'];
+const MIXED = [
+  ['ink', HARD_BUB, 'the name on a grey bubble', 4.5],
+  ['ink', WARM_BUB, 'the name on a warm bubble', 4.5],
+  // The count is --ink at 68% opacity, which over a known fill is a mix.
+  [['ink', 68, HARD_BUB], HARD_BUB, 'the count on a grey bubble', 4.5],
+  [['ink', 68, WARM_BUB], WARM_BUB, 'the count on a warm bubble', 4.5],
+  ['ink', ['dawn', 62, 'paper-hi'], 'the New flag on a fresh line', 4.5],
+  ['ink-soft', ['dawn', 26, 'paper-hi'], 'the "filed under" note', 4.5],
+  ['ink', WARM_BUB, 'the "Going well" chip', 4.5],
+  // The Wrapped cards are read out of data/content.ts below, rather than
+  // copied here, so the two cannot drift apart.
+];
+
 /** The tokens that paint the most pixels, so the ones that make a theme read. */
 const HEAVY = ['paper', 'night', 'mist', 'ink-faint', 'paper-line', 'night-line', 'dawn'];
 
@@ -116,6 +154,25 @@ for (const id of THEMES) {
   palettes[id] = { ...base, ...own };
 }
 
+/* The Wrapped cards put light text on the lighter end of their own gradient,
+   which is where it is hardest to read. Read the first stop of each straight
+   out of the data, so this checks what actually ships. */
+const contentTs = await readFile(join(root, 'src/data/content.ts'), 'utf8');
+for (const [, quarter] of contentTs.matchAll(/quarter: '([^']+)'/g)) {
+  const at = contentTs.indexOf(`quarter: '${quarter}'`);
+  const grad = /grad:\s*'([^']+)'/.exec(contentTs.slice(at))?.[1] ?? '';
+  const stop = /color-mix\(in srgb,\s*var\(--([\w-]+)\)\s*([\d.]+)%,\s*var\(--([\w-]+)\)\s*\)/.exec(
+    grad,
+  );
+  if (!stop) continue;
+  MIXED.push([
+    'paper',
+    [stop[1], Number(stop[2]), stop[3]],
+    `${quarter} Wrapped, at its lightest`,
+    4.5,
+  ]);
+}
+
 let failures = 0;
 const missing = [];
 
@@ -124,6 +181,16 @@ for (const id of THEMES) {
   for (const k of Object.keys(base)) if (!(k in p)) missing.push(`${id}: --${k}`);
 
   const rows = [];
+  for (const [fg, bg, where, floor] of MIXED) {
+    const [a, b] = [resolve(fg, p), resolve(bg, p)];
+    if (!a || !b) continue;
+    const r = ratio(a, b);
+    const ok = r >= floor;
+    if (!ok) failures++;
+    rows.push(
+      `  ${ok ? 'ok  ' : 'FAIL'} ${r.toFixed(2).padStart(5)}:1  (min ${floor})  ${label(fg)} on ${label(bg)}  ${where}`,
+    );
+  }
   for (const [fg, bg, where, floor] of PAIRS) {
     const [a, b] = [hex(p[fg] ?? ''), hex(p[bg] ?? '')];
     if (!a || !b) continue;

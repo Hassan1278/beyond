@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import type { ScreenProps } from '../components/Phone';
 import { voiceById } from '../data/content';
+import { themeById } from '../data/themes';
 import { useActions } from '../state/store';
 
 export function MemorySettings({ state, live }: ScreenProps): ReactElement {
@@ -54,6 +55,29 @@ export function MemorySettings({ state, live }: ScreenProps): ReactElement {
           </li>
         )}
       </ul>
+
+      {state.popped.length > 0 && (
+        <>
+          <p className="k">Not surfacing</p>
+          <p className="pmsg" style={{ marginTop: -2 }}>
+            Popped on the theme map. Beyond will not raise these in a letter. The entries behind
+            them are untouched.
+          </p>
+          <ul className="mem">
+            {state.popped.map((id) => (
+              <li key={id}>
+                <span>
+                  <b>{themeById(id).name}</b>
+                  <small>{themeById(id).mentions} entries, still kept</small>
+                </span>
+                <button type="button" onClick={() => dispatch({ type: 'theme/restore', id })}>
+                  Restore
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <p className="k">Settings</p>
       <div className="set">
