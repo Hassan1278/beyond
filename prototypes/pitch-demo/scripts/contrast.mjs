@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const THEMES = ['night', 'ember', 'bloom', 'tide'];
+const THEMES = ['night', 'bloom'];
 
 /* --------------------------------------------------------------- parsing */
 

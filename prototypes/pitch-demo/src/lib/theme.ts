@@ -7,7 +7,7 @@
  * default on load.
  */
 
-export const THEME_IDS = ['night', 'ember', 'bloom', 'tide'] as const;
+export const THEME_IDS = ['night', 'bloom'] as const;
 export type ThemeId = (typeof THEME_IDS)[number];
 
 const KEY = 'beyond.theme';
@@ -15,9 +15,7 @@ const KEY = 'beyond.theme';
 /** The browser-chrome colour each palette should tint to. */
 const BAR: Record<ThemeId, string> = {
   night: '#0b0c0e',
-  ember: '#26150a',
   bloom: '#27102f',
-  tide: '#072630',
 };
 
 const isTheme = (v: unknown): v is ThemeId =>

@@ -251,12 +251,22 @@ try {
         'It never runs out',
         'Who it is for',
         'more say in your plans',
+        // The wall has to carry more than one genre of pressure.
+        'aidan.lifts',
+        'skin.by.neve',
       ],
     ],
     '/problem': [
       '/src/site/pages/ProblemPage.tsx',
       'ProblemPage',
-      ['The Great Distraction', 'What young people told us', '91%', 'aidan.lifts'],
+      [
+        'The Great Distraction',
+        'What young people told us',
+        '91%',
+        'aidan.lifts',
+        'that.girl.era',
+        'ella.andjames',
+      ],
     ],
     '/how': [
       '/src/site/pages/HowPage.tsx',
@@ -377,6 +387,40 @@ try {
       } else {
         console.log(`ok   bubbles/${n} (r ${out.map((c) => c.r.toFixed(1)).join(' ')})`);
       }
+    }
+
+    /* The feed. Every post is a hand-written claim, so the things worth
+       checking are that none of them collide and that all of them draw. */
+    const { FEED } = await server.ssrLoadModule('/src/data/feed.ts');
+    const { FeedArt } = await server.ssrLoadModule('/src/site/FeedArt.tsx');
+    const feedBad = [];
+    const handles = new Set();
+    const captions = new Set();
+    for (const [i, post] of FEED.entries()) {
+      if (handles.has(post.handle)) feedBad.push(`duplicate handle ${post.handle}`);
+      if (captions.has(post.caption)) feedBad.push(`duplicate caption on ${post.handle}`);
+      handles.add(post.handle);
+      captions.add(post.caption);
+      if (!/^\d/.test(post.metric))
+        feedBad.push(`${post.handle}: metric "${post.metric}" is not a count`);
+      if (post.grad.some((g) => /#[0-9a-f]{3,8}/i.test(g)))
+        feedBad.push(`${post.handle}: gradient is a fixed colour, so it will not follow the theme`);
+      try {
+        const drawn = renderToString(
+          h(FeedArt, { kind: post.art, grad: post.grad, id: String(i) }),
+        );
+        if (!drawn.includes('<path') && !drawn.includes('<circle') && !drawn.includes('<rect'))
+          feedBad.push(`${post.handle}: art "${post.art}" drew nothing`);
+      } catch (err) {
+        feedBad.push(`${post.handle}: art "${post.art}" threw ${err.message}`);
+      }
+    }
+    if (feedBad.length) {
+      for (const b of feedBad) console.error(`FAIL feed: ${b}`);
+      failed += feedBad.length;
+    } else {
+      const kinds = new Set(FEED.map((p) => p.art));
+      console.log(`ok   feed (${FEED.length} posts, ${kinds.size} kinds of art, all drawing)`);
     }
 
     /* The theme data itself: the dates are what the page is selling. */

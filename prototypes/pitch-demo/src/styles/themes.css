@@ -1,4 +1,4 @@
-/* Four palettes.
+/* Two palettes.
  *
  * Every theme redefines the same token set, so nothing in the rest of the CSS
  * needs to know which one is active. Each keeps the structure the design
@@ -12,15 +12,12 @@
  * hue reads, and the mid-tones - mist, the hairlines, the soft inks, which
  * together outnumber every other token - are pulled toward the theme as well.
  *
- * Named for their character rather than for an audience. Gendered colour is a
- * stereotype more often than it is a preference, and labelling a palette
- * "for women" in a pitch invites an argument you do not want to be having.
- * If you want them mapped to audiences, it is one string each in ThemePicker.
+ * Named for their character rather than for an audience.
  *
  * Contrast for every text-on-surface pair is checked by scripts/contrast.mjs.
  */
 
-/* Night - the original. Neutral graphite, cream, a peach dawn. */
+/* Night - the default. Neutral graphite, cream, a peach dawn. */
 :root,
 :root[data-theme='night'] {
   --night: #0b0c0e;
@@ -48,33 +45,6 @@
   --warm: #f0cdaa;
 }
 
-/* Ember - espresso night, sand paper, a loud amber dawn. Warm and grounded. */
-:root[data-theme='ember'] {
-  --night: #26150a;
-  --night-2: #331d0c;
-  --night-3: #452812;
-  --night-line: #603c1c;
-  --paper: #f7e3c4;
-  --paper-2: #eed4a9;
-  --paper-hi: #fdf6e8;
-  --paper-line: #cfa870;
-  --ink: #1c1206;
-  --ink-soft: #64481f;
-  --ink-faint: #735a2f;
-  --moon: #d4b184;
-  --mist: #ccaa7c;
-  --dusk: #c4763c;
-  --dawn: #ff9e3d;
-  --ok: #6b8f33;
-  --alert: #e2593a;
-  --phone: #331d0c;
-  --g1: #30190a;
-  --g2: #4f280d;
-  --g3: #6b360f;
-  --g4: #b55e1c;
-  --warm: #ffcf8f;
-}
-
 /* Bloom - aubergine night, blush paper, a hot rose dawn. */
 :root[data-theme='bloom'] {
   --night: #27102f;
@@ -100,33 +70,6 @@
   --g3: #611d5d;
   --g4: #a53789;
   --warm: #ffb6d0;
-}
-
-/* Tide - petrol night, mint paper, a bright seafoam dawn. The coldest. */
-:root[data-theme='tide'] {
-  --night: #072630;
-  --night-2: #0a3140;
-  --night-3: #0f4252;
-  --night-line: #175a6b;
-  --paper: #cfe9e4;
-  --paper-2: #bfdfd9;
-  --paper-hi: #effaf7;
-  --paper-line: #94c3bb;
-  --ink: #04171c;
-  --ink-soft: #2b514d;
-  --ink-faint: #3b6660;
-  --moon: #9ac9c1;
-  --mist: #8ebfb7;
-  --dusk: #45a0cc;
-  --dawn: #2fe0bb;
-  --ok: #2f9f7a;
-  --alert: #e0604a;
-  --phone: #0a3140;
-  --g1: #0a2c38;
-  --g2: #0e4854;
-  --g3: #105a63;
-  --g4: #169a96;
-  --warm: #86f0da;
 }
 
 /* ------------------------------------------------------------- the picker */

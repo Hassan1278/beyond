@@ -158,6 +158,69 @@ const SHAPES: Record<ArtKind, ReactElement> = {
       />
     </g>
   ),
+  // A dropper bottle and a face, lit like an advertisement.
+  glow: (
+    <g>
+      <circle cx="200" cy="168" r="62" fill="currentColor" opacity=".9" />
+      <path
+        d="M176 166c8 7 16 7 24 0M224 166c-6 5-12 6-18 3"
+        stroke="#000"
+        strokeWidth="5"
+        fill="none"
+        opacity=".22"
+        strokeLinecap="round"
+      />
+      <rect x="168" y="268" width="64" height="104" rx="12" fill="currentColor" opacity=".92" />
+      <rect x="186" y="246" width="28" height="26" rx="6" fill="currentColor" opacity=".7" />
+      <rect x="192" y="224" width="16" height="26" rx="8" fill="currentColor" opacity=".5" />
+      <rect x="182" y="300" width="36" height="7" rx="3.5" fill="#000" opacity=".3" />
+      <rect x="182" y="318" width="24" height="7" rx="3.5" fill="#000" opacity=".22" />
+      <circle cx="296" cy="300" r="26" fill="currentColor" opacity=".4" />
+      <circle cx="108" cy="328" r="18" fill="currentColor" opacity=".3" />
+    </g>
+  ),
+  // A rolled mat and a cup, at an hour that photographs well.
+  mat: (
+    <g>
+      <rect x="96" y="214" width="128" height="150" rx="64" fill="currentColor" opacity=".9" />
+      <ellipse cx="160" cy="214" rx="64" ry="22" fill="#000" opacity=".3" />
+      <circle cx="160" cy="214" r="15" fill="currentColor" opacity=".55" />
+      <path
+        d="M248 268h66v52a26 26 0 0 1-26 26h-14a26 26 0 0 1-26-26Z"
+        fill="currentColor"
+        opacity=".92"
+      />
+      <path
+        d="M314 282h12a14 14 0 0 1 0 28h-12"
+        stroke="currentColor"
+        strokeWidth="9"
+        fill="none"
+        opacity=".7"
+      />
+      <ellipse cx="281" cy="268" rx="33" ry="11" fill="#000" opacity=".26" />
+      <rect x="112" y="396" width="176" height="9" rx="4.5" fill="currentColor" opacity=".3" />
+    </g>
+  ),
+  // A ring, held up to the light.
+  ring: (
+    <g>
+      <circle cx="200" cy="286" r="62" fill="none" stroke="currentColor" strokeWidth="17" />
+      <path d="M200 160l34 44h-68Z" fill="currentColor" opacity=".95" />
+      <path d="M166 204h68l-34 40Z" fill="currentColor" opacity=".7" />
+      <path d="M200 160v84M172 182h56" stroke="#000" strokeWidth="4" fill="none" opacity=".2" />
+      <circle
+        cx="200"
+        cy="286"
+        r="94"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        opacity=".22"
+      />
+      <circle cx="296" cy="188" r="13" fill="currentColor" opacity=".45" />
+      <circle cx="112" cy="214" r="9" fill="currentColor" opacity=".35" />
+    </g>
+  ),
   // A desk at an hour nobody asked for.
   desk: (
     <g>

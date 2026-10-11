@@ -5,10 +5,29 @@
  * captions and the counts, not by photographs of real people: putting real
  * someones on a page that calls them a social ill would be both a licensing
  * problem and a dishonest one. The art is drawn in `FeedArt.tsx`.
+ *
+ * The pressure is not one genre. Muscle, money and 4am were only ever half of
+ * it, so the wall also carries the version aimed at young women - the routine
+ * to start before you turn 25, the morning nobody could actually keep up, the
+ * milestone reached on time - which sells the same shortfall in a softer
+ * voice. Spread through the list rather than grouped, because that is how it
+ * arrives: mixed in with everything else.
  */
 
 export type ArtKind =
-  'torso' | 'cash' | 'watch' | 'car' | 'chart' | 'mirror' | 'meal' | 'desk' | 'trophy' | 'beach';
+  | 'torso'
+  | 'cash'
+  | 'watch'
+  | 'car'
+  | 'chart'
+  | 'mirror'
+  | 'meal'
+  | 'desk'
+  | 'trophy'
+  | 'beach'
+  | 'glow'
+  | 'mat'
+  | 'ring';
 
 export interface Post {
   handle: string;
@@ -43,6 +62,14 @@ export const FEED: Post[] = [
     sponsored: true,
   },
   {
+    handle: 'skin.by.neve',
+    caption: 'My 11-step routine. Start before 25 or it is already too late.',
+    metric: '1.4M',
+    art: 'glow',
+    grad: ['color-mix(in srgb, var(--dawn) 26%, var(--night))', 'var(--night-2)'],
+    sponsored: true,
+  },
+  {
     handle: 'the.focused.few',
     caption: '4:30am. While you were asleep.',
     metric: '89K',
@@ -71,6 +98,13 @@ export const FEED: Post[] = [
     grad: ['color-mix(in srgb, var(--dawn) 34%, var(--night))', 'var(--g1)'],
   },
   {
+    handle: 'that.girl.era',
+    caption: '5am. Pilates, matcha, journal, before anyone else is awake.',
+    metric: '668K',
+    art: 'mat',
+    grad: ['color-mix(in srgb, var(--g3) 66%, var(--moon))', 'var(--g1)'],
+  },
+  {
     handle: 'elena.studies',
     caption: '14 hours of revision. Day 61 of 100.',
     metric: '203K',
@@ -91,6 +125,13 @@ export const FEED: Post[] = [
     metric: '934K',
     art: 'beach',
     grad: ['color-mix(in srgb, var(--dusk) 40%, var(--g2))', 'var(--night)'],
+  },
+  {
+    handle: 'ella.andjames',
+    caption: 'He proposed. 23, and everything is finally falling into place.',
+    metric: '2.4M',
+    art: 'ring',
+    grad: ['color-mix(in srgb, var(--warm) 22%, var(--night))', 'var(--night-3)'],
   },
   {
     handle: 'minuteman.hustle',
