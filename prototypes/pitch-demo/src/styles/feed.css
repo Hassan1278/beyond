@@ -116,6 +116,9 @@
   display: block;
   width: 100%;
   aspect-ratio: 4/5;
+  /* The lit shapes inside read currentColor; --a and --b are set per post. */
+  color: var(--paper);
+  background-image: linear-gradient(150deg, var(--a), var(--b));
 }
 .post-foot {
   padding: 11px 12px 13px;

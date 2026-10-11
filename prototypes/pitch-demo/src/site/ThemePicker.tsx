@@ -1,36 +1,41 @@
 /**
- * Four dots in the nav. Each swatch is split so you can see both halves of the
- * palette it switches to - the night it sits on and the accent it carries.
+ * Four dots in the nav. Each swatch is a three-band slice of the palette it
+ * switches to - the night it sits on, the accent it carries, the paper it
+ * reads on - so the dot previews the page rather than hinting at it.
  */
 import { useState, type CSSProperties, type ReactElement } from 'react';
 import { applyTheme, readTheme, type ThemeId } from '../lib/theme';
 
-const THEMES: { id: ThemeId; name: string; note: string; swatch: string }[] = [
+/** night, dawn, paper. Kept in step with themes.css by scripts/contrast.mjs. */
+const THEMES: { id: ThemeId; name: string; note: string; bands: [string, string, string] }[] = [
   {
     id: 'night',
     name: 'Night',
     note: 'Graphite, cream, a peach dawn',
-    swatch: 'linear-gradient(135deg,#0b0c0e 50%,#e8b48a 50%)',
+    bands: ['#0b0c0e', '#e8b48a', '#f4f3ee'],
   },
   {
     id: 'ember',
     name: 'Ember',
-    note: 'Warm and grounded, amber dawn',
-    swatch: 'linear-gradient(135deg,#0d0a08 50%,#e2863f 50%)',
+    note: 'Espresso, sand, a loud amber dawn',
+    bands: ['#26150a', '#ff9e3d', '#f7e3c4'],
   },
   {
     id: 'bloom',
     name: 'Bloom',
-    note: 'Plum night, blush paper, rose dawn',
-    swatch: 'linear-gradient(135deg,#0c0910 50%,#e2799f 50%)',
+    note: 'Aubergine, blush, a hot rose dawn',
+    bands: ['#27102f', '#ff6fa5', '#fae2ee'],
   },
   {
     id: 'tide',
     name: 'Tide',
-    note: 'Petrol night, seafoam dawn',
-    swatch: 'linear-gradient(135deg,#060e10 50%,#4fc2a8 50%)',
+    note: 'Petrol, mint, a bright seafoam dawn',
+    bands: ['#072630', '#2fe0bb', '#cfe9e4'],
   },
 ];
+
+const swatch = ([a, b, c]: [string, string, string]): string =>
+  `linear-gradient(135deg, ${a} 0 36%, ${b} 36% 64%, ${c} 64% 100%)`;
 
 export function ThemePicker(): ReactElement {
   const [theme, setTheme] = useState<ThemeId>(readTheme);
@@ -44,7 +49,7 @@ export function ThemePicker(): ReactElement {
           aria-pressed={theme === t.id}
           aria-label={`${t.name} theme`}
           title={`${t.name} — ${t.note}`}
-          style={{ '--sw': t.swatch } as CSSProperties}
+          style={{ '--sw': swatch(t.bands) } as CSSProperties}
           onClick={() => {
             applyTheme(t.id);
             setTheme(t.id);

@@ -1,19 +1,46 @@
 /* Four palettes.
  *
  * Every theme redefines the same token set, so nothing in the rest of the CSS
- * needs to know which one is active. Each keeps the same structure the design
- * depends on - a near-black night, a warm-ish paper, one accent that carries
- * the dawn - and only moves the hue and temperature.
+ * needs to know which one is active. Each keeps the structure the design
+ * depends on - a dark night, a light paper, one accent that carries the dawn -
+ * but moves hue, chroma and value far enough that the page is unmistakably a
+ * different colour, not the same page with a different detail.
+ *
+ * The first pass tinted only the near-black and the near-white, which is
+ * exactly where hue is invisible: at 4% and 96% lightness every palette looks
+ * the same. So the paper carries real colour, the night is lifted until its
+ * hue reads, and the mid-tones - mist, the hairlines, the soft inks, which
+ * together outnumber every other token - are pulled toward the theme as well.
  *
  * Named for their character rather than for an audience. Gendered colour is a
  * stereotype more often than it is a preference, and labelling a palette
  * "for women" in a pitch invites an argument you do not want to be having.
- * If you want them mapped to audiences, it is one string each in data/themes.ts.
+ * If you want them mapped to audiences, it is one string each in ThemePicker.
+ *
+ * Contrast for every text-on-surface pair is checked by scripts/contrast.mjs.
  */
 
-/* Night - the original. Neutral graphite, cream, peach dawn. */
+/* Night - the original. Neutral graphite, cream, a peach dawn. */
 :root,
 :root[data-theme='night'] {
+  --night: #0b0c0e;
+  --night-2: #141519;
+  --night-3: #1f2025;
+  --night-line: #2b2c31;
+  --paper: #f4f3ee;
+  --paper-2: #e8e6dc;
+  --paper-hi: #fbfaf6;
+  --paper-line: #d2d0c4;
+  --ink: #0b0c0e;
+  --ink-soft: #5f605a;
+  --ink-faint: #656660;
+  --moon: #a7a8a3;
+  --mist: #9fa19c;
+  --dusk: #7183b0;
+  --dawn: #e8b48a;
+  --ok: #3d7553;
+  --alert: #b4513a;
+  --phone: #17181a;
   --g1: #121419;
   --g2: #1a1d29;
   --g3: #1e2338;
@@ -21,97 +48,97 @@
   --warm: #f0cdaa;
 }
 
-/* Ember - warm, grounded, low and earthy. Brown-black and amber. */
+/* Ember - espresso night, sand paper, a loud amber dawn. Warm and grounded. */
 :root[data-theme='ember'] {
-  --night: #0d0a08;
-  --night-2: #17120e;
-  --night-3: #231b15;
-  --night-line: #332720;
-  --paper: #f6f1e8;
-  --paper-2: #eee7da;
-  --paper-hi: #fdfaf4;
-  --paper-line: #ddd2bf;
-  --ink: #0d0a08;
-  --ink-soft: #655b4e;
-  --ink-faint: #8f8475;
-  --moon: #b0a08c;
-  --mist: #a4947f;
-  --dusk: #8a6b55;
-  --dawn: #e2863f;
-  --ok: #5c7a3d;
-  --alert: #c0452c;
-  --phone: #1a1410;
-  --g1: #15100c;
-  --g2: #241a12;
-  --g3: #2b1d16;
-  --g4: #4a3324;
-  --warm: #f3c58c;
+  --night: #26150a;
+  --night-2: #331d0c;
+  --night-3: #452812;
+  --night-line: #603c1c;
+  --paper: #f7e3c4;
+  --paper-2: #eed4a9;
+  --paper-hi: #fdf6e8;
+  --paper-line: #cfa870;
+  --ink: #1c1206;
+  --ink-soft: #64481f;
+  --ink-faint: #735a2f;
+  --moon: #d4b184;
+  --mist: #ccaa7c;
+  --dusk: #c4763c;
+  --dawn: #ff9e3d;
+  --ok: #6b8f33;
+  --alert: #e2593a;
+  --phone: #331d0c;
+  --g1: #30190a;
+  --g2: #4f280d;
+  --g3: #6b360f;
+  --g4: #b55e1c;
+  --warm: #ffcf8f;
 }
 
-/* Bloom - plum night, blush paper, rose dawn. Softer and cooler-warm. */
+/* Bloom - aubergine night, blush paper, a hot rose dawn. */
 :root[data-theme='bloom'] {
-  --night: #0c0910;
-  --night-2: #16101d;
-  --night-3: #221829;
-  --night-line: #332540;
-  --paper: #f7f1f4;
-  --paper-2: #efe6ec;
-  --paper-hi: #fdf9fb;
-  --paper-line: #ded0d8;
-  --ink: #0c0910;
-  --ink-soft: #645667;
-  --ink-faint: #8d8090;
-  --moon: #b2a0b8;
-  --mist: #a596ab;
-  --dusk: #8f7bc4;
-  --dawn: #e2799f;
-  --ok: #4a7a5f;
-  --alert: #c24a63;
-  --phone: #171022;
-  --g1: #130f1a;
-  --g2: #211a2e;
-  --g3: #281c3a;
-  --g4: #4a3a63;
-  --warm: #f2c3d4;
+  --night: #27102f;
+  --night-2: #341740;
+  --night-3: #452055;
+  --night-line: #5f2d70;
+  --paper: #fae2ee;
+  --paper-2: #f4cfe2;
+  --paper-hi: #fef5fa;
+  --paper-line: #dca6c4;
+  --ink: #1d0c22;
+  --ink-soft: #6a3650;
+  --ink-faint: #834e6b;
+  --moon: #d7a5c0;
+  --mist: #cf9cb7;
+  --dusk: #a76ede;
+  --dawn: #ff6fa5;
+  --ok: #3f8f6a;
+  --alert: #e04865;
+  --phone: #341740;
+  --g1: #2e1338;
+  --g2: #4a1a4e;
+  --g3: #611d5d;
+  --g4: #a53789;
+  --warm: #ffb6d0;
 }
 
-/* Tide - petrol night, cool paper, seafoam dawn. The coldest of the four. */
+/* Tide - petrol night, mint paper, a bright seafoam dawn. The coldest. */
 :root[data-theme='tide'] {
-  --night: #060e10;
-  --night-2: #0d181b;
-  --night-3: #152428;
-  --night-line: #1f3339;
-  --paper: #eef4f3;
-  --paper-2: #e2ebea;
-  --paper-hi: #f8fcfb;
-  --paper-line: #c9d8d6;
-  --ink: #060e10;
-  --ink-soft: #4f6360;
-  --ink-faint: #7b908d;
-  --moon: #92aeab;
-  --mist: #88a3a0;
-  --dusk: #5b8fb0;
-  --dawn: #4fc2a8;
-  --ok: #3d8a6b;
-  --alert: #c0564a;
-  --phone: #0f1c1f;
-  --g1: #0a1518;
-  --g2: #122a2f;
-  --g3: #143038;
-  --g4: #27525c;
-  --warm: #a9e3d4;
+  --night: #072630;
+  --night-2: #0a3140;
+  --night-3: #0f4252;
+  --night-line: #175a6b;
+  --paper: #cfe9e4;
+  --paper-2: #bfdfd9;
+  --paper-hi: #effaf7;
+  --paper-line: #94c3bb;
+  --ink: #04171c;
+  --ink-soft: #2b514d;
+  --ink-faint: #3b6660;
+  --moon: #9ac9c1;
+  --mist: #8ebfb7;
+  --dusk: #45a0cc;
+  --dawn: #2fe0bb;
+  --ok: #2f9f7a;
+  --alert: #e0604a;
+  --phone: #0a3140;
+  --g1: #0a2c38;
+  --g2: #0e4854;
+  --g3: #105a63;
+  --g4: #169a96;
+  --warm: #86f0da;
 }
 
 /* ------------------------------------------------------------- the picker */
 .themes {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   flex: none;
 }
 .themes button {
-  width: 17px;
-  height: 17px;
+  width: 19px;
+  height: 19px;
   border-radius: 50%;
   border: 1px solid var(--night-line);
   padding: 0;
@@ -136,7 +163,7 @@
     gap: 5px;
   }
   .themes button {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
   }
 }

@@ -15,9 +15,9 @@ const KEY = 'beyond.theme';
 /** The browser-chrome colour each palette should tint to. */
 const BAR: Record<ThemeId, string> = {
   night: '#0b0c0e',
-  ember: '#0d0a08',
-  bloom: '#0c0910',
-  tide: '#060e10',
+  ember: '#26150a',
+  bloom: '#27102f',
+  tide: '#072630',
 };
 
 const isTheme = (v: unknown): v is ThemeId =>

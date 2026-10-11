@@ -10,7 +10,8 @@
     "preview": "vite preview --host",
     "typecheck": "tsc -b",
     "icons": "node scripts/make-icons.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "palette": "node scripts/contrast.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.132.1",

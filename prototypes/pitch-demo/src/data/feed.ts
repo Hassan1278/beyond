@@ -16,7 +16,12 @@ export interface Post {
   /** Engagement, already formatted. The number is the part that stings. */
   metric: string;
   art: ArtKind;
-  /** Two stops for the backdrop gradient. */
+  /**
+   * Two stops for the backdrop gradient, as CSS colours. They are written as
+   * mixes of palette tokens rather than fixed hexes so the wall - the biggest
+   * block of colour on the page - moves with the theme. Each post keeps its
+   * own warmth and weight; only the palette underneath it changes.
+   */
   grad: [string, string];
   sponsored?: boolean;
 }
@@ -27,14 +32,14 @@ export const FEED: Post[] = [
     caption: '5% body fat at 19. No excuses left.',
     metric: '412K',
     art: 'torso',
-    grad: ['#2d3340', '#12141a'],
+    grad: ['color-mix(in srgb, var(--g4) 60%, var(--night))', 'var(--g1)'],
   },
   {
     handle: 'mayabuilds',
     caption: 'Dropped out at 20. $180k/mo. Ask me anything.',
     metric: '2.1M',
     art: 'cash',
-    grad: ['#3b4258', '#171a24'],
+    grad: ['color-mix(in srgb, var(--dusk) 50%, var(--night))', 'var(--night-2)'],
     sponsored: true,
   },
   {
@@ -42,42 +47,42 @@ export const FEED: Post[] = [
     caption: '4:30am. While you were asleep.',
     metric: '89K',
     art: 'desk',
-    grad: ['#243040', '#101419'],
+    grad: ['color-mix(in srgb, var(--g3) 72%, var(--night))', 'var(--night)'],
   },
   {
     handle: 'claraglow',
     caption: 'What I eat in a day — 1,200 calories.',
     metric: '1.2M',
     art: 'meal',
-    grad: ['#4a3f4e', '#1b1820'],
+    grad: ['color-mix(in srgb, var(--g4) 70%, var(--dawn))', 'var(--g1)'],
   },
   {
     handle: 'dev.ascend',
     caption: 'Three offers before finals. Resume in bio.',
     metric: '340K',
     art: 'chart',
-    grad: ['#2a3a46', '#11161b'],
+    grad: ['color-mix(in srgb, var(--g2) 80%, var(--moon))', 'var(--night)'],
   },
   {
     handle: 'grind.szn',
     caption: 'Your twenties are supposed to hurt.',
     metric: '756K',
     art: 'trophy',
-    grad: ['#4a4030', '#1c1812'],
+    grad: ['color-mix(in srgb, var(--dawn) 34%, var(--night))', 'var(--g1)'],
   },
   {
     handle: 'elena.studies',
     caption: '14 hours of revision. Day 61 of 100.',
     metric: '203K',
     art: 'mirror',
-    grad: ['#363b4c', '#15171f'],
+    grad: ['color-mix(in srgb, var(--g4) 52%, var(--g1))', 'var(--night-2)'],
   },
   {
     handle: 'firstclass.only',
     caption: 'Bought it at 22. Keep going.',
     metric: '1.8M',
     art: 'car',
-    grad: ['#3f3a35', '#161414'],
+    grad: ['color-mix(in srgb, var(--warm) 26%, var(--night))', 'var(--night)'],
     sponsored: true,
   },
   {
@@ -85,13 +90,13 @@ export const FEED: Post[] = [
     caption: 'Third country this month. Remote life hits different.',
     metric: '934K',
     art: 'beach',
-    grad: ['#2f4450', '#11191e'],
+    grad: ['color-mix(in srgb, var(--dusk) 40%, var(--g2))', 'var(--night)'],
   },
   {
     handle: 'minuteman.hustle',
     caption: 'If you are not up at 5, you do not want it.',
     metric: '627K',
     art: 'watch',
-    grad: ['#33384a', '#14161d'],
+    grad: ['color-mix(in srgb, var(--g3) 64%, var(--night-3))', 'var(--g1)'],
   },
 ];
