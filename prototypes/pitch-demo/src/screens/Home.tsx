@@ -50,7 +50,7 @@ export function Home({ state, live }: ScreenProps): ReactElement {
       </div>
 
       <div className="map-head">
-        <p className="k">Coming back</p>
+        <p className="k">Coming back &middot; fictional sample history</p>
         <button
           type="button"
           className={`popb${state.popMode ? ' on' : ''}`}
@@ -62,7 +62,7 @@ export function Home({ state, live }: ScreenProps): ReactElement {
       </div>
       <p className="map-hint">
         {state.popMode
-          ? 'Hold a bubble to pop it. Beyond stops bringing that one up.'
+          ? 'Hold a bubble to hide it and ask live letters not to raise it.'
           : 'Bigger means more often. Tap one to read it back.'}
       </p>
       {themes.length > 0 ? (
@@ -82,12 +82,12 @@ export function Home({ state, live }: ScreenProps): ReactElement {
       {note && <p className="filed">{note}</p>}
 
       <button type="button" className="last" onClick={() => go('letter')}>
-        <span className="k">Letters &middot; 12 so far</span>
+        <span className="k">Letters &middot; sample</span>
         <b>Your latest letter from your {voice.name}</b>
         <span className="go">Read &rarr;</span>
       </button>
 
-      <p className="k">This quarter, so far</p>
+      <p className="k">This quarter, so far &middot; fictional sample</p>
       <button
         type="button"
         className="qnow"

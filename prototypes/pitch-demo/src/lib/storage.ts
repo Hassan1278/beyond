@@ -1,7 +1,8 @@
 /**
  * The demo remembers itself across reloads, so a judge can put the phone down
- * mid-letter and pick it up again. Everything stays on the device: there is no
- * account and no server-side store in this demo.
+ * mid-letter and pick it up again. Persistence is unencrypted browser storage:
+ * there is no account or backend integration. Optional live requests send text
+ * to the letter endpoint and provider; local deletion cannot recall that data.
  *
  * Every read and write is guarded - localStorage throws in private windows and
  * when site data is blocked, and the app has to render fine without it.

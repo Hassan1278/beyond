@@ -44,10 +44,13 @@ export function ThemePage({ state, live }: ScreenProps): ReactElement {
       </div>
 
       <p className="th-sum">{theme.summary}</p>
+      <p className="fine">
+        Fictional sample history. Lines marked New come from this demo entry in live mode.
+      </p>
 
       {popped && (
         <p className="th-off">
-          Beyond has stopped surfacing this theme. It is still here, and the entries are kept.
+          This theme is hidden on the home map. It is still here, and the entries are kept.
         </p>
       )}
 

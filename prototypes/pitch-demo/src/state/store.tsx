@@ -92,40 +92,52 @@ type Action =
   | { type: 'ai/clear' }
   | { type: 'reset' };
 
+function clearLetter(s: BeyondState): BeyondState {
+  return {
+    ...s,
+    step: null,
+    fixOpen: false,
+    fixed: false,
+    fixText: '',
+    extract: { status: 'idle', error: null, found: [] },
+    ai: { ...s.ai, status: 'idle', letter: null, error: null, ms: null },
+  };
+}
+
+function deletedState(available: boolean | null): BeyondState {
+  return {
+    ...freshState(),
+    screen: 'memory',
+    entry: '',
+    mems: [],
+    deleted: true,
+    secs: 0,
+    ai: { ...freshState().ai, available },
+  };
+}
+
 function reducer(s: BeyondState, a: Action): BeyondState {
   switch (a.type) {
     case 'go':
       return { ...s, screen: a.screen, sheet: false, delAsk: false, popMode: false };
     case 'voice':
       // A different voice means a different letter; drop the one we have.
-      return {
-        ...s,
-        voice: a.voice,
-        step: null,
-        fixOpen: false,
-        fixed: false,
-        ai: { ...s.ai, status: 'idle', letter: null, error: null },
-      };
+      return { ...clearLetter(s), voice: a.voice };
     case 'time':
-      return { ...s, time: a.time };
+      return { ...clearLetter(s), time: a.time };
     case 'mode':
       return { ...s, mode: a.mode };
     case 'entry':
-      return { ...s, entry: a.entry };
+      return { ...clearLetter(s), entry: a.entry, deleted: false };
     case 'tick':
       return { ...s, secs: s.secs + 1 };
     case 'seal':
       // A new night means a new letter: drop whatever the last one produced,
       // or re-sealing an edited entry would show the previous letter again.
       return {
-        ...s,
+        ...clearLetter(s),
         screen: needsSafetyCheck(s.entry) ? 'safety' : 'sealed',
         sheet: false,
-        step: null,
-        fixed: false,
-        fixOpen: false,
-        ai: { ...s.ai, status: 'idle', letter: null, error: null },
-        extract: { status: 'idle', error: null, found: [] },
       };
     case 'step':
       return { ...s, step: a.step };
@@ -144,11 +156,15 @@ function reducer(s: BeyondState, a: Action): BeyondState {
         fixed: true,
         correction: s.fixText.trim() || s.correction,
         fixText: '',
+        extract:
+          s.extract.status === 'writing' ? { status: 'idle', error: null, found: [] } : s.extract,
+        ai:
+          s.ai.status === 'writing' ? { ...s.ai, status: 'idle', letter: null, error: null } : s.ai,
       };
     case 'mem/forget':
-      return { ...s, mems: s.mems.filter((_, i) => i !== a.index) };
+      return { ...clearLetter(s), mems: s.mems.filter((_, i) => i !== a.index) };
     case 'mem/pause':
-      return { ...s, paused: !s.paused };
+      return { ...clearLetter(s), paused: !s.paused };
     case 'sheet':
       return { ...s, sheet: a.open };
     case 'del/ask':
@@ -156,14 +172,14 @@ function reducer(s: BeyondState, a: Action): BeyondState {
     case 'del/cancel':
       return { ...s, delAsk: false };
     case 'del/confirm':
-      return { ...s, delAsk: false, mems: [], deleted: true };
+      return deletedState(s.ai.available);
     case 'theme/open':
       // Opening a theme is reading, not editing, so pop mode ends here.
       return { ...s, screen: 'theme', openTheme: a.id, popMode: false, sheet: false };
     case 'theme/pop':
-      return s.popped.includes(a.id) ? s : { ...s, popped: [...s.popped, a.id] };
+      return s.popped.includes(a.id) ? s : { ...clearLetter(s), popped: [...s.popped, a.id] };
     case 'theme/restore':
-      return { ...s, popped: s.popped.filter((id) => id !== a.id) };
+      return { ...clearLetter(s), popped: s.popped.filter((id) => id !== a.id) };
     case 'pop/mode':
       return { ...s, popMode: !s.popMode };
     case 'ex/start':
@@ -173,7 +189,7 @@ function reducer(s: BeyondState, a: Action): BeyondState {
     case 'ex/error':
       return { ...s, extract: { status: 'error', error: a.error, found: [] } };
     case 'source':
-      return { ...s, source: a.source, ai: { ...s.ai, status: 'idle', error: null } };
+      return { ...clearLetter(s), source: a.source };
     case 'ai/available':
       return { ...s, ai: { ...s.ai, available: a.ok, model: a.model ?? s.ai.model } };
     case 'ai/start':
@@ -186,7 +202,7 @@ function reducer(s: BeyondState, a: Action): BeyondState {
     case 'ai/error':
       return { ...s, ai: { ...s.ai, status: 'error', letter: null, error: a.error } };
     case 'ai/clear':
-      return { ...s, ai: { ...s.ai, status: 'idle', letter: null, error: null } };
+      return clearLetter(s);
     case 'reset':
       return { ...freshState(), ai: { ...freshState().ai, available: s.ai.available } };
     default:
@@ -217,6 +233,8 @@ function hydrate(): BeyondState {
   const base = freshState();
   const saved = store.load<Persisted>();
   if (!saved) return base;
+  // Also clear sensitive fields left by older demo versions after deletion.
+  if (saved.deleted) return deletedState(base.ai.available);
   return {
     ...base,
     screen: saved.screen ?? base.screen,
@@ -242,7 +260,12 @@ function hydrate(): BeyondState {
   };
 }
 
-const persist = (s: BeyondState): void =>
+const persist = (s: BeyondState): void => {
+  if (s.deleted) {
+    store.clear();
+    store.save({ deleted: true });
+    return;
+  }
   store.save({
     screen: s.screen,
     voice: s.voice,
@@ -260,6 +283,7 @@ const persist = (s: BeyondState): void =>
     letter: s.ai.letter,
     found: s.extract.found,
   } satisfies Persisted);
+};
 
 /* ------------------------------------------------------------------ context */
 
@@ -275,10 +299,48 @@ interface Api {
 const Ctx = createContext<Api | null>(null);
 
 export function BeyondProvider({ children }: { children: ReactNode }): ReactNode {
-  const [state, dispatch] = useReducer(reducer, undefined, hydrate);
-  const inflight = useRef(false);
+  const [state, reduce] = useReducer(reducer, undefined, hydrate);
+  const current = useRef(state);
+  const inflight = useRef<AbortController | null>(null);
+  const generation = useRef(0);
+
+  // Invalidate synchronously: a late response must not revive deleted or changed text,
+  // even when its fetch implementation ignores AbortSignal.
+  const dispatch = useCallback((a: Action): void => {
+    if (
+      [
+        'voice',
+        'time',
+        'entry',
+        'seal',
+        'fix/send',
+        'mem/forget',
+        'mem/pause',
+        'theme/pop',
+        'theme/restore',
+        'source',
+        'ai/clear',
+        'del/confirm',
+        'reset',
+      ].includes(a.type)
+    ) {
+      generation.current++;
+      inflight.current?.abort();
+      inflight.current = null;
+    }
+    if (a.type === 'del/confirm') store.clear();
+    current.current = reducer(current.current, a);
+    reduce(a);
+  }, []);
 
   useEffect(() => persist(state), [state]);
+  useEffect(
+    () => () => {
+      generation.current++;
+      inflight.current?.abort();
+    },
+    [],
+  );
 
   // Does this host have a letter writer behind it?
   useEffect(() => {
@@ -299,57 +361,67 @@ export function BeyondProvider({ children }: { children: ReactNode }): ReactNode
   }, [state.screen]);
 
   const generate = useCallback(async () => {
+    const state = current.current;
+    if (state.deleted || state.source !== 'ai' || state.entry.trim().length < 10) return;
+    if (needsSafetyCheck(state.entry) && !['sealed', 'letter'].includes(state.screen)) return;
     if (inflight.current) return;
-    inflight.current = true;
+    const controller = new AbortController();
+    const version = ++generation.current;
+    inflight.current = controller;
     dispatch({ type: 'ai/start' });
-    dispatch({ type: 'ex/start' });
+    if (!state.paused) dispatch({ type: 'ex/start' });
 
     // The theme lines come from the same entry, so they are pulled at the same
     // time. They are a side dish: a failure here never costs anyone a letter.
-    void extractThemes({ entry: state.entry, today: todayIso() })
-      .then((found) => dispatch({ type: 'ex/ready', found }))
-      .catch((err: unknown) =>
+    const themeRead = state.paused
+      ? Promise.resolve()
+      : extractThemes({ entry: state.entry, today: todayIso() }, controller.signal)
+          .then((found) => {
+            if (version === generation.current) dispatch({ type: 'ex/ready', found });
+          })
+          .catch((err: unknown) => {
+            if (version === generation.current)
+              dispatch({
+                type: 'ex/error',
+                error:
+                  err instanceof LetterUnavailable
+                    ? err.message
+                    : 'Themes could not be read from this entry.',
+              });
+          });
+
+    try {
+      const res = await requestLetter(
+        {
+          entry: state.entry,
+          voice: state.voice,
+          memories: state.paused ? [] : state.mems,
+          correction: state.paused ? '' : state.correction,
+          today: tonight(),
+          tomorrow: morning(),
+          time: state.time,
+          avoid: state.popped.map((id) => themeById(id).name),
+        },
+        controller.signal,
+      );
+      if (version === generation.current)
+        dispatch({ type: 'ai/ready', letter: res.letter, ms: res.ms, model: res.model });
+    } catch (err) {
+      if (version === generation.current)
         dispatch({
-          type: 'ex/error',
+          type: 'ai/error',
           error:
             err instanceof LetterUnavailable
               ? err.message
-              : 'Themes could not be read from this entry.',
-        }),
-      );
-
-    try {
-      const res = await requestLetter({
-        entry: state.entry,
-        voice: state.voice,
-        memories: state.paused ? [] : state.mems,
-        correction: state.correction,
-        today: tonight(),
-        tomorrow: morning(),
-        time: state.time,
-        avoid: state.popped.map((id) => themeById(id).name),
-      });
-      dispatch({ type: 'ai/ready', letter: res.letter, ms: res.ms, model: res.model });
-    } catch (err) {
-      dispatch({
-        type: 'ai/error',
-        error:
-          err instanceof LetterUnavailable
-            ? err.message
-            : 'The live letter could not be written, so this one is scripted.',
-      });
+              : 'The live letter could not be written, so this one is scripted.',
+        });
     } finally {
-      inflight.current = false;
+      // Keep both requests cancellable, even when the letter finishes first.
+      // The letter is already displayed; the theme response does not delay it.
+      await themeRead;
+      if (inflight.current === controller) inflight.current = null;
     }
-  }, [
-    state.entry,
-    state.voice,
-    state.paused,
-    state.mems,
-    state.correction,
-    state.time,
-    state.popped,
-  ]);
+  }, [dispatch]);
 
   const value = useMemo<Api>(
     () => ({
@@ -362,7 +434,7 @@ export function BeyondProvider({ children }: { children: ReactNode }): ReactNode
         dispatch({ type: 'reset' });
       },
     }),
-    [state, generate],
+    [state, generate, dispatch],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

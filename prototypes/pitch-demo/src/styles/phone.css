@@ -1254,11 +1254,17 @@
   border-radius: 26px 26px 0 0;
   padding: 10px 22px 30px;
   width: 100%;
+  max-height: 90%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: grid;
   gap: 12px;
   animation: up 0.3s ease;
   color-scheme: light;
   text-align: left;
+}
+.sheet p {
+  overflow-wrap: anywhere;
 }
 @keyframes up {
   from {

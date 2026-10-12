@@ -81,6 +81,9 @@ export function PatternsSection(): ReactElement {
             </p>
           </div>
           <WrappedStrip />
+          <p className="demo-note">
+            Fictional sample patterns and Quarterly Wrapped; these do not analyze your entry.
+          </p>
         </div>
       </section>
 

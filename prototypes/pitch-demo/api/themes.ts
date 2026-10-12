@@ -12,7 +12,15 @@
  * something nobody is sitting waiting for.
  */
 import type { ServerResponse } from 'node:http';
-import { clientIp, isConfigured, json, overLimit, readBody, type Req } from './letter.js';
+import {
+  BodyFailure,
+  clientIp,
+  isConfigured,
+  json,
+  overLimit,
+  readBody,
+  type Req,
+} from './letter.js';
 
 /* ---------------------------------------------------------------- contract */
 
@@ -96,7 +104,7 @@ export async function readThemes(b: ThemesRequestBody): Promise<ThemesResponse> 
       .describe(`The themes this entry raised, at most ${MAX_FOUND}.`),
   });
 
-  const client = new Anthropic();
+  const client = new Anthropic({ timeout: 45000, maxRetries: 0 });
 
   const message = await client.messages.parse({
     model: MODEL,
@@ -132,17 +140,29 @@ export async function readThemes(b: ThemesRequestBody): Promise<ThemesResponse> 
 /* ------------------------------------------------------------ http plumbing */
 
 export function validate(input: unknown): ThemesRequestBody | string {
-  if (typeof input !== 'object' || input === null) return 'expected a JSON body';
+  if (typeof input !== 'object' || input === null || Array.isArray(input))
+    return 'expected a JSON body';
   const b = input as Record<string, unknown>;
+  if (Object.keys(b).some((key) => !['entry', 'themes'].includes(key)))
+    return 'unexpected request field';
   if (typeof b.entry !== 'string' || b.entry.trim().length < 10)
     return 'entry must be at least 10 characters';
-  if (!Array.isArray(b.themes) || b.themes.length === 0) return 'themes must be a non-empty list';
+  if (b.entry.length > MAX_ENTRY_CHARS) return 'entry must be at most 6000 characters';
+  if (!Array.isArray(b.themes) || b.themes.length === 0 || b.themes.length > 20)
+    return 'themes must contain 1 to 20 items';
 
   const themes: ThemeRef[] = [];
   for (const row of b.themes.slice(0, 20)) {
+    if (typeof row !== 'object' || row === null || Array.isArray(row)) return 'invalid theme';
     const t = row as { id?: unknown; name?: unknown };
-    if (typeof t.id !== 'string' || typeof t.name !== 'string') continue;
-    if (!/^[a-z][a-z0-9-]{0,30}$/.test(t.id)) continue;
+    if (typeof t.id !== 'string' || typeof t.name !== 'string') return 'invalid theme';
+    if (
+      !/^[a-z][a-z0-9-]{0,30}$/.test(t.id) ||
+      !t.name.trim() ||
+      t.name.length > 60 ||
+      themes.some((theme) => theme.id === t.id)
+    )
+      return 'invalid theme';
     themes.push({ id: t.id, name: t.name.slice(0, 60) });
   }
   if (!themes.length) return 'no usable themes in the list';
@@ -163,7 +183,15 @@ export default async function handler(req: Req, res: ServerResponse): Promise<vo
   if (overLimit(clientIp(req)))
     return json(res, 429, { error: 'too many requests from here this hour' });
 
-  const parsed = validate(await readBody(req));
+  let body: unknown;
+  try {
+    body = await readBody(req);
+  } catch (error) {
+    return json(res, error instanceof BodyFailure ? error.status : 400, {
+      error: 'invalid request body',
+    });
+  }
+  const parsed = validate(body);
   if (typeof parsed === 'string') return json(res, 400, { error: parsed });
 
   try {
@@ -182,7 +210,7 @@ export default async function handler(req: Req, res: ServerResponse): Promise<vo
               : typeof (err as { status?: number }).status === 'number'
                 ? (err as { status: number }).status
                 : 500;
-    console.error('[beyond] themes failed', status, err instanceof Error ? err.message : err);
+    console.error('[beyond] themes unavailable', status);
     return json(res, status, { error: 'themes unavailable' });
   }
 }

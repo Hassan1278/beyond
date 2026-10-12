@@ -22,14 +22,17 @@ function beyondApi(env: Record<string, string>): Plugin {
       if (env.BEYOND_EFFORT) process.env.BEYOND_EFFORT ||= env.BEYOND_EFFORT;
 
       for (const route of ROUTES) {
-        server.middlewares.use(route, (req, res, next) => {
+        server.middlewares.use(route, (req, res) => {
           void (async () => {
             try {
               const { default: handler } = await server.ssrLoadModule(`${route}.ts`);
               await handler(req, res);
             } catch (err) {
-              server.config.logger.error(`[beyond] ${route} crashed: ${String(err)}`);
-              next(err as Error);
+              server.config.logger.error(`[beyond] ${route} unavailable`);
+              res.statusCode = 500;
+              res.setHeader('cache-control', 'no-store');
+              res.setHeader('content-type', 'application/json');
+              res.end(JSON.stringify({ error: 'request unavailable' }));
             }
           })();
         });

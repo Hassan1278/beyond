@@ -95,7 +95,7 @@ export function DemoControls({ screen }: { screen: ScreenMeta }): ReactElement {
                   ? `Claude writes the letter from the entry on the phone${
                       state.ai.model ? ` · ${state.ai.model}` : ''
                     }. The key stays on the server.`
-                  : 'Live AI is available on this host. Switch to it to write a letter from the entry on the phone.'
+                  : 'Live AI sends the entry and allowed context through this host to Anthropic. Review “What gets sent to AI” first and use fictional content.'
                 : 'No ANTHROPIC_API_KEY on this host, so letters stay scripted. Set one on the deployment to enable live AI.'}
           </p>
           {state.ai.error && <p style={{ color: 'var(--dawn)' }}>{state.ai.error}</p>}

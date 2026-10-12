@@ -138,20 +138,20 @@ export const COMPARE = [
 
 export const SAFEGUARDS = [
   {
-    title: 'Kept to a minimum',
-    body: 'Beyond stores only what your letters need. Sensitive entries are encrypted, and only you can read them.',
+    title: 'Browser storage in this demo',
+    body: 'Your entry, letter, correction, kept memories and live theme lines are saved in this browser. They are not encrypted or protected by an account. Use fictional content, especially on shared devices.',
   },
   {
     title: 'You see what goes to AI',
-    body: 'Before you submit, you can see exactly what will be sent to the model to write your letter.',
+    body: 'Scripted letters are the default. Open “What gets sent to AI” to review the current entry and context before choosing live AI.',
   },
   {
-    title: 'Delete anything',
-    body: 'An entry, a memory, or your whole account. Deleting is permanent.',
+    title: 'Clear this demo',
+    body: '“Delete everything” clears saved entry text, letters, corrections, memories and live theme lines from this browser. It cannot recall data already sent to a live provider. This prototype has no account to delete.',
   },
   {
     title: 'Not therapy',
-    body: 'Beyond doesn’t diagnose or treat anything. If an entry sounds urgent, it points you to people who can help right away, instead of waiting for morning.',
+    body: 'Beyond doesn’t diagnose or treat anything. A limited keyword check can show support contacts before sealing, but it can miss urgent entries. A morning letter is not emergency help.',
   },
 ];
 

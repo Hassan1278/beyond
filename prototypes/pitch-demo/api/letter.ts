@@ -54,6 +54,7 @@ export interface LetterResponse {
 const MODEL = process.env.BEYOND_MODEL || 'claude-opus-5-5';
 const EFFORT = (process.env.BEYOND_EFFORT || 'low') as 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 const MAX_ENTRY_CHARS = 6000;
+const MAX_BODY_BYTES = 128000;
 
 export const isConfigured = (): boolean => Boolean(process.env.ANTHROPIC_API_KEY);
 
@@ -163,7 +164,7 @@ export async function writeLetter(b: LetterRequestBody): Promise<LetterResponse>
     sign: z.string().describe('Short sign-off. Empty string for the plain diary voice.'),
   });
 
-  const client = new Anthropic();
+  const client = new Anthropic({ timeout: 50_000, maxRetries: 0 });
 
   const message = await client.messages.parse({
     model: MODEL,
@@ -207,33 +208,137 @@ export const json = (res: ServerResponse, status: number, body: unknown): void =
   res.end(JSON.stringify(body));
 };
 
-export async function readBody(req: Req): Promise<unknown> {
+export class BodyFailure extends Error {
+  constructor(public readonly status: number) {
+    super('invalid request body');
+  }
+}
+
+export async function readBody(req: Req, timeoutMs = 5000): Promise<unknown> {
+  const length = req.headers['content-length'];
+  if (typeof length === 'string' && (!/^\d+$/.test(length) || Number(length) > MAX_BODY_BYTES))
+    throw new BodyFailure(413);
   if (req.body !== undefined && req.body !== null) {
-    if (typeof req.body !== 'string') return req.body;
     try {
-      return JSON.parse(req.body);
-    } catch {
-      return null;
+      const raw = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      if (Buffer.byteLength(raw, 'utf8') > MAX_BODY_BYTES) throw new BodyFailure(413);
+      return JSON.parse(raw);
+    } catch (error) {
+      if (error instanceof BodyFailure) throw error;
+      throw new BodyFailure(
+        typeof req.body === 'string' && Buffer.byteLength(req.body) > MAX_BODY_BYTES ? 413 : 400,
+      );
     }
   }
   const chunks: Buffer[] = [];
-  for await (const chunk of req) chunks.push(chunk as Buffer);
-  const raw = Buffer.concat(chunks).toString('utf8');
-  if (!raw) return null;
+  let bytes = 0;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new BodyFailure(408)), timeoutMs);
+  });
+  const iterator = req.iterator({ destroyOnReturn: false });
   try {
+    while (true) {
+      const { value, done } = await Promise.race([iterator.next(), deadline]);
+      if (done) break;
+      const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value);
+      bytes += chunk.byteLength;
+      if (bytes > MAX_BODY_BYTES) throw new BodyFailure(413);
+      chunks.push(chunk);
+    }
+    const raw = Buffer.concat(chunks).toString('utf8');
+    if (!raw) throw new BodyFailure(400);
     return JSON.parse(raw);
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof BodyFailure) throw error;
+    throw new BodyFailure(400);
+  } finally {
+    clearTimeout(timer);
+    // Do not await an unfinished stream or destroy the outgoing error response.
+    void iterator.return?.().catch(() => undefined);
+  }
+}
+
+/** Apply the same byte bound and total deadline in Web API serverless adapters. */
+export async function readWebBody(req: Request, timeoutMs = 5000): Promise<unknown> {
+  const length = req.headers.get('content-length');
+  if (length !== null && (!/^\d+$/.test(length) || Number(length) > MAX_BODY_BYTES))
+    throw new BodyFailure(413);
+  if (!req.body) throw new BodyFailure(400);
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new BodyFailure(408)), timeoutMs);
+  });
+  try {
+    while (true) {
+      const { value, done } = await Promise.race([reader.read(), deadline]);
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > MAX_BODY_BYTES) throw new BodyFailure(413);
+      chunks.push(value);
+    }
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } catch (error) {
+    if (error instanceof BodyFailure) throw error;
+    throw new BodyFailure(400);
+  } finally {
+    clearTimeout(timer);
+    void reader.cancel().catch(() => undefined);
   }
 }
 
 export function validate(input: unknown): LetterRequestBody | string {
-  if (typeof input !== 'object' || input === null) return 'expected a JSON body';
+  if (typeof input !== 'object' || input === null || Array.isArray(input))
+    return 'expected a JSON body';
   const b = input as Record<string, unknown>;
+  if (
+    Object.keys(b).some(
+      (key) =>
+        ![
+          'entry',
+          'voice',
+          'memories',
+          'correction',
+          'today',
+          'tomorrow',
+          'time',
+          'avoid',
+        ].includes(key),
+    )
+  )
+    return 'unexpected request field';
   if (typeof b.entry !== 'string' || b.entry.trim().length < 10)
     return 'entry must be at least 10 characters';
+  if (b.entry.length > MAX_ENTRY_CHARS) return 'entry must be at most 6000 characters';
   if (typeof b.voice !== 'string' || !VOICE_IDS.includes(b.voice as VoiceId))
     return `voice must be one of ${VOICE_IDS.join(', ')}`;
+  if (
+    b.memories !== undefined &&
+    (!Array.isArray(b.memories) ||
+      b.memories.length > 20 ||
+      b.memories.some((m) => typeof m !== 'string' || m.length > 2000))
+  )
+    return 'memories must contain at most 20 lines of at most 2000 characters';
+  for (const [key, max] of [
+    ['correction', 600],
+    ['today', 40],
+    ['tomorrow', 40],
+  ] as const) {
+    if (b[key] !== undefined && (typeof b[key] !== 'string' || b[key].length > max))
+      return `${key} has an invalid type or length`;
+  }
+  if (b.time !== undefined && !['07:00', '07:30', '08:00'].includes(b.time as string))
+    return 'invalid letter time';
+  if (
+    b.avoid !== undefined &&
+    (!Array.isArray(b.avoid) ||
+      b.avoid.length > 10 ||
+      b.avoid.some((t) => typeof t !== 'string' || t.length > 60))
+  )
+    return 'invalid avoided themes';
   return {
     entry: b.entry,
     voice: b.voice as VoiceId,
@@ -294,7 +399,15 @@ export default async function handler(req: Req, res: ServerResponse): Promise<vo
   if (overLimit(clientIp(req)))
     return json(res, 429, { error: 'too many letters from here this hour' });
 
-  const parsed = validate(await readBody(req));
+  let body: unknown;
+  try {
+    body = await readBody(req);
+  } catch (error) {
+    return json(res, error instanceof BodyFailure ? error.status : 400, {
+      error: 'invalid request body',
+    });
+  }
+  const parsed = validate(body);
   if (typeof parsed === 'string') return json(res, 400, { error: parsed });
 
   try {
@@ -313,7 +426,7 @@ export default async function handler(req: Req, res: ServerResponse): Promise<vo
               : typeof (err as { status?: number }).status === 'number'
                 ? (err as { status: number }).status
                 : 500;
-    console.error('[beyond] letter failed', status, err instanceof Error ? err.message : err);
+    console.error('[beyond] letter unavailable', status);
     return json(res, status, { error: 'letter unavailable' });
   }
 }

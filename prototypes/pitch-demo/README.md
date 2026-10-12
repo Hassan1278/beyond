@@ -6,8 +6,8 @@ A React + TypeScript build of Beyond, for the HK Inter-University GenAI Hackatho
 2026 (SDG 3). One build, two halves, sharing one deploy and one URL:
 
 - **The site** — seven short pages instead of one long scroll. Hash routes, so it works on any
-  host with no rewrite rules: `#/`, `#/problem`, `#/how`, `#/patterns`, `#/why`, `#/privacy`,
-  `#/schools`.
+  host with no rewrite rules: `#/`, `#/problem`, `#/how`, `#/why`, `#/privacy`,
+  `#/institutions`, `#/beta`. Old `#/patterns` and `#/schools` links still resolve.
 - **The app demo** at `#/app`. On a phone it fills the screen and behaves like the app; add it
   to the home screen and it launches without browser chrome. On a laptop it opens inside the
   phone frame, with the flow list on the left and the notes you pitch from on the right, plus an
@@ -22,7 +22,7 @@ This is a **prototype for the pitch**, not production code. It lives in `prototy
 `apps/`, deliberately:
 
 - It is outside the `apps/*` and `packages/*` workspace globs, so it has its own
-  `package-lock.json` and never touches the root lockfile. Run `npm install` **in this folder**,
+  `package-lock.json` and never touches the root lockfile. Run `npm ci` **in this folder**,
   not from the repository root.
 - `apps/mobile` is Expo / React Native and `apps/web` is Next.js. This is a Vite single-page app,
   so it does not belong in either and does not replace them.
@@ -34,29 +34,34 @@ Treat the screens and copy as the reference the production UI is built towards.
 ## Run it
 
 ```bash
-npm install
+npm ci
 npm run dev          # http://localhost:5173, also on your LAN for phone testing
 ```
 
-| Command           | What it does                                            |
-| ----------------- | ------------------------------------------------------- |
-| `npm run dev`     | Dev server, including the `/api/letter` function        |
-| `npm run build`   | Typecheck, then build to `dist/`                        |
-| `npm run preview` | Serve the built `dist/` (no API; letters stay scripted) |
-| `npm run smoke`   | Render all nine screens in both shells and check them   |
-| `npm run icons`   | Regenerate the home-screen icons                        |
+| Command           | What it does                                                                      |
+| ----------------- | --------------------------------------------------------------------------------- |
+| `npm run dev`     | Dev server, including the existing `/api/letter` and `/api/themes` demo functions |
+| `npm run build`   | Typecheck, then build to `dist/`                                                  |
+| `npm run preview` | Serve the built `dist/` (no API; letters stay scripted)                           |
+| `npm run smoke`   | Render all ten screens in both shells, seven site pages and theme-map controls    |
+| `npm run palette` | Check Night/Bloom text contrast, palette separation and picker consistency        |
+| `npm test`        | Check privacy, cancellation, voice and safety regressions with mocked responses   |
+| `npm run icons`   | Regenerate the home-screen icons                                                  |
 
 ## The pages
 
-| Route        | Page         | What it carries                                                                    |
-| ------------ | ------------ | ---------------------------------------------------------------------------------- |
-| `#/`         | Home         | The noise (every word is a button), the three beats, one headline stat             |
-| `#/problem`  | The problem  | The Great Distraction, the symptoms, all four survey stats                         |
-| `#/how`      | How it works | The three beats, then **Try one night** — write an entry, seal it, read the letter |
-| `#/patterns` | Patterns     | Monthly review, Life Film, and the memory controls                                 |
-| `#/why`      | Why Beyond   | The four-way comparison against chatbots, therapy and journaling apps              |
-| `#/privacy`  | Privacy      | What is kept, what is sent, what Beyond is not, and the helplines                  |
-| `#/schools`  | For schools  | Institutions, and the beta sign-up                                                 |
+| Route            | Page          | What it carries                                                                    |
+| ---------------- | ------------- | ---------------------------------------------------------------------------------- |
+| `#/`             | Home          | The noise wall and who Beyond is for                                               |
+| `#/problem`      | The problem   | The Great Distraction, the symptoms, all four survey stats                         |
+| `#/how`          | How it works  | The three beats, then **Try one night** — write an entry, seal it, read the letter |
+| `#/why`          | Why Beyond    | The four-way comparison against chatbots, therapy and journaling apps              |
+| `#/privacy`      | Privacy       | What is kept, what is sent, what Beyond is not, and the helplines                  |
+| `#/institutions` | Institutions  | How schools and universities could use Beyond                                      |
+| `#/beta`         | Join the beta | Prototype sign-up form and app demo link                                           |
+
+Patterns, Quarterly Wrapped and memory controls now sit on `#/how`. The beta form does not
+submit or save email addresses. Night and Bloom palettes apply to both site and app demo.
 
 Each page carries its own time, and the clock in the nav runs from night to morning as you move
 through them — the scroll-driven clock from the single-page version, kept.
@@ -64,32 +69,33 @@ through them — the scroll-driven clock from the single-page version, kept.
 Copy lives in `src/data/site.ts`. The beta form validates the address and says plainly that
 nothing is sent; wire it to an endpoint if you want real sign-ups.
 
-## The nine screens
+## The ten screens
 
 `src/data/content.ts` holds every word of the app, in flow order:
 
 1. **Welcome** — the noise, then quiet
 2. **Choose a letter voice** — Friend, Mentor, Future you, Plain diary, and the delivery time
-3. **Tonight** — one action, no feed, no streaks
-4. **Night entry** — write or speak; nothing replies
-5. **Sealed** — the entry waits until morning (and, with live AI on, the letter is written here)
-6. **Morning letter** — what you said, what keeps coming back, one small step
-7. **Patterns & Life Film** — monthly themes, one film frame per month
-8. **Memory & settings** — see, forget or pause everything Beyond keeps
-9. **Safety check** — a branch, shown instead of Sealed when an entry sounds urgent
+3. **Home** — an entry action, theme bubble map, latest letter and current sample quarter
+4. **Theme detail** — dated fictional sample lines, plus this demo entry's live lines when enabled
+5. **Entry** — write at any time; speaking remains a visual prototype
+6. **Sealed** — the demo fast-forwards to the morning; this is not a production scheduler
+7. **Morning letter** — what you said, what keeps coming back, one small step
+8. **Patterns & Quarterly Wrapped** — fictional sample trends and quarterly summaries
+9. **Memory & settings** — forget or pause memories, restore hidden themes, delete demo data
+10. **Safety check** — a branch, shown instead of Sealed when an entry sounds urgent
 
 The safety branch triggers on the entry text (`src/lib/safety.ts`), so you can type something
 heavy on stage and watch it fire. There is also a button for it in the presenter notes.
 
 ## Letters: scripted or live
 
-**Scripted** is the default and needs nothing: four fixed letters, no network, no key, no risk
-on stage. **Live AI** sends the entry actually typed on the phone to Claude and shows the letter
+**Scripted** is the default: four fixed letters, no entry sent to AI and no key needed.
+The browser still makes an availability check. **Live AI** sends the entry actually typed on the phone to Claude and shows the letter
 it writes back. Switch between them in the app under **You → Letter writer**, or from the
 presenter notes on the entry, sealed and letter screens.
 
 The key never reaches the browser. `api/letter.ts` reads `ANTHROPIC_API_KEY` from the server
-environment; the client only ever talks to `/api/letter`. If the key is missing, the host has no
+environment; the client talks to `/api/letter`, plus `/api/themes` when memory is on. If the key is missing, the host has no
 functions, the request fails or the model declines, the app falls back to a scripted letter
 without showing an error — someone who has just written about a hard night should not be shown
 a stack trace where their letter was meant to be.
@@ -104,6 +110,36 @@ back in seconds), structured JSON output so the five parts of the letter always 
 with `BEYOND_MODEL` / `BEYOND_EFFORT`. The endpoint throttles to 30 letters per IP per hour
 (`BEYOND_RATE_LIMIT`) — the demo link is public during a pitch, so also set a spend limit on the
 key.
+
+The existing demo endpoint now rejects entries over 6000 characters, more than 20 memory
+lines or lines over 2000 characters, corrections over 600 characters, and unexpected fields.
+Bodies have a 128000-byte cap and a five-second total read deadline; the existing provider
+call is bounded to 50 seconds without automatic retries. These are prototype safeguards,
+not an implementation of the separate production AI service.
+
+## Prototype privacy and regression checks
+
+Use fictional content. The demo saves its entry, letter, correction and kept memories in
+unencrypted browser storage, along with live theme lines and hidden-theme preferences. It has no account and is not connected to the product backend.
+“Delete everything” clears all of that saved content; only a deletion marker remains so a
+reload does not restore fictional defaults. Restart deliberately restores the sample data.
+Neither control can recall text already sent to a live provider.
+
+Pausing memory omits kept memories and corrections from live requests, while the current
+entry, voice and date/time labels are still sent. Memory pause also disables the theme-reading request.
+When enabled, theme reading sends the same entry with the fictional theme names and IDs.
+Hidden theme names are included in letter requests as topics to avoid; this is a request to the model, not a guaranteed filter.
+Text is not redacted: names, contacts or
+locations typed into an entry are included. The privacy sheet shows the current text/context.
+Local deletion, reset and input/context changes cancel requests and fence late responses.
+Voice changes on the site regenerate using the new voice. Both site and app sealing use the
+same limited keyword safety branch before sending; this can miss urgent text.
+
+Patterns, historical topic counts and Quarterly Wrapped are explicitly fictional samples, even with a
+live letter. Lines marked New come only from the current demo entry. Accepted steps are marked locally, not saved as backend todos. `npm test` uses
+jsdom and mocked responses; it performs no paid/provider calls. CI clean-installs this folder's
+own lockfile, runs the regression, render, theme-map and palette checks, then builds the demo.
+Production Supabase integration and the separate AI service remain separate milestones.
 
 ## Deploy, then show it on a phone
 

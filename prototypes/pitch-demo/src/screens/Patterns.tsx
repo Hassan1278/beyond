@@ -39,8 +39,11 @@ export function Patterns(_props: ScreenProps): ReactElement {
   return (
     <div className="v pad">
       <div>
-        <p className="k">{monthSoFar()} &middot; 22 entries</p>
+        <p className="k">{monthSoFar()} &middot; 22 fictional entries</p>
         <h2 style={{ marginTop: 6 }}>Your patterns</h2>
+        <p className="muted">
+          Fictional sample patterns and Quarterly Wrapped. These do not analyze your entry.
+        </p>
       </div>
 
       <div className="tr">

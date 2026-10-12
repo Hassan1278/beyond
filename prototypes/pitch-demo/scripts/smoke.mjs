@@ -145,7 +145,7 @@ try {
         return (
           html.includes('aria-pressed="true"') &&
           html.includes('>Done<') &&
-          html.includes('Hold a bubble to pop it') &&
+          html.includes('Hold a bubble to hide it') &&
           html.includes('bubbles popping')
         );
       },
@@ -288,7 +288,7 @@ try {
     '/privacy': [
       '/src/site/pages/PrivacyPage.tsx',
       'PrivacyPage',
-      ['Safe enough to be honest', 'Not therapy', '18111', 'Never sent'],
+      ['Safe enough to be honest', 'Not therapy', '18111', 'Not automatically collected'],
     ],
     '/institutions': [
       '/src/site/pages/InstitutionsPage.tsx',
@@ -477,7 +477,7 @@ try {
         () => typeof themes.validate({ entry, themes: [] }) === 'string',
       ],
       [
-        'themes: drops a malformed id',
+        'themes: rejects a malformed id',
         () =>
           typeof themes.validate({ entry, themes: [{ id: 'Bad Id!', name: 'x' }] }) === 'string',
       ],
@@ -491,10 +491,14 @@ try {
           const ok = letter.validate({
             entry,
             voice: 'friend',
-            avoid: ['Internships', 7, 'Sleep'],
+            avoid: ['Internships', 'Sleep'],
           });
           return typeof ok !== 'string' && ok.avoid.join() === 'Internships,Sleep';
         },
+      ],
+      [
+        'letter: rejects malformed avoided themes',
+        () => typeof letter.validate({ entry, voice: 'friend', avoid: ['Sleep', 7] }) === 'string',
       ],
       [
         'letter: defaults avoid to empty',

@@ -40,6 +40,15 @@ export function BubbleMap({
   const holdTimer = useRef(0);
   const burstTimer = useRef(0);
 
+  useEffect(() => {
+    if (popMode) return;
+    held.current = null;
+    window.clearTimeout(holdTimer.current);
+    window.clearTimeout(burstTimer.current);
+    setHolding(null);
+    setBursting(null);
+  }, [popMode]);
+
   // Nothing half-finished should outlive the screen.
   useEffect(
     () => () => {
@@ -51,6 +60,8 @@ export function BubbleMap({
 
   /** Burst first, then tell the store, so the map re-settles into the gap. */
   const burst = (id: ThemeId): void => {
+    if (!live || !popMode || bursting) return;
+    window.clearTimeout(burstTimer.current);
     held.current = null;
     setHolding(null);
     setBursting(id);
@@ -120,7 +131,7 @@ export function BubbleMap({
               if (!popMode) onOpen(item.id);
             }}
             onKeyDown={(e) => {
-              if (!live || !popMode) return;
+              if (!live || !popMode || bursting) return;
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 burst(item.id);

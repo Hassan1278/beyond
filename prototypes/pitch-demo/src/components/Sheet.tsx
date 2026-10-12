@@ -1,6 +1,7 @@
 /** "What gets sent to the AI" - the plain list, opened from the entry screen. */
 import type { ReactElement } from 'react';
 import type { BeyondState } from '../types';
+import { tonight, morning } from '../lib/date';
 
 export function Sheet({
   state,
@@ -21,7 +22,11 @@ export function Sheet({
       <div className="sheet" role="dialog" aria-label="What gets sent to AI">
         <span className="grab" />
         <h3>What gets sent to the AI</h3>
-        <p className="k">To write tomorrow&rsquo;s letter</p>
+        <p className="k">
+          {state.source === 'ai'
+            ? 'Live AI sends this through the host to Anthropic'
+            : 'Scripted mode sends no entry to AI'}
+        </p>
         <ul>
           <li className="yes">
             <i>&#10003;</i>Tonight&rsquo;s entry
@@ -30,24 +35,31 @@ export function Sheet({
             <i>&#10003;</i>Memories you&rsquo;ve kept ({kept})
           </li>
           <li className="yes">
-            <i>&#10003;</i>Short snippets from past entries, only when relevant
+            <i>&#10003;</i>Your correction{' '}
+            {state.paused ? '(paused)' : state.correction ? '(included)' : '(none)'}
           </li>
           <li className="yes">
-            <i>&#10003;</i>Your letter voice
+            <i>&#10003;</i>Your letter voice, date labels and chosen time
+          </li>
+          <li className="yes">
+            <i>&#10003;</i>Themes you asked the letter not to raise ({state.popped.length})
           </li>
         </ul>
-        <p className="k">Never sent</p>
-        <ul>
-          <li className="no">
-            <i>&#10005;</i>Your name, email or contact details
-          </li>
-          <li className="no">
-            <i>&#10005;</i>Anything you&rsquo;ve forgotten
-          </li>
-          <li className="no">
-            <i>&#10005;</i>Your location
-          </li>
-        </ul>
+        <details>
+          <summary>Review the text and context</summary>
+          <p>{state.entry || 'No entry yet.'}</p>
+          {!state.paused && state.mems.map((m) => <p key={m.t}>{m.t}</p>)}
+          {!state.paused && state.correction && <p>{state.correction}</p>}
+          <p>
+            {state.voice} &middot; {tonight()} &rarr; {morning()} &middot; {state.time}
+          </p>
+        </details>
+        <p>
+          Pausing memory still sends tonight&rsquo;s entry in live mode. Names, contacts and
+          locations typed here are not redacted. Browser storage is not encrypted. When memory is
+          on, the same entry also goes to the demo theme reader, with the names of the fictional
+          sample themes. Memory pause disables that extra request.
+        </p>
         <button type="button" className="pb dark" onClick={onClose} style={{ marginTop: 6 }}>
           Got it
         </button>
