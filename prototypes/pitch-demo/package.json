@@ -10,7 +10,9 @@
     "preview": "vite preview --host",
     "typecheck": "tsc -b",
     "icons": "node scripts/make-icons.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "palette": "node scripts/contrast.mjs",
+    "test": "node scripts/regression.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.132.1",
@@ -25,6 +27,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
+    "jsdom": "30.1.2",
     "typescript": "5.9.3",
     "vite": "8.3.4"
   }

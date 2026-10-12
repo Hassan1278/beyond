@@ -33,7 +33,7 @@
   color-scheme: light;
 }
 .screen.nt {
-  background: linear-gradient(180deg, #0b0c0e 0%, #141829 62%, #1e2338);
+  background: linear-gradient(180deg, var(--night) 0%, var(--g3) 62%, var(--g4));
   color: var(--paper);
   color-scheme: dark;
 }
@@ -427,6 +427,311 @@
   color: var(--ink-soft);
 }
 
+/* The theme map.
+
+   Sizes carry the weight here, so the type has to scale with the circle it
+   sits in - hence the container query units, clamped so the smallest bubble
+   stays readable. Positions come from lib/bubbles.ts and are transitioned, so
+   popping one makes the others drift into the gap it left. */
+.map-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.popb {
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 13px;
+  border-radius: 30px;
+  border: 1px solid var(--paper-line);
+  background: var(--paper-hi);
+  color: var(--ink-soft);
+  transition:
+    background 0.18s,
+    color 0.18s,
+    border-color 0.18s;
+}
+.popb.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+.map-hint {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+  margin-top: -6px;
+}
+.map-empty {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  border: 1px dashed var(--paper-line);
+  border-radius: 18px;
+  padding: 18px;
+  text-align: center;
+}
+.bubbles {
+  position: relative;
+  width: 100%;
+}
+.bub {
+  position: absolute;
+  padding: 0;
+  border-radius: 50%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  container-type: inline-size;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  text-align: center;
+  color: var(--ink);
+  transition:
+    left 0.5s var(--ease-out),
+    top 0.5s var(--ease-out),
+    width 0.5s var(--ease-out),
+    scale 0.3s var(--ease-out),
+    opacity 0.3s var(--ease-out);
+}
+.bub.hard {
+  background: color-mix(in srgb, var(--ink) 9%, var(--paper-2));
+  border: 1px solid var(--paper-line);
+}
+.bub.good {
+  background: color-mix(in srgb, var(--dawn) 58%, var(--paper-hi));
+  border: 1px solid color-mix(in srgb, var(--dawn) 78%, var(--ink));
+}
+.bub:hover {
+  scale: 1.04;
+}
+.bub-t {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  padding: 0 13%;
+  line-height: 1.04;
+}
+.bub-t b {
+  font-size: clamp(9.5px, 13cqw, 15px);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.bub-t i {
+  font-family: var(--f-mono);
+  font-style: normal;
+  font-size: clamp(8px, 9cqw, 11px);
+  opacity: 0.68;
+}
+/* The hold. Fills from the middle over exactly as long as the press must last. */
+.bub .fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0.16;
+  scale: 0;
+  transition: scale 0.18s var(--ease-out);
+}
+.bub.holding .fill {
+  scale: 1;
+  transition-duration: var(--hold);
+  transition-timing-function: linear;
+}
+.bub.burst {
+  scale: 1.4;
+  opacity: 0;
+  pointer-events: none;
+}
+/* Pop mode, visible from across a room: the whole map becomes restless. */
+.bubbles.popping .bub {
+  animation: bub-wob 2.4s ease-in-out infinite;
+  cursor: grab;
+}
+.bubbles.popping .bub:nth-child(2n) {
+  animation-delay: -0.8s;
+}
+.bubbles.popping .bub:nth-child(3n) {
+  animation-delay: -1.6s;
+}
+@keyframes bub-wob {
+  0%,
+  100% {
+    rotate: -1.4deg;
+    translate: -50% calc(-50% - 1.5px);
+  }
+  50% {
+    rotate: 1.4deg;
+    translate: -50% calc(-50% + 1.5px);
+  }
+}
+
+/* What the model did with the entry. Shown once, under the map it changed. */
+.filed {
+  font-family: var(--f-mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  background: color-mix(in srgb, var(--dawn) 26%, var(--paper-hi));
+  border-radius: 14px;
+  padding: 10px 13px;
+}
+
+/* The quarter so far. One Wrapped card, in the loud register Wrapped uses,
+   tapping through to the full set on Patterns. */
+.qnow {
+  display: grid;
+  gap: 12px;
+  text-align: left;
+  border-radius: 20px;
+  padding: 16px 18px 15px;
+  background: var(--g);
+  color: var(--paper);
+  color-scheme: dark;
+}
+.qnow .k {
+  color: inherit;
+  opacity: 0.8;
+}
+.qnow-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.qnow-top .open {
+  font-family: var(--f-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  border-radius: 20px;
+  padding: 3px 7px;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+.qnow-mid {
+  display: grid;
+  gap: 3px;
+}
+.qnow-mid b {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+.qnow-mid i {
+  font-family: var(--f-mono);
+  font-style: normal;
+  font-size: 11.5px;
+  opacity: 0.82;
+}
+.qnow .go {
+  font-size: 12.5px;
+  opacity: 0.86;
+}
+
+/* ---------------------------------------------------------- 03b one theme */
+.back {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  align-self: flex-start;
+  padding: 2px 0;
+}
+.th-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.th-top h2 {
+  letter-spacing: -0.04em;
+}
+.tone {
+  flex: none;
+  margin-top: 5px;
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 20px;
+  padding: 4px 9px;
+  white-space: nowrap;
+}
+.tone.good {
+  background: color-mix(in srgb, var(--dawn) 58%, var(--paper-hi));
+  border: 1px solid color-mix(in srgb, var(--dawn) 78%, var(--ink));
+  color: var(--ink);
+}
+.tone.hard {
+  background: var(--paper-2);
+  border: 1px solid var(--paper-line);
+  color: var(--ink-soft);
+}
+.th-sum {
+  font-family: var(--f-letter);
+  font-size: 16.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.th-off {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  background: var(--paper-2);
+  border-radius: 14px;
+  padding: 11px 13px;
+}
+.th-lines {
+  display: grid;
+  gap: 10px;
+}
+.th-lines ul {
+  display: grid;
+  gap: 1px;
+  list-style: none;
+  border-top: 1px solid var(--paper-line);
+}
+.th-lines li {
+  display: grid;
+  gap: 4px;
+  padding: 11px 0 12px;
+  border-bottom: 1px solid var(--paper-line);
+}
+.th-lines q {
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--ink);
+  quotes: '\201c' '\201d';
+}
+.th-lines time {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--f-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+.th-lines time b {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--dawn) 62%, var(--paper-hi));
+  color: var(--ink);
+}
+.th-lines li.fresh q {
+  font-weight: 600;
+}
+
 /* --------------------------------------------------------------- 04 write */
 .v-write {
   padding: 4px 20px 16px;
@@ -466,7 +771,7 @@
   background: none;
   border: 0;
   resize: none;
-  color: #d9d8d2;
+  color: var(--paper);
   font: 400 17px/1.6 var(--f-letter);
   outline: none;
   padding: 0;
@@ -619,7 +924,7 @@
   display: grid;
   gap: 12px;
   font: 400 16.5px/1.6 var(--f-letter);
-  color: #1f201d;
+  color: var(--ink);
 }
 .lb .greet {
   font-style: italic;
@@ -734,7 +1039,7 @@
   padding: 14px 22px;
   background: #000;
   scrollbar-width: none;
-  --hole: radial-gradient(circle, #2b2c31 0 2.6px, transparent 2.8px);
+  --hole: radial-gradient(circle, var(--night-line) 0 2.6px, transparent 2.8px);
   background-image: var(--hole), var(--hole);
   background-size:
     16px 10px,
@@ -746,30 +1051,6 @@
 }
 .film::-webkit-scrollbar {
   display: none;
-}
-.frame {
-  flex: none;
-  width: 116px;
-  aspect-ratio: 4/5;
-  border-radius: 5px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  color: var(--paper);
-  background: var(--g);
-}
-.frame .k {
-  font-size: 9.5px;
-  opacity: 0.85;
-}
-.frame p {
-  font: italic 400 13px/1.35 var(--f-letter);
-}
-.frame.blank {
-  background: var(--night-2);
-  border: 1px dashed var(--night-line);
-  color: var(--ink-faint);
 }
 
 /* -------------------------------------------------------------- 08 memory */
@@ -953,7 +1234,7 @@
 .sheet-bg {
   position: absolute;
   inset: 0;
-  background: #0b0c0e99;
+  background: rgb(0 0 0 / 0.6);
   z-index: 5;
   display: flex;
   align-items: flex-end;
@@ -973,11 +1254,17 @@
   border-radius: 26px 26px 0 0;
   padding: 10px 22px 30px;
   width: 100%;
+  max-height: 90%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: grid;
   gap: 12px;
   animation: up 0.3s ease;
   color-scheme: light;
   text-align: left;
+}
+.sheet p {
+  overflow-wrap: anywhere;
 }
 @keyframes up {
   from {
@@ -1027,4 +1314,20 @@
 .sheet .no i {
   background: var(--paper-2);
   color: var(--ink-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The map still re-lays out, it just arrives rather than travels. The hold
+     keeps its duration, because that one is a timer and not an animation. */
+  .bub {
+    transition:
+      scale 0.01ms,
+      opacity 0.01ms;
+  }
+  .bubbles.popping .bub {
+    animation: none;
+  }
+  .bub:hover {
+    scale: 1;
+  }
 }

@@ -19,10 +19,10 @@ import { SiteShell } from './site/SiteShell';
 import { HomePage } from './site/pages/HomePage';
 import { ProblemPage } from './site/pages/ProblemPage';
 import { HowPage } from './site/pages/HowPage';
-import { PatternsPage } from './site/pages/PatternsPage';
 import { WhyPage } from './site/pages/WhyPage';
 import { PrivacyPage } from './site/pages/PrivacyPage';
-import { SchoolsPage } from './site/pages/SchoolsPage';
+import { InstitutionsPage } from './site/pages/InstitutionsPage';
+import { BetaPage } from './site/pages/BetaPage';
 import { useRoute } from './router';
 import { useRouteTransition, useRevealOnScroll } from './site/motion';
 
@@ -34,10 +34,16 @@ const SITE: Record<string, () => ReactElement> = {
   '/': HomePage,
   '/problem': ProblemPage,
   '/how': HowPage,
-  '/patterns': PatternsPage,
   '/why': WhyPage,
   '/privacy': PrivacyPage,
-  '/schools': SchoolsPage,
+  '/institutions': InstitutionsPage,
+  '/beta': BetaPage,
+};
+
+/** Old links keep working after the restructure. */
+const MOVED: Record<string, string> = {
+  '/patterns': '/how',
+  '/schools': '/institutions',
 };
 
 function forcedShell(): Shell | null {
@@ -108,7 +114,8 @@ function Routes(): ReactElement {
   const isDemo = path === '/app' || path.startsWith('/app/');
 
   // The visible page lags the URL just long enough for the old one to leave.
-  const { shown, leaving } = useRouteTransition(isDemo ? path : path, 220);
+  const resolved = MOVED[path] ?? path;
+  const { shown, leaving } = useRouteTransition(resolved, 220);
   const visible = isDemo ? path : shown;
   useRevealOnScroll(visible);
 
@@ -119,7 +126,7 @@ function Routes(): ReactElement {
   if (isDemo) return <Demo sub={path.slice('/app/'.length)} />;
 
   const Page = SITE[visible] ?? HomePage;
-  const navMeta = PAGES.find((p) => p.path === path) ?? PAGES[0];
+  const navMeta = PAGES.find((p) => p.path === resolved) ?? PAGES[0];
   return (
     <SiteShell path={navMeta.path} time={navMeta.time}>
       <div className={`page${leaving ? ' is-leaving' : ''}`} key={visible}>

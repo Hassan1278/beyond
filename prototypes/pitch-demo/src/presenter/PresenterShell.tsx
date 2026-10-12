@@ -9,6 +9,7 @@ import { useBeyond } from '../state/store';
 import { Phone } from '../components/Phone';
 import { QrPanel } from '../components/QrPanel';
 import { Link } from '../router';
+import { ThemePicker } from '../site/ThemePicker';
 import { DemoControls } from './DemoControls';
 import { Gallery } from './Gallery';
 
@@ -77,6 +78,7 @@ export function PresenterShell({ onOpenApp }: { onOpenApp: () => void }): ReactE
             All screens
           </button>
         </div>
+        <ThemePicker />
         <button type="button" className="link" onClick={() => setQr(true)}>
           Open on a phone
         </button>

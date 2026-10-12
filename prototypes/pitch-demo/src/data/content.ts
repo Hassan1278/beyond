@@ -7,7 +7,6 @@
  */
 import type { CSSProperties } from 'react';
 import type {
-  FilmFrame,
   LetterContent,
   Memory,
   ScreenId,
@@ -15,6 +14,7 @@ import type {
   Trend,
   Voice,
   VoiceId,
+  Wrapped,
 } from '../types';
 
 export const SAMPLE_ENTRY =
@@ -102,28 +102,57 @@ export const TRENDS: Trend[] = [
   { name: 'Sleep', w: [1, 1, 1, 1], up: false },
 ];
 
-export const FILM: FilmFrame[] = [
+/**
+ * Four quarters, wrapped. The arc is the product's whole claim: "feeling
+ * behind" fades quarter on quarter while photography climbs, until by Q4 the
+ * thing they actually care about is the thing they write about most.
+ */
+export const WRAPPED: Wrapped[] = [
   {
-    month: 'Jul',
-    text: "The summer of saving other people's advice.",
-    grad: 'linear-gradient(160deg,#3b4258,#1a1d29)',
+    quarter: 'Q1 2026',
+    topTheme: 'Feeling behind',
+    topThemeCount: '41 nights',
+    entries: '48',
+    words: '8,900',
+    steps: '6',
+    rising: 'Sleep',
+    risingBy: '2x',
+    grad: 'linear-gradient(155deg, color-mix(in srgb, var(--dusk) 52%, var(--night)), var(--g2))',
   },
   {
-    month: 'Aug',
-    text: 'You moved, and wrote mostly about being nervous.',
-    grad: 'linear-gradient(160deg,#5a4a5e,#22202c)',
+    quarter: 'Q2 2026',
+    topTheme: 'Feeling behind',
+    topThemeCount: '44 nights',
+    entries: '57',
+    words: '11,200',
+    steps: '9',
+    rising: 'Internships',
+    risingBy: '2x',
+    grad: 'linear-gradient(155deg, color-mix(in srgb, var(--g4) 60%, var(--night)), var(--night-3))',
   },
   {
-    month: 'Sep',
-    text: '“Behind” shows up eleven times.',
-    grad: 'linear-gradient(160deg,#6e5a52,#2a2422)',
+    quarter: 'Q3 2026',
+    topTheme: 'Feeling behind',
+    topThemeCount: '38 nights',
+    entries: '61',
+    words: '12,400',
+    steps: '14',
+    rising: 'Photography',
+    risingBy: '3x',
+    grad: 'linear-gradient(155deg, color-mix(in srgb, var(--dawn) 36%, var(--night)), var(--night-2))',
   },
   {
-    month: 'Oct',
-    text: 'The camera comes back.',
-    grad: 'linear-gradient(160deg,#c49a72,#5b4436)',
+    quarter: 'Q4 2026',
+    topTheme: 'Photography',
+    topThemeCount: '9 nights',
+    entries: '22',
+    words: '4,600',
+    steps: '7',
+    rising: 'Photography',
+    risingBy: '2x',
+    grad: 'linear-gradient(155deg, color-mix(in srgb, var(--warm) 33%, var(--night)), color-mix(in srgb, var(--g4) 55%, var(--night)))',
+    open: true,
   },
-  { month: 'Nov', text: 'Not written yet.', grad: null },
 ];
 
 /** The noise words that drift behind the welcome screen. */
@@ -176,21 +205,40 @@ export const SCREENS: ScreenMeta[] = [
   },
   {
     id: 'home',
-    title: 'Tonight',
+    title: 'Journal',
     time: '23:46',
     theme: 'lt',
     tab: 'home',
-    short: 'One main action. No feed, no streaks.',
-    lead: 'The evening home screen has one job: get you writing. There is no feed and no streak counter to protect.',
-    notes: ['Recurring themes, shown without scores', 'Letters one tap away'],
+    short: 'Write, and see what you keep coming back to.',
+    lead: 'Home has one job - get you writing - and then shows you the seven themes your own entries keep returning to, sized by how often. No feed, no streak to protect.',
+    notes: [
+      'Bigger bubble means more entries, warm means it is going well',
+      'Tap a bubble to read that theme back',
+      'Pop, then hold a bubble: Beyond stops bringing that one up',
+      'The open quarter sits at the bottom, Wrapped-style',
+    ],
+  },
+  {
+    id: 'theme',
+    title: 'One theme',
+    time: '23:47',
+    theme: 'lt',
+    tab: 'home',
+    short: 'What they said about one thing, over two years.',
+    lead: 'Behind every bubble is the evidence for it: a short read on the theme, then the actual lines from their entries with the dates they wrote them. The model files each entry as it is sealed.',
+    notes: [
+      'The summary is the claim; the dated lines are the proof',
+      'Lines are written by the model from each entry, never typed as tags',
+      'With live AI on, tonight’s entry adds a line here marked New',
+    ],
   },
   {
     id: 'write',
-    title: 'Night entry',
+    title: 'New entry',
     time: '23:48',
     theme: 'dk',
     short: 'Write or speak for 5–10 minutes. Nothing replies.',
-    lead: 'A dark, low-stimulation screen for late at night. Write or speak; Beyond doesn’t answer until morning.',
+    lead: 'A dark, low-stimulation screen. Write or speak at any point in the day; Beyond doesn’t answer until the next morning.',
     notes: [
       'The timer is a guide, not a limit',
       'Speak mode is a visual mock in this preview',
@@ -229,13 +277,17 @@ export const SCREENS: ScreenMeta[] = [
   },
   {
     id: 'patterns',
-    title: 'Patterns & Life Film',
+    title: 'Patterns & Wrapped',
     time: '12:40',
     theme: 'lt',
     tab: 'patterns',
-    short: 'Monthly themes and one film frame per month.',
-    lead: 'Over weeks, Beyond shows which themes are growing and which are fading. Each month becomes one frame of your Life Film.',
-    notes: ['Trends are counts of entries per week', 'Sample data for one person’s October'],
+    short: 'Monthly themes, and every quarter wrapped.',
+    lead: 'Over weeks, Beyond shows which themes are growing and which are fading. Every quarter is totalled up as a Wrapped card.',
+    notes: [
+      'Trends are counts of entries per week',
+      'Every quarter in full, the open one included',
+      'Sample data for one person’s October',
+    ],
   },
   {
     id: 'memory',

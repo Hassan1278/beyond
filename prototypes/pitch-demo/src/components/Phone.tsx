@@ -5,7 +5,7 @@
  */
 import type { ReactElement, ReactNode } from 'react';
 import type { BeyondState, ScreenMeta, TabId } from '../types';
-import { Battery, Mail, Moon, Signal, Wave, Wifi, You } from './Icons';
+import { Battery, Journal, Mail, Signal, Wave, Wifi, You } from './Icons';
 import { Sheet } from './Sheet';
 import { Welcome } from '../screens/Welcome';
 import { VoicePick } from '../screens/VoicePick';
@@ -13,6 +13,7 @@ import { Home } from '../screens/Home';
 import { Write } from '../screens/Write';
 import { Sealed } from '../screens/Sealed';
 import { Letter } from '../screens/Letter';
+import { ThemePage } from '../screens/ThemePage';
 import { Patterns } from '../screens/Patterns';
 import { MemorySettings } from '../screens/MemorySettings';
 import { Safety } from '../screens/Safety';
@@ -32,13 +33,14 @@ const VIEWS: Record<ScreenMeta['id'], (p: ScreenProps) => ReactElement> = {
   write: Write,
   sealed: Sealed,
   letter: Letter,
+  theme: ThemePage,
   patterns: Patterns,
   memory: MemorySettings,
   safety: Safety,
 };
 
 const TABS: { id: TabId; label: string; Icon: () => ReactElement }[] = [
-  { id: 'home', label: 'Tonight', Icon: Moon },
+  { id: 'home', label: 'Journal', Icon: Journal },
   { id: 'letter', label: 'Letters', Icon: Mail },
   { id: 'patterns', label: 'Patterns', Icon: Wave },
   { id: 'memory', label: 'You', Icon: You },

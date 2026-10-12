@@ -21,6 +21,13 @@ export const tonight = (): string => shortDate(new Date());
 /** The morning the letter arrives. */
 export const morning = (): string => shortDate(addDays(new Date(), 1));
 
+/** Today as `2026-10-11`, which is how the journal stores a line's date. */
+export const todayIso = (): string => {
+  const d = new Date();
+  const p = (n: number): string => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+
 /** "October so far", for the patterns header. */
 export const monthSoFar = (): string =>
   `${
@@ -39,13 +46,6 @@ export const monthSoFar = (): string =>
       'December',
     ][new Date().getMonth()]
   } so far`;
-
-/** Month name of the frame that is still being written, for the Life Film note. */
-export const nextMonthFirst = (): string => {
-  const d = new Date();
-  const first = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-  return `${MONTHS[d.getMonth()]}’s frame is finished on 1 ${MONTHS[first.getMonth()]}.`;
-};
 
 export const mmss = (secs: number): string =>
   `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;

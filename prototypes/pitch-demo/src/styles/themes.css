@@ -1,0 +1,112 @@
+/* Two palettes.
+ *
+ * Every theme redefines the same token set, so nothing in the rest of the CSS
+ * needs to know which one is active. Each keeps the structure the design
+ * depends on - a dark night, a light paper, one accent that carries the dawn -
+ * but moves hue, chroma and value far enough that the page is unmistakably a
+ * different colour, not the same page with a different detail.
+ *
+ * The first pass tinted only the near-black and the near-white, which is
+ * exactly where hue is invisible: at 4% and 96% lightness every palette looks
+ * the same. So the paper carries real colour, the night is lifted until its
+ * hue reads, and the mid-tones - mist, the hairlines, the soft inks, which
+ * together outnumber every other token - are pulled toward the theme as well.
+ *
+ * Named for their character rather than for an audience.
+ *
+ * Contrast for every text-on-surface pair is checked by scripts/contrast.mjs.
+ */
+
+/* Night - the default. Neutral graphite, cream, a peach dawn. */
+:root,
+:root[data-theme='night'] {
+  --night: #0b0c0e;
+  --night-2: #141519;
+  --night-3: #1f2025;
+  --night-line: #2b2c31;
+  --paper: #f4f3ee;
+  --paper-2: #e8e6dc;
+  --paper-hi: #fbfaf6;
+  --paper-line: #d2d0c4;
+  --ink: #0b0c0e;
+  --ink-soft: #5f605a;
+  --ink-faint: #656660;
+  --moon: #a7a8a3;
+  --mist: #9fa19c;
+  --dusk: #7183b0;
+  --dawn: #e8b48a;
+  --ok: #3d7553;
+  --alert: #b4513a;
+  --phone: #17181a;
+  --g1: #121419;
+  --g2: #1a1d29;
+  --g3: #1e2338;
+  --g4: #3a3554;
+  --warm: #f0cdaa;
+}
+
+/* Bloom - aubergine night, blush paper, a hot rose dawn. */
+:root[data-theme='bloom'] {
+  --night: #27102f;
+  --night-2: #341740;
+  --night-3: #452055;
+  --night-line: #5f2d70;
+  --paper: #fae2ee;
+  --paper-2: #f4cfe2;
+  --paper-hi: #fef5fa;
+  --paper-line: #dca6c4;
+  --ink: #1d0c22;
+  --ink-soft: #6a3650;
+  --ink-faint: #834e6b;
+  --moon: #d7a5c0;
+  --mist: #cf9cb7;
+  --dusk: #a76ede;
+  --dawn: #ff6fa5;
+  --ok: #3f8f6a;
+  --alert: #e04865;
+  --phone: #341740;
+  --g1: #2e1338;
+  --g2: #4a1a4e;
+  --g3: #611d5d;
+  --g4: #a53789;
+  --warm: #ffb6d0;
+}
+
+/* ------------------------------------------------------------- the picker */
+.themes {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+}
+.themes button {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  border: 1px solid var(--night-line);
+  padding: 0;
+  background: var(--sw);
+  position: relative;
+  transition:
+    transform 0.18s var(--ease-out),
+    box-shadow 0.18s var(--ease-out);
+}
+.themes button:hover {
+  transform: scale(1.14);
+}
+.themes button[aria-pressed='true'] {
+  box-shadow: 0 0 0 2px var(--night);
+  outline: 1.5px solid var(--paper);
+  outline-offset: 0;
+  transform: scale(1.1);
+}
+
+@media (max-width: 560px) {
+  .themes {
+    gap: 5px;
+  }
+  .themes button {
+    width: 16px;
+    height: 16px;
+  }
+}

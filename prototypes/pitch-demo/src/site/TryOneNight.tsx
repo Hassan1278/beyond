@@ -5,23 +5,23 @@
  * It shares the app demo's store, so the entry typed here is the entry waiting
  * in the app, and live AI works in both places with no second implementation.
  */
-import { useEffect, useRef, useState, type ReactElement } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { SCRIPTED_LETTERS, VOICES, voiceById } from '../data/content';
 import { morning, tonight } from '../lib/date';
 import { useBeyond } from '../state/store';
-import { Link } from '../router';
+import { Safety } from '../screens/Safety';
+import { needsSafetyCheck } from '../lib/safety';
 
-type Phase = 'writing' | 'overnight' | 'morning';
+type Phase = 'writing' | 'safety' | 'overnight' | 'morning';
 
 /** The clock the overlay runs through while the letter is written. */
 const FROM = 23 * 60 + 48;
 
 export function TryOneNight(): ReactElement {
-  const { state, dispatch, generate } = useBeyond();
+  const { state, dispatch, generate, go } = useBeyond();
   const [phase, setPhase] = useState<Phase>(() => (state.ai.letter ? 'morning' : 'writing'));
   const [clock, setClock] = useState(FROM);
   const [warn, setWarn] = useState(false);
-  const timers = useRef<number[]>([]);
 
   const voice = voiceById(state.voice);
   const target = (() => {
@@ -34,9 +34,13 @@ export function TryOneNight(): ReactElement {
   const letter = fromAi ? state.ai.letter! : SCRIPTED_LETTERS[state.voice];
 
   useEffect(() => {
-    const ids = timers.current;
-    return () => ids.forEach((id) => window.clearInterval(id));
-  }, []);
+    if (state.deleted) setPhase('writing');
+  }, [state.deleted]);
+
+  // Effects run after voice changes commit, so the new request uses the new voice.
+  useEffect(() => {
+    if (phase === 'overnight' && live && state.ai.status === 'idle') void generate();
+  }, [phase, live, state.ai.status, generate]);
 
   // While the overlay is up, run the clock from 23:48 to the delivery time.
   useEffect(() => {
@@ -48,7 +52,6 @@ export function TryOneNight(): ReactElement {
         return next >= FROM + span ? FROM + span : next;
       });
     }, 40);
-    timers.current.push(id);
     return () => window.clearInterval(id);
   }, [phase, target]);
 
@@ -70,10 +73,8 @@ export function TryOneNight(): ReactElement {
     }
     setWarn(false);
     setClock(FROM);
-    dispatch({ type: 'letter/reset' });
-    dispatch({ type: 'ai/clear' });
-    setPhase('overnight');
-    if (live) void generate();
+    dispatch({ type: 'seal' });
+    setPhase(needsSafetyCheck(state.entry) ? 'safety' : 'overnight');
   };
 
   const words = (state.entry.trim().match(/\S+/g) ?? []).length;
@@ -84,36 +85,56 @@ export function TryOneNight(): ReactElement {
   return (
     <div className="try-grid">
       <div className="entry">
-        <div className="entry-top">
-          <span>{tonight()} &middot; 23:48</span>
-          <span>No replies. Just you.</span>
-        </div>
-        <label className="sr" htmlFor="siteEntry">
-          Tonight&rsquo;s entry
-        </label>
-        <textarea
-          id="siteEntry"
-          value={state.entry}
-          placeholder="What's actually on your mind?"
-          onChange={(e) => {
-            dispatch({ type: 'entry', entry: e.target.value });
-            setWarn(false);
-          }}
-        />
-        <div className="entry-foot">
-          <span className="mono">
-            {words} {words === 1 ? 'word' : 'words'}
-            {warn && ' · write something first'}
-          </span>
-          <button
-            type="button"
-            className="btn btn-light btn-sm"
-            onClick={seal}
-            disabled={phase === 'overnight'}
-          >
-            Leave it for tonight
-          </button>
-        </div>
+        {phase === 'safety' ? (
+          <Safety
+            state={state}
+            live
+            onSeal={() => {
+              go('sealed');
+              setClock(FROM);
+              setPhase('overnight');
+            }}
+            onBack={() => {
+              go('write');
+              setPhase('writing');
+            }}
+          />
+        ) : (
+          <>
+            <div className="entry-top">
+              <span>{tonight()} &middot; 23:48</span>
+              <span>No replies. Just you.</span>
+            </div>
+            <label className="sr" htmlFor="siteEntry">
+              Tonight&rsquo;s entry
+            </label>
+            <textarea
+              id="siteEntry"
+              value={state.entry}
+              maxLength={6000}
+              disabled={phase === 'overnight'}
+              placeholder="What's actually on your mind?"
+              onChange={(e) => {
+                dispatch({ type: 'entry', entry: e.target.value });
+                setWarn(false);
+              }}
+            />
+            <div className="entry-foot">
+              <span className="mono">
+                {words} {words === 1 ? 'word' : 'words'}
+                {warn && ' · write something first'}
+              </span>
+              <button
+                type="button"
+                className="btn btn-light btn-sm"
+                onClick={seal}
+                disabled={phase === 'overnight'}
+              >
+                Leave it for tonight
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="letter">
@@ -143,7 +164,9 @@ export function TryOneNight(): ReactElement {
                 key={v.id}
                 role="tab"
                 aria-selected={state.voice === v.id}
+                disabled={phase === 'safety'}
                 onClick={() => {
+                  if (state.voice === v.id) return;
                   dispatch({ type: 'voice', voice: v.id });
                   if (live && phase === 'morning') {
                     setClock(FROM);
@@ -166,7 +189,7 @@ export function TryOneNight(): ReactElement {
 
         <div>
           <p className="kicker" style={{ marginBottom: 10 }}>
-            What keeps coming back
+            Sample patterns
           </p>
           <div className="chips">
             <span>
@@ -184,9 +207,7 @@ export function TryOneNight(): ReactElement {
           <p className="what">{letter.step}</p>
           {state.step ? (
             <p className="step-note">
-              {state.step === 'try'
-                ? 'Added to today. No reminders unless you ask.'
-                : 'Okay. Tomorrow’s letter will suggest something else.'}
+              {state.step === 'try' ? 'Marked for today in this demo.' : 'Skipped in this demo.'}
             </p>
           ) : (
             <div className="step-actions">
@@ -209,8 +230,7 @@ export function TryOneNight(): ReactElement {
             ? `Written for your entry by ${state.ai.model ?? 'Claude'}${
                 state.ai.ms ? ` in ${(state.ai.ms / 1000).toFixed(1)}s` : ''
               }. `
-            : 'Demo letter written for the sample entry. In the app, Beyond writes it from your entry and the memories you allow. '}
-          <Link to="/app">Open the app demo &rarr;</Link>
+            : 'Scripted letter for the fictional sample entry. Patterns above are samples, including when live AI is used. '}
         </p>
       </div>
     </div>

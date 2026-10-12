@@ -1,14 +1,14 @@
 import { useState, type ReactElement } from 'react';
 import { NoiseHero } from '../NoiseHero';
-import { Beats } from '../Beats';
 import { FeedWall } from '../FeedWall';
+import { WHO_FOR } from '../../data/site';
 import { Link } from '../../router';
 import { Presence } from '../motion';
 
 /**
- * The argument, in order: the noise, then the feed behind it, then what
- * Beyond does instead. The feed section is the one place the page raises its
- * voice; everything after it is deliberately quiet.
+ * The argument, in order: the noise, the feed behind it, who this is for, and
+ * what young people said. The feed section is the one place the page raises
+ * its voice; everything after it is deliberately quiet.
  */
 export function HomePage(): ReactElement {
   const [down, setDown] = useState(false);
@@ -31,7 +31,6 @@ export function HomePage(): ReactElement {
               you until you close it. Scroll long enough and it gets hard to tell which goals were
               ever yours.
             </p>
-            {/* The two states cross in the same spot, each with its own exit. */}
             <div className="swap-stack">
               <Presence show={down}>
                 <div className="quiet-state" aria-live="polite">
@@ -41,9 +40,6 @@ export function HomePage(): ReactElement {
                     one place that does not compete for it.
                   </p>
                   <div className="ctas">
-                    <Link to="/how" className="btn btn-light">
-                      See what happens next
-                    </Link>
                     <button type="button" className="btn btn-ghost" onClick={() => setDown(false)}>
                       Let it back in
                     </button>
@@ -55,9 +51,6 @@ export function HomePage(): ReactElement {
                   <button type="button" className="btn btn-light" onClick={() => setDown(true)}>
                     Put it down
                   </button>
-                  <Link to="/problem" className="btn btn-ghost">
-                    Why it works on us
-                  </Link>
                 </div>
               </Presence>
             </div>
@@ -71,22 +64,23 @@ export function HomePage(): ReactElement {
 
       <section className="sec day">
         <div className="wrap">
-          <div className="sec-head" data-reveal="lead">
-            <p className="eyebrow">How Beyond works</p>
-            <h2>Say it tonight. Understand it tomorrow.</h2>
-            <p className="sub">
-              Beyond keeps expressing and reflecting apart. You get to finish a thought before
-              anything answers it.
+          <div className="who-head" data-reveal="lead">
+            <div>
+              <p className="eyebrow">Who it is for</p>
+              <h2>{WHO_FOR.lead}</h2>
+            </div>
+            <p className="who-note">
+              Beyond is a journal that answers you once, the next morning. It is not therapy, not a
+              chatbot, and not another feed.
             </p>
           </div>
-          <Beats />
-          <div className="ctas" style={{ marginTop: 32 }}>
-            <Link to="/how" className="btn btn-dark">
-              Try one night
-            </Link>
-            <Link to="/app" className="btn btn-ghost">
-              Open the app demo
-            </Link>
+          <div className="who-grid">
+            {WHO_FOR.points.map((p) => (
+              <div key={p.t} data-reveal="">
+                <h3>{p.t}</h3>
+                <p>{p.s}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

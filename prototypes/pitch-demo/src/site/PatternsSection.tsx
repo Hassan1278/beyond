@@ -1,8 +1,14 @@
-import type { CSSProperties, ReactElement } from 'react';
-import { FILM, TRENDS } from '../../data/content';
-import { MEMORY_POINTS } from '../../data/site';
-import { monthSoFar } from '../../lib/date';
-import { useBeyond } from '../../state/store';
+/**
+ * What a few months of Beyond adds up to. Lives at the bottom of How it works
+ * rather than on a page of its own: it is the back half of the same story, not
+ * a separate feature.
+ */
+import type { ReactElement } from 'react';
+import { TRENDS } from '../data/content';
+import { MEMORY_POINTS } from '../data/site';
+import { monthSoFar } from '../lib/date';
+import { useBeyond } from '../state/store';
+import { WrappedStrip } from './WrappedStrip';
 
 const W = 96;
 const H = 30;
@@ -32,7 +38,7 @@ function Spark({ w, up }: { w: number[]; up: boolean }): ReactElement {
   );
 }
 
-export function PatternsPage(): ReactElement {
+export function PatternsSection(): ReactElement {
   const { state, dispatch } = useBeyond();
 
   return (
@@ -40,55 +46,44 @@ export function PatternsPage(): ReactElement {
       <section className="sec day">
         <div className="wrap">
           <div className="sec-head" data-reveal="lead">
-            <p className="eyebrow">Monthly review &amp; Life Film</p>
+            <p className="eyebrow">Over months</p>
             <h2>Your patterns. Not their highlight reel.</h2>
             <p className="sub">
-              Single letters help you get through a week. Over months, Beyond shows what keeps
-              coming back, what&rsquo;s fading, and who you&rsquo;re turning into.
+              One letter helps you get through a week. Over months, Beyond shows what keeps coming
+              back, what is fading, and who you are turning into.
             </p>
           </div>
 
-          <div className="pat-grid" data-reveal="">
-            <div className="review">
-              <div className="review-head">
-                <h3>{monthSoFar()}</h3>
-                <span className="mono">22 entries &middot; sample</span>
-              </div>
-              {TRENDS.map((t) => (
-                <div className="trend" key={t.name}>
-                  <span className="name">{t.name}</span>
-                  <span className="n">{t.w.reduce((a, b) => a + b, 0)} entries</span>
-                  <Spark w={t.w} up={t.up} />
-                </div>
-              ))}
-              <p className="note">
-                &ldquo;You wrote &lsquo;behind&rsquo; less every week this month. Photography went
-                the other way.&rdquo;
-              </p>
+          <div className="review" data-reveal="">
+            <div className="review-head">
+              <h3>{monthSoFar()}</h3>
+              <span className="mono">22 entries &middot; sample</span>
             </div>
-
-            <div className="film-wrap">
-              <div className="inset">
-                <h3>Your Life Film</h3>
-                <p>
-                  Each month becomes one frame. Over a year it adds up to a film of who you were
-                  becoming, with nobody else in it to compare against.
-                </p>
+            {TRENDS.map((t) => (
+              <div className="trend" key={t.name}>
+                <span className="name">{t.name}</span>
+                <span className="n">{t.w.reduce((a, b) => a + b, 0)} entries</span>
+                <Spark w={t.w} up={t.up} />
               </div>
-              <div className="site-film">
-                {FILM.map((f) => (
-                  <div
-                    key={f.month}
-                    className={f.grad ? 'frame' : 'frame blank'}
-                    style={f.grad ? ({ '--g': f.grad } as CSSProperties) : undefined}
-                  >
-                    <span className="mono">{f.month}</span>
-                    <p>{f.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            ))}
+            <p className="note">
+              &ldquo;You wrote &lsquo;behind&rsquo; less every week this month. Photography went the
+              other way.&rdquo;
+            </p>
           </div>
+
+          <div className="wrapped-head" data-reveal="">
+            <p className="eyebrow">Quarterly Wrapped</p>
+            <h3>Four times a year, it all adds up.</h3>
+            <p className="sub">
+              Four times a year Beyond totals it up. Not to score you, and not to share &mdash; just
+              so you can see the shape of a few months at once.
+            </p>
+          </div>
+          <WrappedStrip />
+          <p className="demo-note">
+            Fictional sample patterns and Quarterly Wrapped; these do not analyze your entry.
+          </p>
         </div>
       </section>
 
@@ -127,7 +122,7 @@ export function PatternsPage(): ReactElement {
               </div>
               {state.paused && (
                 <p className="paused-msg">
-                  Memory is paused. Tonight&rsquo;s letter will only use tonight&rsquo;s entry.
+                  Memory is paused. Tomorrow&rsquo;s letter will only use what you wrote today.
                 </p>
               )}
               <ul className={`mem-list${state.paused ? ' paused' : ''}`}>
@@ -146,8 +141,8 @@ export function PatternsPage(): ReactElement {
                   ))
                 ) : (
                   <li className="mem-empty">
-                    Beyond doesn&rsquo;t remember anything about you. Letters will use each
-                    night&rsquo;s entry only.
+                    Beyond doesn&rsquo;t remember anything about you. Letters will use only what you
+                    wrote that day.
                   </li>
                 )}
               </ul>

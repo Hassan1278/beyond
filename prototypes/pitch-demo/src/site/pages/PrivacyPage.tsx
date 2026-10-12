@@ -10,16 +10,14 @@ import { CRISIS, SAFEGUARDS } from '../../data/site';
 
 const SENT = [
   'Tonight’s entry',
-  'Memories you have kept',
-  'Short snippets from past entries, only when relevant',
-  'Your letter voice',
+  'Kept memories and your correction, unless memory is paused',
+  'Your letter voice, date labels and chosen delivery time',
 ];
 
-const NEVER = [
-  'Your name, email or contact details',
-  'Anything you have forgotten',
-  'Your location',
-  'Anything at all, if you pause memory',
+const AUTOMATIC = [
+  'Your address book or device location',
+  'A separate name, email or account profile',
+  'A history of past entries',
 ];
 
 export function PrivacyPage(): ReactElement {
@@ -31,13 +29,14 @@ export function PrivacyPage(): ReactElement {
           <h2>Safe enough to be honest.</h2>
           <p className="sub">
             People only write honestly when they trust where the words go. So here is the whole of
-            it, before you write anything.
+            it, before you write anything. This prototype saves text in your browser without
+            encryption. Use fictional entries when trying it.
           </p>
         </div>
 
         <div className="manifest" data-reveal="">
           <div className="manifest-col">
-            <p className="kicker">Sent, to write your letter</p>
+            <p className="kicker">Sent only with live AI enabled</p>
             <ul className="yeslist">
               {SENT.map((s) => (
                 <li key={s}>{s}</li>
@@ -45,14 +44,21 @@ export function PrivacyPage(): ReactElement {
             </ul>
           </div>
           <div className="manifest-col">
-            <p className="kicker">Never sent</p>
+            <p className="kicker">Not automatically collected</p>
             <ul className="nolist">
-              {NEVER.map((s) => (
+              {AUTOMATIC.map((s) => (
                 <li key={s}>{s}</li>
               ))}
             </ul>
           </div>
         </div>
+        <p className="sub">
+          Scripted mode sends no entry to AI. Live mode sends the items above through this host to
+          Anthropic. Pausing memory still sends tonight&rsquo;s entry. Names, contact details and
+          locations typed into text are included; this demo does not redact them. The host also
+          receives normal connection information. AI provider retention is outside these demo
+          controls.
+        </p>
 
         <dl className="commitments">
           {SAFEGUARDS.map((s) => (

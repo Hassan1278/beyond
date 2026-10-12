@@ -1,7 +1,11 @@
 /**
- * Renders all nine screens, in both shells, outside a browser and checks the
- * words that must be on each one. Catches a broken screen in seconds, which
- * matters more the closer it gets to standing up and demoing it.
+ * Renders every screen, in both shells, outside a browser and checks the words
+ * that must be on each one. Catches a broken screen in seconds, which matters
+ * more the closer it gets to standing up and demoing it.
+ *
+ * It also checks the theme map, which is the one screen whose correctness is
+ * geometric rather than textual: seven circles that must not overlap, must not
+ * leave the box, and must come out identical every time.
  *
  *   node scripts/smoke.mjs
  */
@@ -34,11 +38,12 @@ globalThis.document = { body: { dataset: {} }, baseURI: 'http://localhost/' };
 const EXPECT = {
   welcome: ['Everyone is telling you who to become', 'not therapy'],
   voice: ['Who should write your letters', 'Future you', '07:30'],
-  home: ['Good evening', 'Start tonight', 'Coming back this week'],
+  home: ['Good evening', 'Start an entry', 'Coming back', 'Feeling behind', 'Still being written'],
+  theme: ['Journal entries on', 'since Oct 2024', '2024'],
   write: ['actually on your mind', 'Leave it for tonight', 'No replies'],
   sealed: ['Sealed for the night', 'Nothing needs solving tonight'],
   letter: ['One small step', 'Coming back', 'Correct it'],
-  patterns: ['Your patterns', 'Life Film', 'Feeling behind'],
+  patterns: ['Your patterns', 'Quarterly Wrapped', 'Feeling behind'],
   memory: ['What Beyond remembers', 'Memory on', 'Delete everything', 'Letter writer'],
   safety: ['That sounded heavy', '18111', 'Open Up', '999'],
 };
@@ -73,6 +78,11 @@ try {
         continue;
       }
 
+      if (!EXPECT[sc.id]) {
+        console.error(`FAIL ${chrome}/${sc.id}: no expected words listed in smoke.mjs`);
+        failed++;
+        continue;
+      }
       const missing = EXPECT[sc.id].filter((t) => !html.includes(t));
       const bezel =
         chrome === 'frame' ? html.includes('class="isl"') : !html.includes('class="isl"');
@@ -89,6 +99,146 @@ try {
       }
     }
   }
+  /* The states a presenter will actually put on screen, which the loop above
+     never reaches because it only ever renders a fresh state. Each one is a
+     thing that has to be true live, in front of people. */
+  const screenOf = (id) => SCREENS.find((sc) => sc.id === id);
+  const render = (id, extra) =>
+    renderToString(
+      h(
+        BeyondProvider,
+        null,
+        h(Phone, {
+          screen: screenOf(id),
+          state: { ...freshState(), screen: id, ...extra },
+          live: true,
+          chrome: 'frame',
+          onGo: noop,
+          onCloseSheet: noop,
+        }),
+      ),
+    );
+
+  const bubbleCount = (html) => (html.match(/class="bub /g) ?? []).length;
+  const states = [
+    ['home shows one bubble per theme', () => bubbleCount(render('home')) === 7],
+    [
+      'popping one takes it off the map',
+      () => {
+        const html = render('home', { popped: ['sleep'] });
+        return bubbleCount(html) === 6 && !html.includes('>Sleep<');
+      },
+    ],
+    [
+      'popping all of them leaves a way back',
+      () => {
+        const html = render('home', {
+          popped: ['behind', 'internships', 'sleep', 'photography', 'friends', 'money', 'running'],
+        });
+        return bubbleCount(html) === 0 && html.includes('Restore any from the You tab');
+      },
+    ],
+    [
+      'pop mode changes the button and the hint',
+      () => {
+        const html = render('home', { popMode: true });
+        return (
+          html.includes('aria-pressed="true"') &&
+          html.includes('>Done<') &&
+          html.includes('Hold a bubble to hide it') &&
+          html.includes('bubbles popping')
+        );
+      },
+    ],
+    [
+      'a popped theme is restorable from the You tab',
+      () => {
+        const html = render('memory', { popped: ['internships'] });
+        return html.includes('Not surfacing') && html.includes('>Restore<');
+      },
+    ],
+    ['nothing popped means no restore list', () => !render('memory').includes('Not surfacing')],
+    [
+      'a line from tonight lands on its theme, flagged',
+      () => {
+        const html = render('theme', {
+          openTheme: 'photography',
+          extract: {
+            status: 'ready',
+            error: null,
+            found: [
+              {
+                id: 'photography',
+                line: { date: '2026-10-11', text: 'walked until it got dark', fresh: true },
+              },
+            ],
+          },
+        });
+        return html.includes('walked until it got dark') && html.includes('>New<');
+      },
+    ],
+    [
+      'home says what the entry was filed under',
+      () => {
+        const html = render('home', {
+          extract: {
+            status: 'ready',
+            error: null,
+            found: [
+              { id: 'photography', line: { date: '2026-10-11', text: 'a', fresh: true } },
+              { id: 'sleep', line: { date: '2026-10-11', text: 'b', fresh: true } },
+            ],
+          },
+        });
+        return html.includes('filed under Photography and Sleep');
+      },
+    ],
+    [
+      'a failed read says nothing at all',
+      () => {
+        const html = render('home', {
+          extract: { status: 'error', error: 'nope', found: [] },
+        });
+        return !html.includes('filed under') && bubbleCount(html) === 7;
+      },
+    ],
+    [
+      'a line with a broken date still renders',
+      () => {
+        const html = render('theme', {
+          openTheme: 'sleep',
+          extract: {
+            status: 'ready',
+            error: null,
+            found: [{ id: 'sleep', line: { date: undefined, text: 'kept waking up' } }],
+          },
+        });
+        return html.includes('kept waking up');
+      },
+    ],
+    [
+      'the theme page opens on its subject, not the first one',
+      () => render('theme', { openTheme: 'running' }).includes('Running'),
+    ],
+    [
+      'the theme page survives no subject at all',
+      () => render('theme', { openTheme: null }).includes('Journal entries on'),
+    ],
+  ];
+  for (const [name, run] of states) {
+    let ok = false;
+    try {
+      ok = run() === true;
+    } catch (err) {
+      console.error(`FAIL state ${name}: threw ${err.message}`);
+    }
+    if (ok) console.log(`ok   state  ${name}`);
+    else {
+      console.error(`FAIL state  ${name}`);
+      failed++;
+    }
+  }
+
   /* The site: one short page per idea. */
   const { SiteShell } = await server.ssrLoadModule('/src/site/SiteShell.tsx');
   const { PAGES } = await server.ssrLoadModule('/src/data/site.ts');
@@ -99,24 +249,36 @@ try {
       [
         'Everyone is telling you who to become',
         'It never runs out',
-        'Put it down',
-        'Say it tonight',
+        'Who it is for',
+        'more say in your plans',
+        // The wall has to carry more than one genre of pressure.
+        'aidan.lifts',
+        'skin.by.neve',
       ],
     ],
     '/problem': [
       '/src/site/pages/ProblemPage.tsx',
       'ProblemPage',
-      ['The Great Distraction', 'What young people told us', '91%', 'aidan.lifts'],
+      [
+        'The Great Distraction',
+        'What young people told us',
+        '91%',
+        'aidan.lifts',
+        'that.girl.era',
+        'ella.andjames',
+      ],
     ],
     '/how': [
       '/src/site/pages/HowPage.tsx',
       'HowPage',
-      ['Leave it for the night', 'One small step', 'Future you'],
-    ],
-    '/patterns': [
-      '/src/site/pages/PatternsPage.tsx',
-      'PatternsPage',
-      ['Life Film', 'What Beyond remembers', 'Photography'],
+      [
+        'Say it whenever',
+        'Any time',
+        'Leave it for the night',
+        'Quarterly Wrapped',
+        'Q3 2026',
+        'What Beyond remembers',
+      ],
     ],
     '/why': [
       '/src/site/pages/WhyPage.tsx',
@@ -126,12 +288,17 @@ try {
     '/privacy': [
       '/src/site/pages/PrivacyPage.tsx',
       'PrivacyPage',
-      ['Safe enough to be honest', 'Not therapy', '18111', 'Never sent'],
+      ['Safe enough to be honest', 'Not therapy', '18111', 'Not automatically collected'],
     ],
-    '/schools': [
-      '/src/site/pages/SchoolsPage.tsx',
-      'SchoolsPage',
-      ['Somewhere to put it down', 'Join the beta', 'Employers'],
+    '/institutions': [
+      '/src/site/pages/InstitutionsPage.tsx',
+      'InstitutionsPage',
+      ['Somewhere to put it down', 'Employers', 'Join the beta'],
+    ],
+    '/beta': [
+      '/src/site/pages/BetaPage.tsx',
+      'BetaPage',
+      ['write without an audience', 'Open the app demo', 'Join the beta'],
     ],
   };
 
@@ -162,6 +329,202 @@ try {
   }
 } finally {
   await server.close();
+}
+
+/* The theme map. Seven circles whose correctness no amount of rendered HTML
+   will tell you about: they must not overlap, must stay inside the box, and
+   must land in the same place on the server as in the browser and on the
+   second run-through of a pitch as on the first. */
+{
+  const server = await createServer({
+    server: { middlewareMode: true },
+    appType: 'custom',
+    logLevel: 'error',
+  });
+  try {
+    const { pack, BOX } = await server.ssrLoadModule('/src/lib/bubbles.ts');
+    const { THEMES } = await server.ssrLoadModule('/src/data/themes.ts');
+
+    // Every count a pop can leave behind, down to the last bubble.
+    for (let n = THEMES.length; n >= 1; n--) {
+      const out = pack(THEMES.slice(0, n), (t) => t.mentions);
+      const problems = [];
+      if (out.length !== n) problems.push(`placed ${out.length} of ${n}`);
+      for (let i = 0; i < out.length; i++) {
+        for (let j = i + 1; j < out.length; j++) {
+          const d = Math.hypot(out[i].x - out[j].x, out[i].y - out[j].y);
+          if (d < out[i].r + out[j].r - 0.6)
+            problems.push(`${out[i].item.name} overlaps ${out[j].item.name}`);
+        }
+      }
+      for (const c of out) {
+        if (
+          c.x - c.r < -0.6 ||
+          c.x + c.r > BOX.w + 0.6 ||
+          c.y - c.r < -0.6 ||
+          c.y + c.r > BOX.h + 0.6
+        )
+          problems.push(`${c.item.name} leaves the box`);
+      }
+      // Bigger theme, bigger bubble - the only thing the map actually claims.
+      const byWeight = [...out].sort((a, b) => b.item.mentions - a.item.mentions);
+      for (let i = 1; i < byWeight.length; i++) {
+        if (byWeight[i].r > byWeight[i - 1].r + 0.01)
+          problems.push(
+            `${byWeight[i].item.name} is drawn larger than ${byWeight[i - 1].item.name}`,
+          );
+      }
+      const again = pack(THEMES.slice(0, n), (t) => t.mentions);
+      if (
+        JSON.stringify(out.map((c) => [c.item.id, c.x, c.y, c.r])) !==
+        JSON.stringify(again.map((c) => [c.item.id, c.x, c.y, c.r]))
+      )
+        problems.push('layout is not deterministic');
+
+      if (problems.length) {
+        console.error(`FAIL bubbles/${n}: ${problems.join('; ')}`);
+        failed++;
+      } else {
+        console.log(`ok   bubbles/${n} (r ${out.map((c) => c.r.toFixed(1)).join(' ')})`);
+      }
+    }
+
+    /* The feed. Every post is a hand-written claim, so the things worth
+       checking are that none of them collide and that all of them draw. */
+    const { FEED } = await server.ssrLoadModule('/src/data/feed.ts');
+    const { FeedArt } = await server.ssrLoadModule('/src/site/FeedArt.tsx');
+    const feedBad = [];
+    const handles = new Set();
+    const captions = new Set();
+    for (const [i, post] of FEED.entries()) {
+      if (handles.has(post.handle)) feedBad.push(`duplicate handle ${post.handle}`);
+      if (captions.has(post.caption)) feedBad.push(`duplicate caption on ${post.handle}`);
+      handles.add(post.handle);
+      captions.add(post.caption);
+      if (!/^\d/.test(post.metric))
+        feedBad.push(`${post.handle}: metric "${post.metric}" is not a count`);
+      if (post.grad.some((g) => /#[0-9a-f]{3,8}/i.test(g)))
+        feedBad.push(`${post.handle}: gradient is a fixed colour, so it will not follow the theme`);
+      try {
+        const drawn = renderToString(
+          h(FeedArt, { kind: post.art, grad: post.grad, id: String(i) }),
+        );
+        if (!drawn.includes('<path') && !drawn.includes('<circle') && !drawn.includes('<rect'))
+          feedBad.push(`${post.handle}: art "${post.art}" drew nothing`);
+      } catch (err) {
+        feedBad.push(`${post.handle}: art "${post.art}" threw ${err.message}`);
+      }
+    }
+    if (feedBad.length) {
+      for (const b of feedBad) console.error(`FAIL feed: ${b}`);
+      failed += feedBad.length;
+    } else {
+      const kinds = new Set(FEED.map((p) => p.art));
+      console.log(`ok   feed (${FEED.length} posts, ${kinds.size} kinds of art, all drawing)`);
+    }
+
+    /* The theme data itself: the dates are what the page is selling. */
+    const { showDate, newestFirst } = await server.ssrLoadModule('/src/data/themes.ts');
+    const bad = [];
+    for (const t of THEMES) {
+      if (!t.lines.length) bad.push(`${t.id} has no lines`);
+      if (t.mentions < t.lines.length) bad.push(`${t.id} quotes more lines than it claims entries`);
+      for (const l of t.lines) {
+        if (!/^20\d\d-\d\d-\d\d$/.test(l.date)) bad.push(`${t.id}: bad date ${l.date}`);
+        if (showDate(l.date) === l.date) bad.push(`${t.id}: ${l.date} does not format`);
+      }
+      const sorted = newestFirst(t.lines);
+      if (sorted[0].date < sorted[sorted.length - 1].date) bad.push(`${t.id}: sorts backwards`);
+    }
+    const span = THEMES.flatMap((t) => t.lines.map((l) => l.date)).sort();
+    if (bad.length) {
+      for (const b of bad) console.error(`FAIL themes: ${b}`);
+      failed += bad.length;
+    } else {
+      console.log(
+        `ok   themes (${THEMES.length} themes, ${span.length} lines, ${span[0]} to ${span[span.length - 1]})`,
+      );
+    }
+  } finally {
+    await server.close();
+  }
+}
+
+/* The two serverless handlers. Their validation is the only part of the app a
+   browser never reaches, and the part most likely to be wrong in a way that
+   only shows up on stage with a key loaded. */
+{
+  const server = await createServer({
+    server: { middlewareMode: true },
+    appType: 'custom',
+    logLevel: 'error',
+  });
+  try {
+    const themes = await server.ssrLoadModule('/api/themes.ts');
+    const letter = await server.ssrLoadModule('/api/letter.ts');
+    const { THEMES } = await server.ssrLoadModule('/src/data/themes.ts');
+    const list = THEMES.map((t) => ({ id: t.id, name: t.name }));
+    const entry = 'I kept comparing myself to people online tonight and could not sleep.';
+
+    const cases = [
+      ['themes: rejects no body', () => typeof themes.validate(null) === 'string'],
+      [
+        'themes: rejects a short entry',
+        () => typeof themes.validate({ entry: 'hi', themes: list }) === 'string',
+      ],
+      [
+        'themes: rejects an empty list',
+        () => typeof themes.validate({ entry, themes: [] }) === 'string',
+      ],
+      [
+        'themes: rejects a malformed id',
+        () =>
+          typeof themes.validate({ entry, themes: [{ id: 'Bad Id!', name: 'x' }] }) === 'string',
+      ],
+      [
+        'themes: accepts the real list',
+        () => themes.validate({ entry, themes: list }).themes.length === THEMES.length,
+      ],
+      [
+        'letter: keeps popped themes to avoid',
+        () => {
+          const ok = letter.validate({
+            entry,
+            voice: 'friend',
+            avoid: ['Internships', 'Sleep'],
+          });
+          return typeof ok !== 'string' && ok.avoid.join() === 'Internships,Sleep';
+        },
+      ],
+      [
+        'letter: rejects malformed avoided themes',
+        () => typeof letter.validate({ entry, voice: 'friend', avoid: ['Sleep', 7] }) === 'string',
+      ],
+      [
+        'letter: defaults avoid to empty',
+        () => letter.validate({ entry, voice: 'friend' }).avoid.length === 0,
+      ],
+      [
+        'letter: still rejects an unknown voice',
+        () => typeof letter.validate({ entry, voice: 'nobody' }) === 'string',
+      ],
+    ];
+    for (const [name, run] of cases) {
+      let ok = false;
+      try {
+        ok = run() === true;
+      } catch (err) {
+        console.error(`FAIL api ${name}: threw ${err.message}`);
+      }
+      if (ok) console.log(`ok   api  ${name}`);
+      else {
+        console.error(`FAIL api  ${name}`);
+        failed++;
+      }
+    }
+  } finally {
+    await server.close();
+  }
 }
 
 console.log(failed ? `\n${failed} check(s) failed.` : '\nAll screens and pages rendered.');

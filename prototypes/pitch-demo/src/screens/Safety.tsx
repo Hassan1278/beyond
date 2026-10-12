@@ -7,7 +7,14 @@ import type { ScreenProps } from '../components/Phone';
 import { HELPLINES } from '../data/content';
 import { useActions } from '../state/store';
 
-export function Safety({ live }: ScreenProps): ReactElement {
+export function Safety({
+  live,
+  onSeal,
+  onBack,
+}: ScreenProps & {
+  onSeal?: () => void;
+  onBack?: () => void;
+}): ReactElement {
   const { go } = useActions(live);
   return (
     <div className="v pad v-safety">
@@ -23,14 +30,14 @@ export function Safety({ live }: ScreenProps): ReactElement {
           <span>{h.note}</span>
         </div>
       ))}
-      <button type="button" className="pb light mt-auto" onClick={() => go('sealed')}>
+      <button type="button" className="pb light mt-auto" onClick={onSeal ?? (() => go('sealed'))}>
         I&rsquo;m okay, seal my entry
       </button>
       <button
         type="button"
         className="linkish"
         style={{ alignSelf: 'center', color: 'var(--mist)' }}
-        onClick={() => go('write')}
+        onClick={onBack ?? (() => go('write'))}
       >
         Back to my entry
       </button>

@@ -1,6 +1,5 @@
 import type { ReactElement } from 'react';
 import { COMPARE } from '../../data/site';
-import { Link } from '../../router';
 
 /**
  * Not a row of tiles. The three alternatives are a ledger of hairline rows,
@@ -55,9 +54,6 @@ export function WhyPage(): ReactElement {
                 <p className="kicker">What&rsquo;s different</p>
                 <p>{us.bad}</p>
               </div>
-              <Link to="/how" className="btn btn-light">
-                Try one night
-              </Link>
             </div>
           </div>
         </section>

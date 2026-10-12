@@ -1,8 +1,8 @@
 import type { CSSProperties, ReactElement } from 'react';
 import type { ScreenProps } from '../components/Phone';
 import type { Trend } from '../types';
-import { FILM, TRENDS } from '../data/content';
-import { monthSoFar, nextMonthFirst } from '../lib/date';
+import { TRENDS, WRAPPED } from '../data/content';
+import { monthSoFar } from '../lib/date';
 
 const W = 64;
 const H = 24;
@@ -39,8 +39,11 @@ export function Patterns(_props: ScreenProps): ReactElement {
   return (
     <div className="v pad">
       <div>
-        <p className="k">{monthSoFar()} &middot; 22 entries</p>
+        <p className="k">{monthSoFar()} &middot; 22 fictional entries</p>
         <h2 style={{ marginTop: 6 }}>Your patterns</h2>
+        <p className="muted">
+          Fictional sample patterns and Quarterly Wrapped. These do not analyze your entry.
+        </p>
       </div>
 
       <div className="tr">
@@ -60,21 +63,23 @@ export function Patterns(_props: ScreenProps): ReactElement {
         way.&rdquo;
       </p>
 
-      <p className="k">Life Film</p>
+      <p className="k">Quarterly Wrapped</p>
       <div className="film">
-        {FILM.map((f) => (
-          <div
-            key={f.month}
-            className={f.grad ? 'frame' : 'frame blank'}
-            style={f.grad ? ({ '--g': f.grad } as CSSProperties) : undefined}
-          >
-            <span className="k">{f.month}</span>
-            <p>{f.text}</p>
+        {WRAPPED.map((w) => (
+          <div className="qcard" key={w.quarter} style={{ '--g': w.grad } as CSSProperties}>
+            <span className="k">{w.quarter}</span>
+            <div>
+              <p className="qtheme">{w.topTheme}</p>
+              <p className="qcount">{w.topThemeCount}</p>
+            </div>
+            <p className="qnums">
+              {w.entries} entries &middot; {w.steps} steps
+            </p>
           </div>
         ))}
       </div>
       <p className="fine" style={{ opacity: 0.6 }}>
-        {nextMonthFirst()}
+        This quarter is totalled up when it ends.
       </p>
     </div>
   );

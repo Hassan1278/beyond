@@ -39,6 +39,11 @@ export interface LetterRequestBody {
   tomorrow?: string;
   /** Delivery time the person chose, e.g. "07:30". */
   time?: string;
+  /**
+   * Themes the person popped on the theme map. They asked not to be brought
+   * back to these, and a letter that raises one anyway breaks that promise.
+   */
+  avoid?: string[];
 }
 
 export interface LetterResponse {
@@ -49,6 +54,7 @@ export interface LetterResponse {
 const MODEL = process.env.BEYOND_MODEL || 'claude-opus-5-5';
 const EFFORT = (process.env.BEYOND_EFFORT || 'low') as 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 const MAX_ENTRY_CHARS = 6000;
+const MAX_BODY_BYTES = 128000;
 
 export const isConfigured = (): boolean => Boolean(process.env.ANTHROPIC_API_KEY);
 
@@ -124,6 +130,14 @@ function buildPrompt(b: LetterRequestBody): string {
       `"${b.correction.slice(0, 600).trim()}"`,
     );
   }
+  if (b.avoid?.length) {
+    parts.push(
+      '',
+      'They have asked Beyond to stop bringing these up. Do not raise them, do not ' +
+        'allude to them, and do not make the step about them:',
+      ...b.avoid.map((t) => `- ${t}`),
+    );
+  }
   parts.push(
     '',
     `The letter arrives ${b.tomorrow ?? 'this morning'} at ${b.time ?? '07:30'}. Write it now.`,
@@ -150,7 +164,7 @@ export async function writeLetter(b: LetterRequestBody): Promise<LetterResponse>
     sign: z.string().describe('Short sign-off. Empty string for the plain diary voice.'),
   });
 
-  const client = new Anthropic();
+  const client = new Anthropic({ timeout: 50_000, maxRetries: 0 });
 
   const message = await client.messages.parse({
     model: MODEL,
@@ -185,42 +199,146 @@ export async function writeLetter(b: LetterRequestBody): Promise<LetterResponse>
 
 /* ------------------------------------------------------------ http plumbing */
 
-type Req = IncomingMessage & { body?: unknown };
+export type Req = IncomingMessage & { body?: unknown };
 
-const json = (res: ServerResponse, status: number, body: unknown): void => {
+export const json = (res: ServerResponse, status: number, body: unknown): void => {
   res.statusCode = status;
   res.setHeader('content-type', 'application/json; charset=utf-8');
   res.setHeader('cache-control', 'no-store');
   res.end(JSON.stringify(body));
 };
 
-async function readBody(req: Req): Promise<unknown> {
+export class BodyFailure extends Error {
+  constructor(public readonly status: number) {
+    super('invalid request body');
+  }
+}
+
+export async function readBody(req: Req, timeoutMs = 5000): Promise<unknown> {
+  const length = req.headers['content-length'];
+  if (typeof length === 'string' && (!/^\d+$/.test(length) || Number(length) > MAX_BODY_BYTES))
+    throw new BodyFailure(413);
   if (req.body !== undefined && req.body !== null) {
-    if (typeof req.body !== 'string') return req.body;
     try {
-      return JSON.parse(req.body);
-    } catch {
-      return null;
+      const raw = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      if (Buffer.byteLength(raw, 'utf8') > MAX_BODY_BYTES) throw new BodyFailure(413);
+      return JSON.parse(raw);
+    } catch (error) {
+      if (error instanceof BodyFailure) throw error;
+      throw new BodyFailure(
+        typeof req.body === 'string' && Buffer.byteLength(req.body) > MAX_BODY_BYTES ? 413 : 400,
+      );
     }
   }
   const chunks: Buffer[] = [];
-  for await (const chunk of req) chunks.push(chunk as Buffer);
-  const raw = Buffer.concat(chunks).toString('utf8');
-  if (!raw) return null;
+  let bytes = 0;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new BodyFailure(408)), timeoutMs);
+  });
+  const iterator = req.iterator({ destroyOnReturn: false });
   try {
+    while (true) {
+      const { value, done } = await Promise.race([iterator.next(), deadline]);
+      if (done) break;
+      const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value);
+      bytes += chunk.byteLength;
+      if (bytes > MAX_BODY_BYTES) throw new BodyFailure(413);
+      chunks.push(chunk);
+    }
+    const raw = Buffer.concat(chunks).toString('utf8');
+    if (!raw) throw new BodyFailure(400);
     return JSON.parse(raw);
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof BodyFailure) throw error;
+    throw new BodyFailure(400);
+  } finally {
+    clearTimeout(timer);
+    // Do not await an unfinished stream or destroy the outgoing error response.
+    void iterator.return?.().catch(() => undefined);
+  }
+}
+
+/** Apply the same byte bound and total deadline in Web API serverless adapters. */
+export async function readWebBody(req: Request, timeoutMs = 5000): Promise<unknown> {
+  const length = req.headers.get('content-length');
+  if (length !== null && (!/^\d+$/.test(length) || Number(length) > MAX_BODY_BYTES))
+    throw new BodyFailure(413);
+  if (!req.body) throw new BodyFailure(400);
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new BodyFailure(408)), timeoutMs);
+  });
+  try {
+    while (true) {
+      const { value, done } = await Promise.race([reader.read(), deadline]);
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > MAX_BODY_BYTES) throw new BodyFailure(413);
+      chunks.push(value);
+    }
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } catch (error) {
+    if (error instanceof BodyFailure) throw error;
+    throw new BodyFailure(400);
+  } finally {
+    clearTimeout(timer);
+    void reader.cancel().catch(() => undefined);
   }
 }
 
 export function validate(input: unknown): LetterRequestBody | string {
-  if (typeof input !== 'object' || input === null) return 'expected a JSON body';
+  if (typeof input !== 'object' || input === null || Array.isArray(input))
+    return 'expected a JSON body';
   const b = input as Record<string, unknown>;
+  if (
+    Object.keys(b).some(
+      (key) =>
+        ![
+          'entry',
+          'voice',
+          'memories',
+          'correction',
+          'today',
+          'tomorrow',
+          'time',
+          'avoid',
+        ].includes(key),
+    )
+  )
+    return 'unexpected request field';
   if (typeof b.entry !== 'string' || b.entry.trim().length < 10)
     return 'entry must be at least 10 characters';
+  if (b.entry.length > MAX_ENTRY_CHARS) return 'entry must be at most 6000 characters';
   if (typeof b.voice !== 'string' || !VOICE_IDS.includes(b.voice as VoiceId))
     return `voice must be one of ${VOICE_IDS.join(', ')}`;
+  if (
+    b.memories !== undefined &&
+    (!Array.isArray(b.memories) ||
+      b.memories.length > 20 ||
+      b.memories.some((m) => typeof m !== 'string' || m.length > 2000))
+  )
+    return 'memories must contain at most 20 lines of at most 2000 characters';
+  for (const [key, max] of [
+    ['correction', 600],
+    ['today', 40],
+    ['tomorrow', 40],
+  ] as const) {
+    if (b[key] !== undefined && (typeof b[key] !== 'string' || b[key].length > max))
+      return `${key} has an invalid type or length`;
+  }
+  if (b.time !== undefined && !['07:00', '07:30', '08:00'].includes(b.time as string))
+    return 'invalid letter time';
+  if (
+    b.avoid !== undefined &&
+    (!Array.isArray(b.avoid) ||
+      b.avoid.length > 10 ||
+      b.avoid.some((t) => typeof t !== 'string' || t.length > 60))
+  )
+    return 'invalid avoided themes';
   return {
     entry: b.entry,
     voice: b.voice as VoiceId,
@@ -231,19 +349,23 @@ export function validate(input: unknown): LetterRequestBody | string {
     today: typeof b.today === 'string' ? b.today.slice(0, 40) : undefined,
     tomorrow: typeof b.tomorrow === 'string' ? b.tomorrow.slice(0, 40) : undefined,
     time: typeof b.time === 'string' ? b.time.slice(0, 10) : undefined,
+    avoid: Array.isArray(b.avoid)
+      ? b.avoid.filter((t): t is string => typeof t === 'string').slice(0, 10)
+      : [],
   };
 }
 
 /**
- * Coarse per-instance throttle. The demo link is public during a pitch and the key
- * behind it is real money. Serverless instances are short-lived, so this is a speed
+ * Coarse per-instance throttle, shared with `/api/themes` because both spend
+ * from the same key. The demo link is public during a pitch and the key behind
+ * it is real money. Serverless instances are short-lived, so this is a speed
  * bump rather than a guarantee - set a spend limit on the key as well.
  */
 const HOUR = 3_600_000;
 const seen = new Map<string, number[]>();
 const LIMIT = Number(process.env.BEYOND_RATE_LIMIT || 30);
 
-function overLimit(ip: string): boolean {
+export function overLimit(ip: string): boolean {
   const now = Date.now();
   const hits = (seen.get(ip) ?? []).filter((t) => now - t < HOUR);
   hits.push(now);
@@ -252,6 +374,14 @@ function overLimit(ip: string): boolean {
     for (const [k, v] of seen) if (!v.some((t) => now - t < HOUR)) seen.delete(k);
   }
   return hits.length > LIMIT;
+}
+
+/** The caller's address, as well as a proxy chain lets us know it. */
+export function clientIp(req: Req): string {
+  const fwd = req.headers['x-forwarded-for'];
+  return (Array.isArray(fwd) ? fwd[0] : fwd || req.socket?.remoteAddress || 'unknown')
+    .split(',')[0]
+    .trim();
 }
 
 export default async function handler(req: Req, res: ServerResponse): Promise<void> {
@@ -266,13 +396,18 @@ export default async function handler(req: Req, res: ServerResponse): Promise<vo
     return json(res, 503, { error: 'no ANTHROPIC_API_KEY on this host' });
   }
 
-  const fwd = req.headers['x-forwarded-for'];
-  const ip = (Array.isArray(fwd) ? fwd[0] : fwd || req.socket?.remoteAddress || 'unknown')
-    .split(',')[0]
-    .trim();
-  if (overLimit(ip)) return json(res, 429, { error: 'too many letters from here this hour' });
+  if (overLimit(clientIp(req)))
+    return json(res, 429, { error: 'too many letters from here this hour' });
 
-  const parsed = validate(await readBody(req));
+  let body: unknown;
+  try {
+    body = await readBody(req);
+  } catch (error) {
+    return json(res, error instanceof BodyFailure ? error.status : 400, {
+      error: 'invalid request body',
+    });
+  }
+  const parsed = validate(body);
   if (typeof parsed === 'string') return json(res, 400, { error: parsed });
 
   try {
@@ -291,7 +426,7 @@ export default async function handler(req: Req, res: ServerResponse): Promise<vo
               : typeof (err as { status?: number }).status === 'number'
                 ? (err as { status: number }).status
                 : 500;
-    console.error('[beyond] letter failed', status, err instanceof Error ? err.message : err);
+    console.error('[beyond] letter unavailable', status);
     return json(res, status, { error: 'letter unavailable' });
   }
 }

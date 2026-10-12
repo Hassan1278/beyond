@@ -13,11 +13,39 @@ export const PAGES: SitePage[] = [
   { path: '/', nav: '', title: 'Beyond', time: '23:41' },
   { path: '/problem', nav: 'The problem', title: 'The Great Distraction', time: '00:14' },
   { path: '/how', nav: 'How it works', title: 'How Beyond works', time: '07:30' },
-  { path: '/patterns', nav: 'Patterns', title: 'Patterns and memory', time: '12:40' },
-  { path: '/why', nav: 'Why Beyond', title: 'Why Beyond', time: '16:20' },
-  { path: '/privacy', nav: 'Privacy', title: 'Privacy and limits', time: '21:05' },
-  { path: '/schools', nav: 'For schools', title: 'Beyond for schools and teams', time: '22:47' },
+  { path: '/why', nav: 'Why Beyond', title: 'Why Beyond', time: '12:40' },
+  { path: '/privacy', nav: 'Privacy', title: 'Privacy and limits', time: '16:20' },
+  {
+    path: '/institutions',
+    nav: 'For institutions',
+    title: 'Beyond for institutions',
+    time: '21:05',
+  },
+  { path: '/beta', nav: 'Join the beta', title: 'Join the beta', time: '22:47' },
 ];
+
+/**
+ * Who this is for, said plainly. The site used to explain what Beyond does
+ * without ever naming its reader; this block is the fix, and it is the one
+ * thing a skimmer should not be able to miss.
+ */
+export const WHO_FOR = {
+  lead: 'Beyond is for you if your phone has more say in your plans than you do.',
+  points: [
+    {
+      t: 'You are always a little behind',
+      s: 'Not because you are, but because the feed is built so that somebody always is further ahead.',
+    },
+    {
+      t: 'You want to understand yourself, not be diagnosed',
+      s: 'You are not in crisis. You just have no quiet place to work out what you actually think.',
+    },
+    {
+      t: 'You want a direction that is yours',
+      s: 'Not the one that trended this month. Something you would still choose with the apps closed.',
+    },
+  ],
+};
 
 /* ------------------------------------------------------------ the problem */
 
@@ -53,21 +81,27 @@ export const SURVEY_NOTE =
 export const BEATS = [
   {
     cls: 'b1',
-    when: '23:00 · Tonight',
+    when: 'Any time · The day',
     title: 'Say it the way it comes.',
-    body: 'Write or speak for 5–10 minutes. Beyond doesn’t reply, interrupt, or ask follow-up questions.',
+    body:
+      'Write or speak whenever it hits — on the bus, between classes, at 2am. Add as many ' +
+      'entries as you like. Beyond never replies, interrupts, or asks follow-up questions.',
   },
   {
     cls: 'b2',
     when: '02:00 · Overnight',
     title: 'Beyond reads between the nights.',
-    body: 'It reads tonight’s entry next to the memories you’ve let it keep, and finds what keeps coming back.',
+    body:
+      'It reads everything you wrote that day next to the memories you have let it keep, and ' +
+      'finds what keeps coming back.',
   },
   {
     cls: 'b3',
     when: '07:30 · Morning',
-    title: 'A letter, not a chat.',
-    body: 'Written in the voice you pick: what you said, what keeps returning, and one small step for today.',
+    title: 'One letter, not a feed.',
+    body:
+      'However many times you wrote, one letter arrives: what you said, what keeps returning, ' +
+      'and one small step for today.',
   },
 ];
 
@@ -104,20 +138,20 @@ export const COMPARE = [
 
 export const SAFEGUARDS = [
   {
-    title: 'Kept to a minimum',
-    body: 'Beyond stores only what your letters need. Sensitive entries are encrypted, and only you can read them.',
+    title: 'Browser storage in this demo',
+    body: 'Your entry, letter, correction, kept memories and live theme lines are saved in this browser. They are not encrypted or protected by an account. Use fictional content, especially on shared devices.',
   },
   {
     title: 'You see what goes to AI',
-    body: 'Before you submit, you can see exactly what will be sent to the model to write your letter.',
+    body: 'Scripted letters are the default. Open “What gets sent to AI” to review the current entry and context before choosing live AI.',
   },
   {
-    title: 'Delete anything',
-    body: 'An entry, a memory, or your whole account. Deleting is permanent.',
+    title: 'Clear this demo',
+    body: '“Delete everything” clears saved entry text, letters, corrections, memories and live theme lines from this browser. It cannot recall data already sent to a live provider. This prototype has no account to delete.',
   },
   {
     title: 'Not therapy',
-    body: 'Beyond doesn’t diagnose or treat anything. If an entry sounds urgent, it points you to people who can help right away, instead of waiting for morning.',
+    body: 'Beyond doesn’t diagnose or treat anything. A limited keyword check can show support contacts before sealing, but it can miss urgent entries. A morning letter is not emergency help.',
   },
 ];
 
@@ -126,13 +160,13 @@ export const CRISIS = [
   { label: '999', note: 'Emergency' },
 ];
 
-/* ---------------------------------------------------------------- schools */
+/* ----------------------------------------------------------- institutions */
 
-export const SCHOOLS = [
+export const INSTITUTIONS = [
   {
     big: 'Schools',
     title: 'Universities & high schools',
-    body: 'A daily reflection habit for students facing big choices about subjects, careers and who they want to be.',
+    body: 'A daily reflection habit for young people facing big choices about subjects, careers and who they want to be.',
   },
   {
     big: 'Teams',

@@ -3,7 +3,14 @@
  * node-style handler in `api/letter.ts` is reused through its exported pieces
  * rather than its http plumbing.
  */
-import { isConfigured, validate, writeLetter } from '../../api/letter.js';
+import {
+  BodyFailure,
+  isConfigured,
+  overLimit,
+  readWebBody,
+  validate,
+  writeLetter,
+} from '../../api/letter.js';
 
 const json = (status: number, body: unknown): Response =>
   new Response(JSON.stringify(body), {
@@ -21,12 +28,16 @@ export default async function handler(req: Request): Promise<Response> {
   }
   if (req.method !== 'POST') return json(405, { error: 'method not allowed' });
   if (!isConfigured()) return json(503, { error: 'no ANTHROPIC_API_KEY on this host' });
+  const ip = (req.headers.get('x-forwarded-for') || 'unknown').split(',')[0].trim();
+  if (overLimit(ip)) return json(429, { error: 'too many requests from here this hour' });
 
   let body: unknown = null;
   try {
-    body = await req.json();
-  } catch {
-    body = null;
+    body = await readWebBody(req);
+  } catch (error) {
+    return json(error instanceof BodyFailure ? error.status : 400, {
+      error: 'invalid request body',
+    });
   }
 
   const parsed = validate(body);
@@ -34,8 +45,8 @@ export default async function handler(req: Request): Promise<Response> {
 
   try {
     return json(200, await writeLetter(parsed));
-  } catch (err) {
-    console.error('[beyond] letter failed', err);
+  } catch {
+    console.error('[beyond] letter unavailable');
     return json(502, { error: 'letter unavailable' });
   }
 }

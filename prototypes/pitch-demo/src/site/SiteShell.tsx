@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { Link } from '../router';
 import { CREDIT, PAGES } from '../data/site';
+import { ThemePicker } from './ThemePicker';
 
 const toMin = (t: string): number => {
   const [h, m] = t.split(':').map(Number);
@@ -84,6 +85,7 @@ export function SiteShell({
               </Link>
             ))}
           </div>
+          <ThemePicker />
           <Clock time={time} />
           <Link to="/app" className="btn btn-light btn-sm">
             Open the app
@@ -100,9 +102,6 @@ export function SiteShell({
               <span className="label">Next</span>
               <Link to={next.path}>{next.title} &rarr;</Link>
             </span>
-            <Link to="/app" className="btn btn-ghost btn-sm">
-              Or open the app demo
-            </Link>
           </div>
         </section>
       )}

@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { applyTheme, readTheme } from './lib/theme';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/phone.css';
@@ -9,6 +10,10 @@ import './styles/site.css';
 import './styles/pages.css';
 import './styles/feed.css';
 import './styles/motion.css';
+import './styles/wrapped.css';
+import './styles/themes.css';
+
+applyTheme(readTheme());
 
 const root = document.getElementById('root');
 if (!root) throw new Error('#root is missing from index.html');
