@@ -163,7 +163,9 @@ CREATE TRIGGER entry_reflection_invalidation AFTER UPDATE OR DELETE ON public.jo
 CREATE FUNCTION private.invalidate_memory_context() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE v_owner uuid; v_id uuid;
 BEGIN
- IF TG_TABLE_NAME='user_settings' AND TG_OP='UPDATE' AND NEW.memory_paused IS NOT DISTINCT FROM OLD.memory_paused THEN RETURN NULL; END IF;
+ IF TG_TABLE_NAME='user_settings' THEN
+  IF NEW.memory_paused IS NOT DISTINCT FROM OLD.memory_paused THEN RETURN NULL; END IF;
+ END IF;
  v_owner:=CASE WHEN TG_OP='DELETE' THEN OLD.owner_id ELSE NEW.owner_id END;
  -- Revoked/corrected approved context must never return through an in-flight job.
  DELETE FROM private.reflection_jobs WHERE owner_id=v_owner AND status<>'completed';

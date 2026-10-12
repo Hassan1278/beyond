@@ -34,14 +34,9 @@ SELECT is(
 
 SELECT is(public.api_schema_ready(), true, 'Writing schema readiness is true');
 SELECT is(
-  (SELECT count(*)
-   FROM pg_catalog.pg_class AS c
-   JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
-   WHERE n.nspname IN ('public', 'private')
-     AND c.relkind IN ('r', 'p')
-     AND c.relname ~* '(^|_)(ai|job|jobs|reflection|reflections)(_|$)'),
+  (SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname IN ('public','private') AND tablename ~ '(ai|job|reflection)' AND tablename NOT IN ('reflection_jobs','reflections')),
   0::bigint,
-  'Writing migration creates no AI, job, or reflection tables'
+  'Only the explicit backend reflection tables exist; no provider tables are created'
 );
 
 -- Clear the legacy claim so auth.uid() reads only the JSON claims below.
