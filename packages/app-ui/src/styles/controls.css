@@ -1,0 +1,43 @@
+/* New functional controls use the established app tokens and field treatment. */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+}
+.auth-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.auth-form input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--night-line);
+  border-radius: 10px;
+  background: var(--night-2);
+  color: var(--paper);
+  font: 15px var(--f-display);
+}
+.app-notice {
+  position: fixed;
+  bottom: 78px;
+  left: 16px;
+  right: 16px;
+  z-index: 30;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--night-2);
+  color: var(--paper);
+  border: 1px solid var(--night-line);
+}
+.entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.entry-actions {
+  display: flex;
+  gap: 8px;
+}

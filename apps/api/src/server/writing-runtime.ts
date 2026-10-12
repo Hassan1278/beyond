@@ -6,7 +6,7 @@ import { createWritingHandler } from './writing';
 
 export async function handleWritingRequest(request: Request, id?: string): Promise<Response> {
   try {
-    return await createWritingHandler(loadWritingConfig())(request, id);
+    return await createWritingHandler(loadWritingConfig(), fetch, true)(request, id);
   } catch {
     const response = errorResponse('not_ready');
     response.headers.set(

@@ -45,11 +45,12 @@ SELECT is(
 );
 
 -- Clear the legacy claim so auth.uid() reads only the JSON claims below.
+INSERT INTO auth.sessions(id,user_id) SELECT id,id FROM auth.users WHERE id IN ('11111111-1111-4111-8111-111111111111'::uuid,'22222222-2222-4222-8222-222222222222'::uuid);
 SELECT set_config('request.jwt.claim.sub', '', true);
 SET LOCAL ROLE authenticated;
 SELECT set_config(
   'request.jwt.claims',
-  '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","user_metadata":{"status":"deleting"},"app_metadata":{"status":"deleting"}}',
+  '{"sub":"11111111-1111-4111-8111-111111111111","session_id":"11111111-1111-4111-8111-111111111111","role":"authenticated","user_metadata":{"status":"deleting"},"app_metadata":{"status":"deleting"}}',
   true
 );
 
@@ -305,7 +306,7 @@ SELECT ok(
 );
 
 SELECT set_config('request.jwt.claims',
-  '{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated","user_metadata":{"status":"deleting"}}', true);
+  '{"sub":"22222222-2222-4222-8222-222222222222","session_id":"22222222-2222-4222-8222-222222222222","role":"authenticated","user_metadata":{"status":"deleting"}}', true);
 SELECT is(
   (SELECT count(*) FROM public.journal_entries
    WHERE owner_id = '11111111-1111-4111-8111-111111111111'),
@@ -343,7 +344,7 @@ SELECT is((SELECT count(*) FROM public.journal_entries), 1::bigint,
   'Second user directly sees only the distinct owned entry');
 
 SELECT set_config('request.jwt.claims',
-  '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}', true);
+  '{"sub":"11111111-1111-4111-8111-111111111111","session_id":"11111111-1111-4111-8111-111111111111","role":"authenticated"}', true);
 SELECT is(
   (SELECT count(*) FROM public.journal_entries
    WHERE id = (SELECT (payload #>> '{entry,id}')::uuid FROM writing_rpc_results WHERE label = 'second_user')),
@@ -427,7 +428,7 @@ SELECT is(
 );
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims',
-  '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","user_metadata":{"status":"active"},"app_metadata":{"status":"active"}}', true);
+  '{"sub":"11111111-1111-4111-8111-111111111111","session_id":"11111111-1111-4111-8111-111111111111","role":"authenticated","user_metadata":{"status":"active"},"app_metadata":{"status":"active"}}', true);
 SELECT is((SELECT count(*) FROM public.journal_entries), 0::bigint,
   'Inactive profile sees no entries even when JWT metadata claims active');
 SELECT throws_ok(sql, 'P0001', 'forbidden', description)
@@ -455,7 +456,7 @@ SELECT is(
 );
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims',
-  '{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}', true);
+  '{"sub":"22222222-2222-4222-8222-222222222222","session_id":"22222222-2222-4222-8222-222222222222","role":"authenticated"}', true);
 SELECT is((SELECT count(*) FROM public.journal_entries), 0::bigint,
   'Deleted Auth identity cannot directly read entries');
 SELECT throws_ok(sql, 'P0001', 'forbidden', description)

@@ -80,12 +80,13 @@ function streamedRequest(chunks: readonly Uint8Array[], contentLength?: string):
   return request('POST', init);
 }
 
-function authenticatedFetch(result: unknown = entry, status = 200) {
-  return vi
+function authenticatedFetch(result: unknown = entry, status = 200, budget = false) {
+  const fetcher = vi
     .fn<typeof fetch>()
     .mockResolvedValueOnce(Response.json({ id: userId }))
-    .mockResolvedValueOnce(Response.json([{ id: userId, status: 'active' }]))
-    .mockResolvedValueOnce(Response.json(result, { status }));
+    .mockResolvedValueOnce(Response.json([{ id: userId, status: 'active' }]));
+  if (budget) fetcher.mockResolvedValueOnce(Response.json(true));
+  return fetcher.mockResolvedValueOnce(Response.json(result, { status }));
 }
 
 function cursor(value: unknown): string {
@@ -310,7 +311,7 @@ describe('writing CORS', () => {
     expect(fetcher).toHaveBeenCalledTimes(3);
   });
 
-  it('exposes only request ID for an allowed origin on success and errors, without credentials', async () => {
+  it('exposes request ID and retry timing for an allowed origin on success and errors, without credentials', async () => {
     const success = await createWritingHandler(config, authenticatedFetch())(request(), id);
     const failure = await createWritingHandler(
       config,
@@ -318,7 +319,9 @@ describe('writing CORS', () => {
     )(request('GET', { headers: { Authorization: 'Basic fictional' } }));
     for (const response of [success, failure]) {
       expect(response.headers.get('Access-Control-Allow-Origin')).toBe(origin);
-      expect(response.headers.get('Access-Control-Expose-Headers')).toBe('X-Request-Id');
+      expect(response.headers.get('Access-Control-Expose-Headers')).toBe(
+        'X-Request-Id, Retry-After',
+      );
       expect(response.headers.get('Access-Control-Allow-Credentials')).toBeNull();
       expect(response.headers.get('Vary')).toBe('Origin');
       expect(response.headers.get('Cache-Control')).toBe('no-store');
@@ -352,7 +355,9 @@ describe('writing CORS', () => {
         'authorization, content-type',
       );
       expect(response.headers.get('Access-Control-Allow-Credentials')).toBeNull();
-      expect(response.headers.get('Access-Control-Expose-Headers')).toBe('X-Request-Id');
+      expect(response.headers.get('Access-Control-Expose-Headers')).toBe(
+        'X-Request-Id, Retry-After',
+      );
       expect(response.headers.get('Cache-Control')).toBe('no-store');
       expect(response.headers.get('X-Request-Id')).toMatch(/^[0-9a-f-]{36}$/);
       expect(response.headers.get('Vary')).toBe(
@@ -1258,7 +1263,9 @@ describe('writing server-only wrapper and Next Node route wiring', () => {
     async (method) => {
       vi.mocked(loadWritingConfig).mockReturnValue(config);
       const result = method === 'POST' ? { entry, created: true } : [];
-      const fetcher = vi.spyOn(globalThis, 'fetch').mockImplementation(authenticatedFetch(result));
+      const fetcher = vi
+        .spyOn(globalThis, 'fetch')
+        .mockImplementation(authenticatedFetch(result, 200, true));
       const req =
         method === 'POST'
           ? jsonRequest(method, createBody)
@@ -1268,7 +1275,7 @@ describe('writing server-only wrapper and Next Node route wiring', () => {
       const response = await collectionRoute[method](req);
       expect(response.status).toBe(method === 'OPTIONS' ? 204 : 200);
       expect(loadWritingConfig).toHaveBeenCalledOnce();
-      expect(fetcher).toHaveBeenCalledTimes(method === 'OPTIONS' ? 0 : 3);
+      expect(fetcher).toHaveBeenCalledTimes(method === 'OPTIONS' ? 0 : 4);
       expect(collectionRoute.runtime).toBe('nodejs');
       expect(collectionRoute.dynamic).toBe('force-dynamic');
       expect(collectionRoute.revalidate).toBe(0);
@@ -1285,7 +1292,9 @@ describe('writing server-only wrapper and Next Node route wiring', () => {
           : method === 'PATCH'
             ? { ...entry, text: patchBody.text, revision: 2 }
             : entry;
-      const fetcher = vi.spyOn(globalThis, 'fetch').mockImplementation(authenticatedFetch(result));
+      const fetcher = vi
+        .spyOn(globalThis, 'fetch')
+        .mockImplementation(authenticatedFetch(result, 200, true));
       const req =
         method === 'PATCH'
           ? jsonRequest(method, patchBody)
@@ -1294,9 +1303,9 @@ describe('writing server-only wrapper and Next Node route wiring', () => {
             });
       const response = await itemRoute[method](req, { params: Promise.resolve({ id }) });
       expect(response.status).toBe(method === 'OPTIONS' ? 204 : 200);
-      expect(fetcher).toHaveBeenCalledTimes(method === 'OPTIONS' ? 0 : 3);
+      expect(fetcher).toHaveBeenCalledTimes(method === 'OPTIONS' ? 0 : 4);
       if (method !== 'OPTIONS') {
-        expect(fetcher.mock.calls[2]?.[1]?.body).toContain(`"p_id":"${id}"`);
+        expect(fetcher.mock.calls[3]?.[1]?.body).toContain(`"p_id":"${id}"`);
       } else {
         expect(response.headers.get('Access-Control-Allow-Methods')).toBe('GET, PATCH, DELETE');
       }

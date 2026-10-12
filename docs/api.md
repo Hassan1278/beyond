@@ -1,5 +1,7 @@
 # Writing API and draft future contract
 
+> Current combined implementation: [connected app milestone](connected-app.md). Its integration, reflection, session/privacy and setup contracts supersede historical milestone/deferred-status notes below. Earlier CI counts describe earlier commits; use the combined PR checks for current validation.
+
 Step001 (`93e473b`) is historical documentation-only architecture; step002 established health/configuration and shared input/tooling. **Step003 implements the writing routes and database contract below.** Future routes and AI behavior are explicitly marked planned. Frontends/legacy web backend placeholders remain untouched; `services/ai` is reserved for its owner.
 
 ## Transport and identity

@@ -35,7 +35,12 @@
     "check:deps": "npm ls --all",
     "db:start": "supabase start --exclude realtime,storage-api,imgproxy,studio,edge-runtime,logflare,vector,supavisor,postgres-meta",
     "db:stop": "supabase stop",
-    "db:test": "supabase test db"
+    "db:test": "supabase test db",
+    "lint:frontend": "npm run lint --workspace=@beyond/app-ui && npm run lint --workspace=@beyond/web && npm run lint --workspace=@beyond/mobile",
+    "typecheck:frontend": "npm run typecheck --workspace=@beyond/app-ui && npm run typecheck --workspace=@beyond/web && npm run typecheck --workspace=@beyond/mobile",
+    "test:frontend": "vitest run --project frontend",
+    "test:design": "node tests/frontend/design-smoke.mjs",
+    "test:palette": "node tests/frontend/contrast.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
@@ -46,7 +51,10 @@
     "supabase": "2.119.0",
     "typescript": "5.9.3",
     "typescript-eslint": "8.71.0",
-    "vitest": "5.0.3"
+    "vitest": "5.0.3",
+    "vite": "8.3.4",
+    "@vitejs/plugin-react": "6.1.2",
+    "jsdom": "30.1.2"
   },
   "overrides": {
     "@react-native/metro-config": "0.86.3",
