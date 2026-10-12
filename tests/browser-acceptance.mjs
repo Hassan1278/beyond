@@ -100,7 +100,8 @@ export async function runBrowserAcceptance({
         check(layout === 1, 'Product client did not retain the device shell.');
         await page.setViewportSize({ width: 1280, height: 900 });
         check(
-          (await page.locator('.presenter').count()) === 0,
+          (await page.locator('.phone.device').count()) === 1 &&
+            (await page.locator('body').getAttribute('data-mode')) === 'app',
           'Product switched into fictional presentation on resize.',
         );
         await page.setViewportSize({ width: 390, height: 844 });
@@ -159,11 +160,20 @@ export async function runBrowserAcceptance({
         .fill('Fictional unsaved owner A draft');
       await page.getByRole('button', { name: 'Close entry', exact: true }).click();
       await page.getByRole('button', { name: 'You', exact: true }).click();
-      const logout = page.waitForResponse(
-        (r) => r.url().includes('/auth/v1/logout') && r.request().method() === 'POST',
-      );
-      await page.getByRole('button', { name: 'Sign out', exact: true }).click();
-      await logout;
+      const control = page.getByRole('button', { name: 'Sign out', exact: true });
+      await control.scrollIntoViewIfNeeded();
+      const hittable = await control.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        const top = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+        return top !== null && element.contains(top);
+      });
+      check(hittable, 'Sign-out control is clipped or covered.');
+      await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/auth/v1/logout') && r.request().method() === 'POST',
+        ),
+        control.click(),
+      ]);
       await page.getByRole('button', { name: 'Step beyond', exact: true }).waitFor();
       const prior = first.token;
       try {

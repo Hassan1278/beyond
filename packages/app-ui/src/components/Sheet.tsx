@@ -27,7 +27,12 @@ export function Sheet({
             Your entries, approved memories, todos and preferences are saved in your private account
             through the product API.
           </p>
-          <p>No text is sent to AI. AI processing and voice transcription are not connected yet.</p>
+          <p>
+            {state.product.account?.capabilities.reflections
+              ? 'AI processes only entries you explicitly allow, with approved memory and past corrections unless memory is paused. It receives no database credentials.'
+              : 'No text is sent to AI. AI processing is not connected yet.'}{' '}
+            Voice transcription is not connected.
+          </p>
           <p>
             Journal text stays in memory in this app; it is not saved in browser storage. Your
             signed-in session is stored separately.

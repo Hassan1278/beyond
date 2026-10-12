@@ -200,7 +200,7 @@ BEGIN
  SELECT * INTO s FROM public.user_settings WHERE owner_id=j.owner_id;
  SELECT COALESCE(jsonb_agg(jsonb_build_object('id',m.id,'text',m.text)),'[]'::jsonb) INTO v_context FROM
  (SELECT id,text FROM public.approved_memories WHERE owner_id=j.owner_id AND deleted_at IS NULL AND NOT COALESCE(s.memory_paused,false) ORDER BY created_at DESC,id DESC LIMIT 20) m;
- SELECT COALESCE(jsonb_agg(jsonb_build_object('id',r.id,'text',r.correction)),'[]'::jsonb) INTO v_corrections FROM (SELECT id,correction FROM public.reflections WHERE owner_id=j.owner_id AND correction IS NOT NULL ORDER BY created_at DESC,id DESC LIMIT 5) r;
+ SELECT COALESCE(jsonb_agg(jsonb_build_object('id',r.id,'text',r.correction)),'[]'::jsonb) INTO v_corrections FROM (SELECT id,correction FROM public.reflections WHERE owner_id=j.owner_id AND correction IS NOT NULL AND NOT COALESCE(s.memory_paused,false) ORDER BY created_at DESC,id DESC LIMIT 5) r;
  RETURN jsonb_build_object('version',1,'request_id',j.id,'entry',jsonb_build_object('id',e.id,'revision',e.revision,'text',e.text),'voice',j.voice,'memories',v_context,'corrections',v_corrections);
 END;
 $$;

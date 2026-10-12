@@ -1203,7 +1203,10 @@ async function main() {
             (SELECT count(*) FROM public.user_settings WHERE owner_id IN (${ids})) +
             (SELECT count(*) FROM public.approved_memories WHERE owner_id IN (${ids})) +
             (SELECT count(*) FROM public.todos WHERE owner_id IN (${ids})) +
-            (SELECT count(*) FROM private.account_deletions WHERE user_id IN (${ids}));`),
+            (SELECT count(*) FROM private.account_deletions WHERE user_id IN (${ids})) +
+            (SELECT count(*) FROM private.reflection_jobs WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM public.reflections WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM private.api_request_budgets WHERE owner_id IN (${ids}));`),
             '0',
             'Captured fictional users and their rows must be removed.',
           );

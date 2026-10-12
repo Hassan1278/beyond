@@ -272,7 +272,7 @@ function ProductProvider({
         if (boot === epoch.current) accept(identity);
       })
       .catch(() => {
-        if (active) {
+        if (active && boot === epoch.current) {
           update(() => blank('signed_out'));
           notice('Please sign in again.');
         }
@@ -525,7 +525,15 @@ function ProductProvider({
         if (mode === 'recovery') {
           await runtime.auth.updatePassword(password);
           notice('Password updated.');
-          update((s) => ({ ...s, screen: 'home', product: { ...s.product!, authOpen: false } }));
+          update((s) => ({
+            ...s,
+            screen: 'home',
+            product: {
+              ...s.product!,
+              authOpen: false,
+              identity: s.product!.identity ? { ...s.product!.identity, recovery: false } : null,
+            },
+          }));
         }
       } catch {
         notice(

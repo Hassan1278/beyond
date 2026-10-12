@@ -31,7 +31,9 @@ export function Sealed({ state, live }: ScreenProps): ReactElement {
                 className="pb light sm"
                 onClick={() => void requestReflection()}
               >
-                Allow this entry and approved memory to be used for a morning letter
+                {state.paused
+                  ? 'Allow only this entry for a morning letter'
+                  : 'Allow this entry, approved memory and past corrections for a morning letter'}
               </button>
               <button
                 type="button"

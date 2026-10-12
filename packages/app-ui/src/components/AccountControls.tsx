@@ -21,7 +21,7 @@ export function AccountControls() {
   const [busy, setBusy] = useState(false);
   const product = state.product!;
   return (
-    <div className="v pad">
+    <div className="v pad account-controls">
       <h2>What Beyond remembers</h2>
       <p className="muted">Only memories you approve are saved in your account.</p>
       <button

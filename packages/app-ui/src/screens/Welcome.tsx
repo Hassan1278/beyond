@@ -31,6 +31,11 @@ export function Welcome({ state, live }: ScreenProps): ReactElement {
             Step beyond
           </button>
         )}
+        {state.product?.notice && !state.product.authOpen && (
+          <p className="fine" role="status">
+            {state.product.notice}
+          </p>
+        )}
         {state.product?.status === 'setup' && (
           <p className="fine">Account connection is not configured on this host yet.</p>
         )}
