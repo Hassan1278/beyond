@@ -52,3 +52,42 @@
 .app-notice {
   pointer-events: none;
 }
+
+/* Welcome stays bottom-anchored, but scrolls instead of clipping its top when the
+   sign-in form is taller than the screen (small phones, open keyboard, notices). */
+.v-welcome {
+  overflow: visible;
+  justify-content: flex-start;
+}
+.v-welcome .w-body {
+  margin-top: auto;
+}
+.v-welcome .wn {
+  overflow: hidden;
+}
+
+/* Sits above the welcome screen instead of below the full-height app. */
+.app-retry {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  translate: -50% 0;
+  width: min(320px, calc(100% - 48px));
+  z-index: 31;
+}
+
+/* The real app on a laptop or tablet: keep the phone-width design centred on the
+   dark table instead of stretching every screen across the window. */
+@media (min-width: 821px) {
+  .phone.device {
+    max-width: 440px;
+    margin-inline: auto;
+    box-shadow: 0 0 0 1px var(--night-line);
+  }
+  .app-notice {
+    left: 50%;
+    right: auto;
+    width: min(408px, calc(100% - 32px));
+    translate: -50% 0;
+  }
+}
