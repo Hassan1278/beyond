@@ -1,6 +1,6 @@
 # Working in Beyond
 
-Hassan explicitly authorized completing the non-AI backend, integrating the designed frontend with Supabase, splitting the pitch frontend into existing web/mobile folders, preserving its design, committing/pushing feature work and creating one combined pull request. The current branch combines main's frontend and the verified private-backend branch. No automatic merge, force push, hosted database/account mutation, deployment or native release is authorized.
+Hassan explicitly authorized completing the non-AI backend, integrating the designed frontend with Supabase, splitting the pitch frontend into existing web/mobile folders, preserving its design, committing/pushing feature work and creating one combined pull request. That integration was merged through PR5. He subsequently selected the Beyond Supabase organization, connected Supabase/Vercel and authorized cloud setup, deployment and continued repository work. The current feature work prepares cloud deployment from the merged main branch. Continue normal setup/deployment in the selected project within this authorization. Do not force-push, reset a database, delete a project or modify unrelated resources. Native registration/store release and the AI implementation remain separate work.
 
 Read README, architecture, current API and `docs/connected-app.md` before editing. Current documentation supersedes historical milestone notes in the backend change log.
 

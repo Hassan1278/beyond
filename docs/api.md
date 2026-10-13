@@ -13,12 +13,12 @@ The connected web/mobile app uses this writing contract. See [product API](produ
 
 ## Implemented health routes
 
-| Method | Path                | Behavior                                                                                         |
-| ------ | ------------------- | ------------------------------------------------------------------------------------------------ |
-| GET    | `/api/health/live`  | Dependency-free public `200` with `{ data: { status: 'alive' } }`                                |
-| GET    | `/api/health/ready` | Valid writing config + actual `api_schema_ready` RPC boolean `true`: `200`; otherwise safe `503` |
+| Method | Path                | Behavior                                                                                            |
+| ------ | ------------------- | --------------------------------------------------------------------------------------------------- |
+| GET    | `/api/health/live`  | Dependency-free public `200` with `{ data: { status: 'alive' } }`                                   |
+| GET    | `/api/health/ready` | Valid writing config + matching `api_release_ready` RPC boolean `true`: `200`; otherwise safe `503` |
 
-Readiness POSTs `{}` to `/rest/v1/rpc/api_schema_ready` using the publishable key with a 1500 ms deadline. The real SQL RPC checks required database catalogs/schema primitives; configured readiness `200` has been tested. Both routes use no-store/request IDs and expose no schema details, secrets or user content. Catalog checks cover writing, product, session and reflection permissions. AI health/credentials are not a writing/readiness prerequisite.
+Readiness POSTs `{"p_release":"connected-text-v1"}` to `/rest/v1/rpc/api_release_ready` using the publishable key with a 1500 ms deadline. This RPC is installed after the release's required migrations and delegates to the full `api_schema_ready()` catalog checks. An older schema may pass its original gate but lacks the release RPC and therefore returns safe503 through this API. Both routes use no-store/request IDs and expose no schema details, secrets or user content. Catalog checks cover writing, product, session and reflection permissions. AI health/credentials are not a writing/readiness prerequisite. Future incompatible database requirements must use a new release marker installed after their migrations.
 
 ## Implemented writing routes
 

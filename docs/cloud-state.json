@@ -1,0 +1,94 @@
+{
+  "recorded_on": "2026-10-13",
+  "production_ready": false,
+  "bootstrap_source_commit": "ef20fc36e1b314eee10b72f6abb641020b994795",
+  "required_api_release": "connected-text-v1",
+  "supabase": {
+    "organization_id": "bxykxzncygzwhfjsgrtj",
+    "project_id": "wrjlpfnotylrdewvgsgn",
+    "name": "beyond",
+    "region": "ap-southeast-1",
+    "organization_name": "Beyond",
+    "plan": "free",
+    "api_url": "https://wrjlpfnotylrdewvgsgn.supabase.co",
+    "status": "migrations_incomplete",
+    "migration_error": {
+      "name": "account_cleanup",
+      "code": "invalid_request_state",
+      "message": "Invalid or expired requestState"
+    },
+    "history_aligned_to_repository": false
+  },
+  "vercel": {
+    "team_id": "team_02QQnFeHIwIzAX4DT6bzSAEa",
+    "status": "team_access_forbidden",
+    "team_slug": "smigmi1278-9965",
+    "web_project_id": null,
+    "api_project_id": null
+  },
+  "migrations": [
+    {
+      "path": "supabase/migrations/20261009150000_writing.sql",
+      "version": "20261009150000",
+      "name": "writing",
+      "sha256": "9ae8c3bd5b079d54a963c164791aa0f2b7a5c1b71ea7ce0599f5c4dc43816817",
+      "applied_cloud_version": "20261013072835"
+    },
+    {
+      "path": "supabase/migrations/20261010000000_private_product.sql",
+      "version": "20261010000000",
+      "name": "private_product",
+      "sha256": "56541d1ddb404bc73a8c6c522c825362544dbc423fbfe9b76cbb9594333d25ca",
+      "applied_cloud_version": "20261013072844"
+    },
+    {
+      "path": "supabase/migrations/20261010010000_account_cleanup.sql",
+      "version": "20261010010000",
+      "name": "account_cleanup",
+      "sha256": "e397a67f487c34ce905cb4c9f984cfb1b2bdb1c5dca956e2cd83b494d1c5e477",
+      "applied_cloud_version": null
+    },
+    {
+      "path": "supabase/migrations/20261010020000_product_readiness.sql",
+      "version": "20261010020000",
+      "name": "product_readiness",
+      "sha256": "fa15c79fe637710766b9d8b6e39bccf1ac34a0ee7f51cbfd21c31e117bb5a53b",
+      "applied_cloud_version": null
+    },
+    {
+      "path": "supabase/migrations/20261010030000_memory_edits_exports.sql",
+      "version": "20261010030000",
+      "name": "memory_edits_exports",
+      "sha256": "bcf8e4a50b1c6e73d4e9a2b3ea0d9cdc95e4901a23a3fe4d1a3fa407274a585d",
+      "applied_cloud_version": null
+    },
+    {
+      "path": "supabase/migrations/20261012120000_connected_account.sql",
+      "version": "20261012120000",
+      "name": "connected_account",
+      "sha256": "b814deac521709838ba010676f78652220ec8d8bccd18f331de11f6150463450",
+      "applied_cloud_version": null
+    },
+    {
+      "path": "supabase/migrations/20261012121000_session_revocation.sql",
+      "version": "20261012121000",
+      "name": "session_revocation",
+      "sha256": "f933b3fae34ad174be641c0bbb08b4505e4ceeaaff3bc5e5b2fa0aa1c4553ab4",
+      "applied_cloud_version": null
+    },
+    {
+      "path": "supabase/migrations/20261012130000_reflection_workflow.sql",
+      "version": "20261012130000",
+      "name": "reflection_workflow",
+      "sha256": "96ce7e716df762b59325a40726b1e64be58a1b3758112021f3863a9fdfa0d53b",
+      "applied_cloud_version": null
+    },
+    {
+      "path": "supabase/migrations/20261013101058_deployment_readiness.sql",
+      "version": "20261013101058",
+      "name": "deployment_readiness",
+      "sha256": "8ae8ea283d2abb7e7fd1763eebb3fecd508bd3a0d4cdc98c05dd2a574fd9fb67",
+      "applied_cloud_version": null
+    }
+  ]
+}

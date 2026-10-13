@@ -47,14 +47,14 @@ describe('checkWritingReadiness (unit fixtures, not live database acceptance)', 
     expect(await checkWritingReadiness(() => config, fetcher)).toBe(true);
     expect(timeout).toHaveBeenCalledExactlyOnceWith(1500);
     expect(fetcher).toHaveBeenCalledExactlyOnceWith(
-      'https://database.example.test/rest/v1/rpc/api_schema_ready',
+      'https://database.example.test/rest/v1/rpc/api_release_ready',
       {
         method: 'POST',
         headers: {
           apikey: config.supabasePublishableKey,
           'Content-Type': 'application/json',
         },
-        body: '{}',
+        body: JSON.stringify({ p_release: 'connected-text-v1' }),
         cache: 'no-store',
         redirect: 'error',
         signal: expect.any(AbortSignal),
@@ -79,12 +79,16 @@ describe('checkWritingReadiness (unit fixtures, not live database acceptance)', 
     expect(fetcher).toHaveBeenCalledOnce();
   });
 
-  it('fails closed when the required schema RPC migration is absent', async () => {
+  it('fails closed on an older schema even when its original readiness RPC returns true', async () => {
     const response = Response.json(
       { code: 'PGRST202', message: 'Fictional missing schema RPC detail.' },
       { status: 404 },
     );
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(response);
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async (input) =>
+        String(input).endsWith('/rpc/api_release_ready') ? response : Response.json(true),
+      );
     const json = vi.spyOn(response, 'json');
 
     expect(await checkWritingReadiness(() => config, fetcher)).toBe(false);
