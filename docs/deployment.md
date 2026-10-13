@@ -2,18 +2,18 @@
 
 ## Hosted resources
 
-| Piece             | Where                                                                                             | Status                                  |
-| ----------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| Database + Auth   | Supabase org **Beyond**, project `beyond` (ref `wrjlpfnotylrdewvgsgn`, Singapore, Postgres 17)    | 2 of 9 migrations applied; rest pending |
-| Product API       | Vercel team `smigmi1278-9965`, project `beyond-api`, Root Directory `backend/api`, region `sin1`  | Not created yet                         |
-| Website + web app | Vercel team `smigmi1278-9965`, project `beyond-web`, Root Directory `frontend/web`, region `sin1` | Not created yet                         |
-| AI letter service | `ai/`, see [AI service](ai-service.md)                                                            | Not built                               |
+| Piece             | Where                                                                                             | Status                                           |
+| ----------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Database + Auth   | Supabase org **Beyond**, project `beyond` (ref `wrjlpfnotylrdewvgsgn`, Singapore, Postgres 17)    | All 10 migrations applied; readiness gate passes |
+| Product API       | Vercel team `smigmi1278-9965`, project `beyond-api`, Root Directory `backend/api`, region `sin1`  | Created; `https://beyond-api-three.vercel.app`   |
+| Website + web app | Vercel team `smigmi1278-9965`, project `beyond-web`, Root Directory `frontend/web`, region `sin1` | Created; `https://beyond-web-wheat.vercel.app`   |
+| AI letter service | `ai/`, see [AI service](ai-service.md)                                                            | Not built                                        |
 
 Supabase URL: `https://wrjlpfnotylrdewvgsgn.supabase.co`. Only the publishable key (`sb_publishable_…`) ever goes to the API's normal routes or to clients.
 
 ## Database
 
-Apply migrations in filename order, once each. The two already applied were recorded by the Supabase connector under different version numbers (`20261013072835` = `writing`, `20261013072844` = `private_product`), with identical SQL. A single-transaction script that applies the remaining seven and aligns those two records is the recommended path when the connector's approval prompt is unavailable. Afterwards `supabase db push` / the Supabase GitHub integration see a history that matches `supabase/migrations/`.
+Apply migrations in filename order, once each, with `supabase db push` or the Supabase GitHub integration; the hosted migration history matches `supabase/migrations/`. Never edit an applied migration.
 
 After applying, verify with the Supabase security and performance advisors, and check that `GET /api/health/ready` on the API returns `200`. It returns `503` until the `connected-text-v1` release marker exists.
 
@@ -30,14 +30,14 @@ Pushes to `main` deploy to production; pull requests get previews. Previews shar
 
 ### Environment variables
 
-| Project      | Variable                               | Value                                                                                      |
-| ------------ | -------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `beyond-api` | `SUPABASE_URL`                         | `https://wrjlpfnotylrdewvgsgn.supabase.co`                                                 |
-|              | `SUPABASE_PUBLISHABLE_KEY`             | the project's `sb_publishable_…` key                                                       |
-|              | `CORS_ALLOWED_ORIGINS`                 | the web production origin, e.g. `https://beyond-web.vercel.app` (exact, no trailing slash) |
-| `beyond-web` | `NEXT_PUBLIC_SUPABASE_URL`             | same Supabase URL                                                                          |
-|              | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | same publishable key                                                                       |
-|              | `NEXT_PUBLIC_API_URL`                  | the API production origin, e.g. `https://beyond-api.vercel.app`                            |
+| Project      | Variable                               | Value                                                                                       |
+| ------------ | -------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `beyond-api` | `SUPABASE_URL`                         | `https://wrjlpfnotylrdewvgsgn.supabase.co`                                                  |
+|              | `SUPABASE_PUBLISHABLE_KEY`             | the project's `sb_publishable_…` key                                                        |
+|              | `CORS_ALLOWED_ORIGINS`                 | the web production origin, `https://beyond-web-wheat.vercel.app` (exact, no trailing slash) |
+| `beyond-web` | `NEXT_PUBLIC_SUPABASE_URL`             | same Supabase URL                                                                           |
+|              | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | same publishable key                                                                        |
+|              | `NEXT_PUBLIC_API_URL`                  | the API production origin, `https://beyond-api-three.vercel.app`                            |
 
 `NEXT_PUBLIC_*` values are baked in at build time, so redeploy the web project after changing them.
 

@@ -39,6 +39,7 @@ Apply in filename order. The API refuses to report ready until the latest releas
 | `20261012121000_session_revocation.sql`   | Live-session gate in RLS and RPCs          |
 | `20261012130000_reflection_workflow.sql`  | Reflection consent, jobs, letters, actions |
 | `20261013101058_deployment_readiness.sql` | Release marker and memory-source index     |
+| `20261013120000_owner_indexes.sql`        | Owner indexes for letters and letter jobs  |
 
 New schema work: add a new migration with a later timestamp, add pgTAP coverage in `supabase/tests/`, and if the API depends on it, add a new release marker and point `backend/api/src/server/health-check.ts` at it.
 
