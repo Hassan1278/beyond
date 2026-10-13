@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { runBrowserAcceptance } from './browser-acceptance.mjs';
+import { runProductAcceptance } from './product-acceptance.mjs';
 import { execFileSync, spawn } from 'node:child_process';
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
@@ -18,6 +20,7 @@ const deniedOrigin = 'http://127.0.0.1:3001';
 const container = 'supabase_db_beyond';
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
+const accountTriggerSecret = randomBytes(32).toString('hex');
 const capturedUsers = new Map();
 const removedUserIds = new Set();
 const capturedEntries = new Map();
@@ -243,6 +246,8 @@ function json(method, body, headers = {}) {
 }
 
 function statusIs(result, expected, errorCode) {
+  if (result.response.status !== expected)
+    console.error(`HTTP assertion: expected ${expected}, received ${result.response.status}.`);
   assert.equal(result.response.status, expected, 'Unexpected HTTP status.');
   if (errorCode !== undefined) {
     check(result.body?.error?.code === errorCode, 'Unexpected safe API error code.');
@@ -316,7 +321,7 @@ async function createUser(label, runId) {
   check(result.response.ok, 'Fictional local user creation failed.');
   const id = validUuid(result.body?.id);
   check(!capturedUsers.has(id), 'Auth returned a duplicate test user.');
-  const user = { id, token: undefined };
+  const user = { id, token: undefined, email, password };
   // Capture immediately, before email/login assertions, for failure cleanup.
   capturedUsers.set(id, user);
   check(result.body.email === email, 'Auth did not return the requested fictional email.');
@@ -385,6 +390,9 @@ function startServer() {
     SUPABASE_PUBLISHABLE_KEY: publishableKey,
     CORS_ALLOWED_ORIGINS: allowedOrigin,
     AI_SERVICE_URL: 'http://127.0.0.1:59999',
+    ACCOUNT_DELETION_ENABLED: 'true',
+    SUPABASE_SECRET_KEY: adminKey,
+    ACCOUNT_JOB_TRIGGER_SECRET: accountTriggerSecret,
   });
   server = spawn(
     process.execPath,
@@ -552,6 +560,9 @@ async function main() {
         const now = Math.floor(Date.now() / 1000);
         const claims = {
           sub: first.id,
+          session_id: JSON.parse(
+            Buffer.from(first.token.split('.')[1], 'base64url').toString('utf8'),
+          ).session_id,
           role: 'authenticated',
           aud: 'authenticated',
           iss: `${supabaseUrl}/auth/v1`,
@@ -566,8 +577,8 @@ async function main() {
           'unauthorized',
         );
         if (hasLegacySecret) {
-          const sign = (exp) => {
-            const data = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ ...claims, exp })}`;
+          const sign = (exp, amr) => {
+            const data = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ ...claims, exp, ...(amr ? { amr } : {}) })}`;
             return `${data}.${createHmac('sha256', status.JWT_SECRET).update(data).digest('base64url')}`;
           };
           // A fresh control proves this local legacy key is accepted before expiry is tested.
@@ -583,6 +594,45 @@ async function main() {
             }),
             401,
             'unauthorized',
+          );
+          const fresh = sign(now + 600, [{ method: 'password', timestamp: now }]);
+          const old = sign(now + 600, [{ method: 'password', timestamp: now - 600 }]);
+          statusIs(
+            await api('/api/v1/account/export?section=settings', undefined, {
+              headers: { Authorization: `Bearer ${fresh}` },
+            }),
+            200,
+          );
+          // A currently valid signed JWT with an old sign-in must fail after fresh Auth verification.
+          statusIs(
+            await api('/api/v1/account/export?section=settings', undefined, {
+              headers: { Authorization: `Bearer ${old}` },
+            }),
+            403,
+            'forbidden',
+          );
+          const params = {
+            p_section: 'settings',
+            p_limit: null,
+            p_before_created_at: null,
+            p_before_id: null,
+          };
+          statusIs(
+            await rest(
+              first,
+              '/rpc/account_export_page',
+              json('POST', params, { Authorization: `Bearer ${fresh}` }),
+            ),
+            200,
+          );
+          rpcFailure(
+            await rest(
+              first,
+              '/rpc/account_export_page',
+              json('POST', params, { Authorization: `Bearer ${old}` }),
+            ),
+            400,
+            'forbidden',
           );
         }
       },
@@ -1056,6 +1106,35 @@ async function main() {
       statusIs(await api(`${collection}/not-a-uuid`, first), 400, 'bad_request');
     });
 
+    if (process.env.TEST_CONNECTED_BROWSER === 'true')
+      await runBrowserAcceptance({
+        root,
+        group,
+        check,
+        createUser,
+        randomUUID,
+        api,
+        rest,
+        json,
+        statusIs,
+      });
+
+    await runProductAcceptance({
+      api,
+      rest,
+      sql,
+      json,
+      statusIs,
+      check,
+      same,
+      group,
+      first,
+      second,
+      createUser,
+      randomUUID,
+      triggerSecret: accountTriggerSecret,
+    });
+
     await group(
       'deleting profile blocks native bearer with 403 and direct RPC with P0001 forbidden',
       async () => {
@@ -1115,10 +1194,19 @@ async function main() {
       if (removedUserIds.size > 0) {
         const ids = [...removedUserIds].map((id) => `'${validUuid(id)}'::uuid`).join(', ');
         try {
+          // Failure cleanup is scoped only to captured fictional UUIDs whose Auth deletion succeeded.
+          sql(`DELETE FROM private.account_deletions WHERE user_id IN (${ids});`);
           same(
             sql(`SELECT (SELECT count(*) FROM auth.users WHERE id IN (${ids})) +
             (SELECT count(*) FROM public.profiles WHERE id IN (${ids})) +
-            (SELECT count(*) FROM public.journal_entries WHERE owner_id IN (${ids}));`),
+            (SELECT count(*) FROM public.journal_entries WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM public.user_settings WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM public.approved_memories WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM public.todos WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM private.account_deletions WHERE user_id IN (${ids})) +
+            (SELECT count(*) FROM private.reflection_jobs WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM public.reflections WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM private.api_request_budgets WHERE owner_id IN (${ids}));`),
             '0',
             'Captured fictional users and their rows must be removed.',
           );

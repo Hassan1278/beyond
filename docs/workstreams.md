@@ -1,58 +1,14 @@
-# Workstreams and coding harnesses
+# Workstreams
 
-Use one monorepo, shared contracts and acceptance gates regardless of harness. Step001 (`93e473b`) is historical architecture-only work; step002 established health/configuration/input schemas/unit tooling. **Step003 implements non-opted-in writing**: bearer/active-profile checks, entries CRUD/resource/cursor contracts, profiles/Auth trigger/backfill, RLS/grants/validated RPCs and real schema readiness. Frontends/legacy web backend placeholders and `services/ai` remain untouched.
+The user authorized one combined backend/frontend integration PR. Current authority and boundaries are in AGENTS; [connected app milestone](connected-app.md) defines the implementation. No subagents are automatically delegated by this task.
 
-GitHub Actions run `37958461995` completed **SUCCESS** for source commit `b192bde`; both backend and real-database jobs passed. Linux CI verified clean root-lock `npm ci`, dependency resolution, root formatting, backend lint/types, **536 unit tests across 9 files** (including **216 writing and 20 output-contract tests**), the normal repository production Next build and HTTP health, without a temporary root workaround. **123 pgTAP checks** and **15 real Auth/Postgres two-user groups** passed with identity/RLS/grants, races, replay/tombstones/paging/deleting-profile denial, configured readiness `200` and fixture-user/server cleanup. Body deadline/cancellation regressions passed. Reproducibility is verified on Linux; this success covers `b192bde`, not later changes. The final documentation-record commit is not yet created. Main owns `docs/backend-changes.txt`; pins/overrides are unchanged, with no package addition or vulnerability-audit claim.
+| Area              | Owned paths / handoff                                                                                                        |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| API/database      | `apps/api`, `supabase`, backend/real HTTP tests and private contracts                                                        |
+| Shared product/UI | `packages/shared`, `packages/app-ui`; keep credentials out of portable/UI code                                               |
+| Web               | `apps/web`; preserve supplied marketing/presenter/app design                                                                 |
+| Mobile            | `apps/mobile`; preserve identifiers/SDK pins and verify real native devices separately                                       |
+| AI owner          | `services/ai`, later evaluations/provider setup; implement authenticated version1 HTTP contract without DB admin credentials |
+| Release           | Hosted environments/migrations/Auth callbacks/email/CORS/worker schedules and EAS/store configuration; separately authorized |
 
-## Suggested ownership
-
-| Lane                        | Human owner                     | Owned paths                                                           | Current / next result                                                             |
-| --------------------------- | ------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Integration / shared        | Hassan or nominated coordinator | Root config/lockfile, shared, CI, cross-team docs                     | Writing resource/output contracts + CI implemented; shared API client deferred    |
-| Web                         | Hao                             | `apps/web` frontend                                                   | Separately authorized auth/journal independent API client migration               |
-| Mobile                      | Hao                             | `apps/mobile`                                                         | Expo auth/journal client and Android/iOS previews; preserve native conventions    |
-| API / database / deployment | Hassan for cloud actions        | `apps/api`, `supabase`, API acceptance tests, backend/deployment docs | Writing/final local checks passed; next durable jobs/finalization/account cleanup |
-| AI service                  | Kyle/Gatik                      | `services/ai`, `evals`, independent AI tests                          | Unimplemented versioned HTTP generation/evaluations; optional RAG/transcription   |
-| Product / QA / demo         | Peter                           | `tests`, MVP/demo docs, acceptance notes                              | Real writing checks passed; later durable AI/decisions/client acceptance          |
-
-These are proposed human owners, not invitations/assignments. Combine lanes only without blurring authority. Coordinator owns contract/root-dependency integration; keep Node.js `24.20.0`, npm `11.19.0`, SDK-compatible native pins and one root lockfile.
-
-Backend does not edit frontends or implement `services/ai`. Legacy `apps/web/src/app/api` and `apps/web/src/server` placeholders are unused, not running backend services; their removal and web/mobile origin/bearer/shared-client/env migration require separate owner authorization.
-
-## Authority and handoffs
-
-- Implemented writing API freshly verifies bearer/active profile, derives owner, uses user-scoped DB without admin credentials and no-store/exact-origin CORS/preflight. Supabase owns password/sign-in/reset/refresh. RLS/grants and authenticated validated RPCs independently enforce the boundary; security-definer writing RPCs have empty search path and active-profile lock.
-- Writing compares live retries to private immutable original creation payload; equivalent replay returns current resource `200`, different original/retired key `409`. Revisions increment atomically. Tombstones NULL original/text/consent/revision/created/updated and retain minimum IDs, owner/key and `deleted_at`; DELETE returns `{ data: { id } }`, deleted/other-owner `404`. Direct PostgREST `P0001` HTTP `400` differs from product not_found/forbidden/conflict `404`/`403`/`409`; DB never returns wrong-owner content.
-- Creation stays literal `false` opt-in: no AI/job table or AI-health prerequisite. Text is nonblank <=20000 UTF-16 units, whitespace preserved, no NUL/unpaired surrogates. Resource/cursor and canonical limit rules are in API. Body 128000-byte/total-5000-ms deadline and cancellation regressions passed final validation.
-- API owns future queue/leases/fencing/backoff/recovery/finalization/deletion. AI owns prompts/providers and optional RAG/transcription behind versioned authenticated HTTP; no DB admin keys or automatic todos/memories. Backend AI client/fake HTTP fixture remain future work, never production fallback.
-- Accepted-action decisions/todos, corrections, memory approval and source cascades remain unimplemented. Repeat acceptance must return surviving current todo, `409` after explicit deletion. Proposed source cascades leave unrelated standalone todos.
-- Deleting-profile denial is implemented, not a durable account-deletion endpoint. Later cleanup needs durable retry before Auth deletion. Voice needs private Storage, separate consent and reviewed transcript; optional RAG needs owned provenance/deletion. No AI encryption/perfect-safety promise.
-
-## Start sequence and acceptance gates
-
-1. Step003 Linux CI clean-install/dependency/root-format, backend unit/lint/types, normal production build, health and real DB checks passed for source commit `b192bde`; main records actual outcomes in the log. Docs-only delegates edit only assigned existing docs, without commands or log changes.
-2. Writing acceptance order: `npm run db:start`, `npm run db:test`, `npm run build:api`, `npm run test:api:writing`. The local-only runner captures runtime keys without dotenv/committed secrets and cleans fixture users/server. Root `db:start` now configures writing-only exclusions by default and is the restart command. API port/sample `55321`, DB `55322`, Mailpit `55324`, Studio `55323` configured but not started avoid Windows exclusions `54290..54489` without OS changes. Docker default `0.0.0.0` binds are local-dev only, never production. The Beyond local Supabase stack is stopped; auth fixture users `0`, local data preserved in a Docker volume. Unrelated `usthing` services are running and untouched; Docker Desktop remains running. Restart with `npm run db:start`. No resets/hosted changes.
-3. Test UTC/IANA next-local-calendar-morning/date/DST resolution before opt-in; prototype times `07:00 | 07:30 | 08:00`, tones `friend | mentor | future | diary`. Add atomic opted-in entry/job, leases/fencing/backoff/recovery before AI. No production forced demo delivery.
-4. Test API-side AI HTTP failure/stale-finalization fixtures; AI owner implements real service later. Add explicit decisions/unique todos, separate corrections and memory approval/removal/deletion.
-5. Add durable account cleanup and voice proof, then separately authorized client migration/native release. Full patterns/Life Film are deferred; never fabricate statistics.
-
-## Separate sessions safely
-
-Use one clone/worktree and task branch per session, never concurrent harnesses editing a checkout. Guidance only; execution/results belong in main's log:
-
-```sh
-git fetch origin
-git worktree add ../beyond-web -b feat/web-shell origin/main
-git worktree add ../beyond-mobile -b feat/mobile-shell origin/main
-git worktree add ../beyond-api -b feat/api-foundation origin/main
-```
-
-Install from each worktree root; keep env files out of Git. Use distinct service ports and an agreed local Supabase instance or independent ports; do not reset another owner's DB.
-
-## Future harness prompt
-
-> Work in branch `<branch>` in checkout `<path>`. Read `AGENTS.md`, architecture/API/build-plan/workstreams and task `<task brief>`. Backend/environment implementation, relevant local checks, small validated commits, feature-branch push and local Docker/backend work are authorized. Implement only `<owned paths>` for `<observable result>`. Preserve implemented step003 writing, portable contracts, pins and independent API/AI boundaries; leave frontend and AI-owner implementation untouched. Coordinate cross-owner/manifest/lockfile/schema/contract changes. Use fictional data and report actual results/missing checks/dependencies. Main maintains the backend log and final current validation. No main overwrite/force-push, hosted DB/deploy/account actions or PR creation without separate authorization if needed. Honor narrower task limits without making them repository-wide prohibitions.
-
-## PR and release conventions
-
-Use deliverable branches such as `feat/api-entries`, `feat/reflection-jobs`, `test/journal-flow`. Handoffs name owner, upstream contract/PR if any, actual checks and follow-ups. Source commit `b192bde` is pushed to `feat/backend-foundation` and passed both Linux CI jobs; remote `main` remains unchanged at `2c9fa7e`. The final documentation-record commit is not yet created and is distinct from that tested source. No merge, main overwrite or deployment occurred; no automatic main merge/overwrite/force-push or PR creation is authorized. Coordinator integrates root dependencies/lockfile; do not upgrade React/Expo independently or bypass peers. Keep changes small, obtain auth/deletion/credential review and preserve old-client release compatibility. Deploy/cloud accounts/permissions/branch protection/native release need Hassan's separate authorization.
+Use isolated checkouts and real remote ancestry with a branch lease. Test fictional inputs and document actual checked heads/unavailable checks. Do not merge the combined PR, deploy, force-push or mutate hosted accounts as part of this integration task.

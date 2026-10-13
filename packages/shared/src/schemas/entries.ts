@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const entryTextSchema = z
+export const entryTextSchema = z
   .string()
   .min(1)
   .max(20_000)

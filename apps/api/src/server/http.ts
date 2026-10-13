@@ -28,5 +28,7 @@ export function errorResponse(code: ApiErrorCode): Response {
   const requestId = randomUUID();
   const { status, message } = safeErrors[code];
   const body: ApiError = { error: { code, message, request_id: requestId } };
-  return Response.json(body, { status, headers: responseHeaders(requestId) });
+  const response = Response.json(body, { status, headers: responseHeaders(requestId) });
+  if (code === 'rate_limited') response.headers.set('Retry-After', '60');
+  return response;
 }

@@ -3,7 +3,7 @@ name: Scaffold checks
 on:
   pull_request:
   push:
-    branches: [main, feat/backend-foundation, feat/pitch-demo, feat/frontend-integration]
+    branches: [main, feat/backend-foundation, feat/private-backend, feat/connected-app]
   workflow_dispatch:
 
 permissions:
@@ -47,7 +47,7 @@ jobs:
       # Frontend builds and native exports remain separate gates.
 
   writing:
-    name: Real local Auth and Postgres writing acceptance
+    name: Real local Auth and Postgres backend acceptance
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -62,41 +62,47 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Start writing-only local Supabase
         run: npx --no-install supabase start --exclude realtime,storage-api,imgproxy,studio,edge-runtime,logflare,vector,supavisor,postgres-meta
-      - name: Test database permissions and writing RPCs
+      - name: Test database permissions and private RPCs
         run: npm run db:test
       - name: Build independent API
         run: npm run build:api
         env:
           NEXT_TELEMETRY_DISABLED: '1'
-      - name: Test production writing with two real local users
+      - name: Install browser for real integration acceptance
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Build connected browser against local public Supabase settings
+        run: node tests/build-connected-web.mjs
+      - name: Test production private API, connected browser and account cleanup
         run: npm run test:api:writing
+        env:
+          TEST_CONNECTED_BROWSER: 'true'
       - name: Stop local Supabase
         if: always()
         run: npx --no-install supabase stop
 
-  prototype:
-    name: Pitch demo behavior and build
+  frontend:
+    name: Connected web and mobile checks
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: prototypes/pitch-demo
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: prototypes/pitch-demo/package-lock.json
       - name: Pin npm
         run: npm install --global npm@11.19.0
-      - name: Install isolated prototype dependencies
+      - name: Install root workspaces
         run: npm ci --no-audit --no-fund
-      - name: Test privacy and request lifecycle with mocked responses
-        run: npm test
-      - name: Render designed screens and pages
-        run: npm run smoke
-      - name: Check palette contrast
-        run: npm run palette
-      - name: Build pitch demo
-        run: npm run build
+      - name: Check frontend lint and types
+        run: npm run lint:frontend && npm run typecheck:frontend
+      - name: Test account switching, retries and secure session storage
+        run: npm run test:frontend
+      - name: Render original designs and verify palette
+        run: npm run test:design && npm run test:palette
+      - name: Build production website
+        run: npm run build:web
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Export Android and iOS JavaScript including shared DOM screens
+        run: npm run check:mobile
