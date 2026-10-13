@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { authAdapter } from './auth';
 const user = { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', email: 'fictional@example.invalid' };
 function fixture() {
@@ -30,6 +31,65 @@ function fixture() {
   return { auth, adapter, forget, emit: (event: string) => callback(event, { user }) };
 }
 describe('Supabase auth adapter', () => {
+  it('revokes the persisted current session through the real Supabase SDK', async () => {
+    const storage = new Map<string, string>();
+    const requests: string[] = [];
+    const storedUser = {
+      ...user,
+      aud: 'authenticated',
+      role: 'authenticated',
+      created_at: '2026-01-01T00:00:00Z',
+    };
+    const client = createClient('https://auth.example.test', 'sb_publishable_fixture', {
+      auth: {
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+        storage: {
+          getItem: (key) => storage.get(key) ?? null,
+          setItem: (key, value) => {
+            storage.set(key, value);
+          },
+          removeItem: (key) => {
+            storage.delete(key);
+          },
+        },
+      },
+      global: {
+        fetch: async (input, init) => {
+          const url = new URL(input instanceof Request ? input.url : String(input));
+          requests.push(`${init?.method ?? 'GET'} ${url.pathname}`);
+          if (url.pathname.endsWith('/logout')) return new Response(null, { status: 204 });
+          if (url.pathname.endsWith('/user')) return Response.json(storedUser);
+          if (url.pathname.endsWith('/token'))
+            return Response.json({
+              access_token: 'fixture.access.token',
+              refresh_token: 'fictional-refresh',
+              expires_in: 3600,
+              token_type: 'bearer',
+              user: storedUser,
+            });
+          throw new Error('Unexpected fixture request.');
+        },
+      },
+    });
+    const adapter = authAdapter(
+      client,
+      'https://web.example.test/auth/callback',
+      undefined,
+      async () => {
+        storage.clear();
+      },
+    );
+    try {
+      await adapter.signIn(user.email, 'fictional');
+      expect(await adapter.session()).toMatchObject(user);
+      await adapter.signOut();
+      expect(requests).toContain('POST /auth/v1/logout');
+      expect(storage.size).toBe(0);
+    } finally {
+      await client.auth.stopAutoRefresh();
+    }
+  });
   it('verifies stored display identity with fresh Auth user lookup', async () => {
     const f = fixture();
     expect(await f.adapter.session()).toMatchObject(user);

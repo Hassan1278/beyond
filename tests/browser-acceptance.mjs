@@ -159,6 +159,7 @@ export async function runBrowserAcceptance({
         .getByRole('textbox', { name: "Tonight's entry" })
         .fill('Fictional unsaved owner A draft');
       await page.getByRole('button', { name: 'Close entry', exact: true }).click();
+      console.log('CHECK browser logout: draft closed');
       await page.getByRole('button', { name: 'You', exact: true }).click();
       const control = page.getByRole('button', { name: 'Sign out', exact: true });
       await control.scrollIntoViewIfNeeded();
@@ -168,12 +169,53 @@ export async function runBrowserAcceptance({
         return top !== null && element.contains(top);
       });
       check(hittable, 'Sign-out control is clipped or covered.');
-      await Promise.all([
-        page.waitForResponse(
-          (r) => r.url().includes('/auth/v1/logout') && r.request().method() === 'POST',
-        ),
-        control.click(),
-      ]);
+      console.log('CHECK browser logout: sign-out control reachable');
+      const observed = { request: false, response: null, failed: false };
+      const isLogout = (request) =>
+        request.url().includes('/auth/v1/logout') && request.method() === 'POST';
+      const requested = (request) => {
+        if (isLogout(request)) observed.request = true;
+      };
+      const failed = (request) => {
+        if (isLogout(request)) observed.failed = true;
+      };
+      page.on('request', requested);
+      page.on('requestfailed', failed);
+      try {
+        const [response] = await Promise.all([
+          page.waitForResponse((r) => isLogout(r.request())),
+          control.click(),
+        ]);
+        observed.response = response.status();
+        check(response.ok(), 'Server logout did not succeed.');
+      } catch {
+        // Only fixed labels, booleans and HTTP status are emitted, never page
+        // content, URLs, cookies, request headers, tokens or upstream errors.
+        console.log('Browser logout diagnostic', {
+          ...observed,
+          signedOut:
+            (await page.getByRole('button', { name: 'Step beyond', exact: true }).count()) > 0,
+          localSession: await page.evaluate(() =>
+            Object.values(sessionStorage).some((value) => {
+              try {
+                return Boolean(JSON.parse(value).access_token);
+              } catch {
+                return false;
+              }
+            }),
+          ),
+          networkNotice:
+            (await page
+              .getByText('Signed out locally. Network sign-out could not be confirmed.', {
+                exact: true,
+              })
+              .count()) > 0,
+        });
+        throw new Error('Browser server logout was not confirmed.');
+      } finally {
+        page.off('request', requested);
+        page.off('requestfailed', failed);
+      }
       await page.getByRole('button', { name: 'Step beyond', exact: true }).waitFor();
       const prior = first.token;
       try {

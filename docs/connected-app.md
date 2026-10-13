@@ -37,7 +37,7 @@ Saving writing does not grant AI consent: entry creation and the legacy automati
 | `GET /api/v1/reflections`                   | Paged owned letters; empty while no real results exist                                      |
 | `GET /api/v1/reflections/:id`               | Owned letter, actions, provenance and correction                                            |
 | `PATCH /api/v1/reflections/:id`             | `{text,expected_revision}` records an explicit correction                                   |
-| `POST /api/v1/reflections/:id/actions`      | `{action_id,decision:'accepted'                                                             | 'rejected'}`; one current todo per accepted action |
+| `POST /api/v1/reflections/:id/actions`      | `{action_id,decision}`; accepted or rejected, one current todo per accepted action          |
 | `POST /api/v1/internal/reflections/process` | Trigger-authenticated batch1..5; claims leases, calls independent service and fences commit |
 
 Scheduling uses the next **local calendar day**, including entries written before today's morning, with IANA zones and07:00/07:30/08:00. PostgreSQL resolves nonexistent civil times by shifting forward and overlaps to the later instant. Timezone/time/voice changes apply to future requests; scheduled jobs retain that preference snapshot. Jobs receive at most five attempts,60-second leases and bounded exponential backoff. Crashed/expired workers recover; stale lease tokens cannot read or commit content. Terminal failed jobs require cancelling and a fresh explicit request. No accelerated production delivery is provided.
