@@ -138,16 +138,16 @@ export const COMPARE = [
 
 export const SAFEGUARDS = [
   {
-    title: 'Browser storage in this demo',
-    body: 'Your entry, letter, correction, kept memories and live theme lines are saved in this browser. They are not encrypted or protected by an account. Use fictional content, especially on shared devices.',
+    title: 'Your private account',
+    body: 'Signed-in entries, approved memories, tasks and preferences are stored in your account. Journal text stays out of browser storage. Your sign-in session is stored separately. This is not end-to-end encryption; use fictional content in the separate browser demo.',
   },
   {
     title: 'You see what goes to AI',
-    body: 'Scripted letters are the default. Open “What gets sent to AI” to review the current entry and context before choosing live AI.',
+    body: 'Writing does not grant AI permission. When the independent service is connected, you choose which saved entry to allow. Pausing memory excludes approved memories and past corrections from that context. AI receives no database credentials.',
   },
   {
-    title: 'Clear this demo',
-    body: '“Delete everything” clears saved entry text, letters, corrections, memories and live theme lines from this browser. It cannot recall data already sent to a live provider. This prototype has no account to delete.',
+    title: 'Control what stays',
+    body: 'Correct or forget memories, export your data, or delete saved content after signing in again. Full account deletion is available when account cleanup is configured. Downloads and historical hosting backups have separate lifecycles; deletion cannot recall your exported copies.',
   },
   {
     title: 'Not therapy',

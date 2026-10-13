@@ -9,15 +9,15 @@ import { CRISIS, SAFEGUARDS } from '../../data/site';
  */
 
 const SENT = [
-  'Tonight’s entry',
-  'Kept memories and your correction, unless memory is paused',
-  'Your letter voice, date labels and chosen delivery time',
+  'The saved entry you explicitly allow',
+  'Approved memories and past corrections, unless memory is paused',
+  'Your selected letter voice',
 ];
 
 const AUTOMATIC = [
   'Your address book or device location',
-  'A separate name, email or account profile',
-  'A history of past entries',
+  'Your email or account profile as extra context',
+  'Other journal entries',
 ];
 
 export function PrivacyPage(): ReactElement {
@@ -29,14 +29,15 @@ export function PrivacyPage(): ReactElement {
           <h2>Safe enough to be honest.</h2>
           <p className="sub">
             People only write honestly when they trust where the words go. So here is the whole of
-            it, before you write anything. This prototype saves text in your browser without
-            encryption. Use fictional entries when trying it.
+            it, before you write anything. Signed-in writing is saved in your private account;
+            journal text is not saved in browser storage. The separate demo stores fictional samples
+            locally. Use fictional content when trying that demo.
           </p>
         </div>
 
         <div className="manifest" data-reveal="">
           <div className="manifest-col">
-            <p className="kicker">Sent only with live AI enabled</p>
+            <p className="kicker">Only with your entry’s permission</p>
             <ul className="yeslist">
               {SENT.map((s) => (
                 <li key={s}>{s}</li>
@@ -44,7 +45,7 @@ export function PrivacyPage(): ReactElement {
             </ul>
           </div>
           <div className="manifest-col">
-            <p className="kicker">Not automatically collected</p>
+            <p className="kicker">Not added to AI context</p>
             <ul className="nolist">
               {AUTOMATIC.map((s) => (
                 <li key={s}>{s}</li>
@@ -53,11 +54,11 @@ export function PrivacyPage(): ReactElement {
           </div>
         </div>
         <p className="sub">
-          Scripted mode sends no entry to AI. Live mode sends the items above through this host to
-          the independent AI service. Pausing memory still sends tonight&rsquo;s entry. Names,
-          contact details and locations typed into text are included; this demo does not redact
-          them. The host also receives normal connection information. AI provider retention is
-          outside these demo controls.
+          AI generation is not connected yet. When enabled, each saved entry needs your permission.
+          Pausing memory excludes remembered context; you can still allow the current entry. Names,
+          contact details and locations typed into text are included, without automatic redaction.
+          The host receives normal connection information. Provider retention must be reviewed
+          before live processing is enabled.
         </p>
 
         <dl className="commitments">

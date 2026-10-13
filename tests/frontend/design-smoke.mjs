@@ -298,7 +298,7 @@ try {
     '/privacy': [
       '/apps/web/src/site/pages/PrivacyPage.tsx',
       'PrivacyPage',
-      ['Safe enough to be honest', 'Not therapy', '18111', 'Not automatically collected'],
+      ['Safe enough to be honest', 'Not therapy', '18111', 'Not added to AI context'],
     ],
     '/institutions': [
       '/apps/web/src/site/pages/InstitutionsPage.tsx',

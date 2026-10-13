@@ -153,11 +153,11 @@ export function AccountControls() {
         </button>
         <button type="button" onClick={() => dispatch({ type: 'sheet', open: true })}>
           <span>What is saved</span>
-          <em>›</em>
+          <em aria-hidden="true">›</em>
         </button>
         <button type="button" onClick={() => void refresh()}>
           <span>Reload my data</span>
-          <em>›</em>
+          <em aria-hidden="true">›</em>
         </button>
         <button
           type="button"
@@ -168,18 +168,18 @@ export function AccountControls() {
           }}
         >
           <span>Sign in again for private actions</span>
-          <em>›</em>
+          <em aria-hidden="true">›</em>
         </button>
         <button type="button" onClick={() => void exportData()}>
           <span>
             Export my data
             <small>Recent sign-in required. Downloads are your own private copies.</small>
           </span>
-          <em>›</em>
+          <em aria-hidden="true">›</em>
         </button>
         <button type="button" onClick={() => void signOut()}>
           <span>Sign out</span>
-          <em>›</em>
+          <em aria-hidden="true">›</em>
         </button>
         <button className="danger" type="button" onClick={() => setAsking('data')}>
           <span>Delete saved content</span>
