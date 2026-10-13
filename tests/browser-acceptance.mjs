@@ -29,7 +29,7 @@ export async function runBrowserAcceptance({
       '3000',
     ],
     {
-      cwd: path.join(root, 'apps/web'),
+      cwd: path.join(root, 'frontend/web'),
       env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1' },
       stdio: ['ignore', 'pipe', 'pipe'],
     },

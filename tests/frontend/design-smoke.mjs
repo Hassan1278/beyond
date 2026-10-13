@@ -54,7 +54,7 @@ const server = await createServer({
   plugins: [react()],
   resolve: {
     alias: {
-      '@beyond/shared': new URL('../../packages/shared/src/index.ts', import.meta.url).pathname,
+      '@beyond/shared': new URL('../../shared/src/index.ts', import.meta.url).pathname,
     },
   },
   server: { middlewareMode: true },
@@ -64,11 +64,11 @@ const server = await createServer({
 
 let failed = 0;
 try {
-  const { Phone } = await server.ssrLoadModule('/packages/app-ui/src/components/Phone.tsx');
+  const { Phone } = await server.ssrLoadModule('/frontend/ui/src/components/Phone.tsx');
   const { BeyondProvider, freshState } = await server.ssrLoadModule(
-    '/packages/app-ui/src/state/store.tsx',
+    '/frontend/ui/src/state/store.tsx',
   );
-  const { SCREENS } = await server.ssrLoadModule('/packages/app-ui/src/data/content.ts');
+  const { SCREENS } = await server.ssrLoadModule('/frontend/ui/src/data/content.ts');
 
   for (const chrome of ['frame', 'device']) {
     for (const sc of SCREENS) {
@@ -250,11 +250,11 @@ try {
   }
 
   /* The site: one short page per idea. */
-  const { SiteShell } = await server.ssrLoadModule('/apps/web/src/site/SiteShell.tsx');
-  const { PAGES } = await server.ssrLoadModule('/apps/web/src/data/site.ts');
+  const { SiteShell } = await server.ssrLoadModule('/frontend/web/src/site/SiteShell.tsx');
+  const { PAGES } = await server.ssrLoadModule('/frontend/web/src/data/site.ts');
   const pageMods = {
     '/': [
-      '/apps/web/src/site/pages/HomePage.tsx',
+      '/frontend/web/src/site/pages/HomePage.tsx',
       'HomePage',
       [
         'Everyone is telling you who to become',
@@ -267,7 +267,7 @@ try {
       ],
     ],
     '/problem': [
-      '/apps/web/src/site/pages/ProblemPage.tsx',
+      '/frontend/web/src/site/pages/ProblemPage.tsx',
       'ProblemPage',
       [
         'The Great Distraction',
@@ -279,7 +279,7 @@ try {
       ],
     ],
     '/how': [
-      '/apps/web/src/site/pages/HowPage.tsx',
+      '/frontend/web/src/site/pages/HowPage.tsx',
       'HowPage',
       [
         'Say it whenever',
@@ -291,22 +291,22 @@ try {
       ],
     ],
     '/why': [
-      '/apps/web/src/site/pages/WhyPage.tsx',
+      '/frontend/web/src/site/pages/WhyPage.tsx',
       'WhyPage',
       ['Three places to put', 'AI journaling apps', 'beyond.'],
     ],
     '/privacy': [
-      '/apps/web/src/site/pages/PrivacyPage.tsx',
+      '/frontend/web/src/site/pages/PrivacyPage.tsx',
       'PrivacyPage',
       ['Safe enough to be honest', 'Not therapy', '18111', 'Not added to AI context'],
     ],
     '/institutions': [
-      '/apps/web/src/site/pages/InstitutionsPage.tsx',
+      '/frontend/web/src/site/pages/InstitutionsPage.tsx',
       'InstitutionsPage',
       ['Somewhere to put it down', 'Employers', 'Join the beta'],
     ],
     '/beta': [
-      '/apps/web/src/site/pages/BetaPage.tsx',
+      '/frontend/web/src/site/pages/BetaPage.tsx',
       'BetaPage',
       ['write without an audience', 'Open Beyond', 'Join the beta'],
     ],
@@ -351,7 +351,7 @@ try {
     plugins: [react()],
     resolve: {
       alias: {
-        '@beyond/shared': new URL('../../packages/shared/src/index.ts', import.meta.url).pathname,
+        '@beyond/shared': new URL('../../shared/src/index.ts', import.meta.url).pathname,
       },
     },
     server: { middlewareMode: true },
@@ -359,8 +359,8 @@ try {
     logLevel: 'error',
   });
   try {
-    const { pack, BOX } = await server.ssrLoadModule('/packages/app-ui/src/lib/bubbles.ts');
-    const { THEMES } = await server.ssrLoadModule('/packages/app-ui/src/data/themes.ts');
+    const { pack, BOX } = await server.ssrLoadModule('/frontend/ui/src/lib/bubbles.ts');
+    const { THEMES } = await server.ssrLoadModule('/frontend/ui/src/data/themes.ts');
 
     // Every count a pop can leave behind, down to the last bubble.
     for (let n = THEMES.length; n >= 1; n--) {
@@ -408,8 +408,8 @@ try {
 
     /* The feed. Every post is a hand-written claim, so the things worth
        checking are that none of them collide and that all of them draw. */
-    const { FEED } = await server.ssrLoadModule('/apps/web/src/data/feed.ts');
-    const { FeedArt } = await server.ssrLoadModule('/apps/web/src/site/FeedArt.tsx');
+    const { FEED } = await server.ssrLoadModule('/frontend/web/src/data/feed.ts');
+    const { FeedArt } = await server.ssrLoadModule('/frontend/web/src/site/FeedArt.tsx');
     const feedBad = [];
     const handles = new Set();
     const captions = new Set();
@@ -441,9 +441,7 @@ try {
     }
 
     /* The theme data itself: the dates are what the page is selling. */
-    const { showDate, newestFirst } = await server.ssrLoadModule(
-      '/packages/app-ui/src/data/themes.ts',
-    );
+    const { showDate, newestFirst } = await server.ssrLoadModule('/frontend/ui/src/data/themes.ts');
     const bad = [];
     for (const t of THEMES) {
       if (!t.lines.length) bad.push(`${t.id} has no lines`);

@@ -1,0 +1,14 @@
+# Data handling
+
+See [API reference](api.md) and [AI service](ai-service.md) for exact bounds, routes and privacy limits.
+
+- Journals and approved memories/todos are owner-scoped in Postgres through RLS and validated RPCs. Server calls verify Auth and active profiles; both direct DB reads and RPCs require a live owned Auth session ID. Original payload/key/context/queue/quota columns are private.
+- Production drafts/content live in app memory and backend, not localStorage/sessionStorage/offline caches. Web stores only Auth credentials in sessionStorage and nonprivate theme preference in localStorage. Native credentials use encrypted, byte-bounded SecureStore chunks. Explicit demos may persist fictional data under their separate demo key.
+- Switching accounts/logout aborts requests, clears visible data/drafts and fences old responses. Logout erases owned credentials even when server revocation cannot be confirmed; failures are reported without private upstream details. Downloaded exports are user-owned copies and must be kept private.
+- Export/clear/account deletion require a recent non-refresh sign-in in API and DB. Exports are paginated current live resources, not a consistent snapshot, with no stored server copies. Content clear scrubs originals/current content and linked jobs/results, resets preferences and retains only content-free retired keys. Auth deletion removes residual owned metadata too.
+- Reflection processing requires explicit per-entry revision consent. AI receives only that live text, bounded approved memories and owned explicit corrections. Pausing memory excludes both kinds of historical context. No database admin credentials cross the service boundary. Writing never depends on AI health/configuration.
+- Jobs store metadata only, not copied journal text. Leased input reads/commits validate current source/account/context. Edits/deletions and forgotten/paused context cancel pending work and remove derived results/tasks. Accepted-action retries do not resurrect explicitly deleted todos. Standalone todos remain independent.
+- Optional account deletion durably blocks the account and purges product data before hard Auth deletion. Configure and verify its scheduler before enabling. No private media exists yet; any future Storage/media introduction must extend cleanup before rollout.
+- No private payloads, credentials, provider outputs or upstream exception bodies belong in logs. Use fictional fixtures only. Production AI provider/transcription/retention/safety policy is the AI owner's later release gate. Provider processing is not end-to-end encryption; there is no perfect safety claim.
+
+Hosted backups, provider retention and users' exported copies have independent lifecycles. This code does not claim to erase those instantly. Voice/media/transcription and real analytics remain deferred.

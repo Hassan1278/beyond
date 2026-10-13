@@ -1,53 +1,71 @@
 # Beyond
 
-Private web, Android and iOS journaling app with Supabase Auth/Postgres and an independent product API. The designed pitch frontend now lives in the production workspaces. Production AI remains a separate, unimplemented service.
+A private journaling app for web, Android and iOS: write at night, get a letter in the morning. Supabase handles accounts and the Postgres database, a separate API owns all product logic, and the letter-writing AI is an independent service that is not built yet.
 
-| Workspace         | Responsibility                                                                                          |
-| ----------------- | ------------------------------------------------------------------------------------------------------- |
-| `apps/web`        | Next.js marketing site, presenter and connected web app                                                 |
-| `apps/mobile`     | Expo native app, encrypted sessions and native auth/API/export bridge                                   |
-| `packages/app-ui` | Existing designed screens, CSS and shared React DOM app state                                           |
-| `packages/shared` | Portable contracts and bounded authenticated API client                                                 |
-| `apps/api`        | Journals, settings, approved memories, todos, privacy controls and durable reflection/account workflows |
-| `services/ai`     | Reserved for the independent AI owner; no provider implementation                                       |
+## Repository layout
 
-The pitch folder and its separate dependency lock/provider endpoints have been removed. Marketing previews and `?demo=1#/app` use explicitly fictional data. `#/app` uses real accounts and private APIs, with empty AI areas until that service is connected. The original styles, assets, fonts and presentation layouts are retained.
+```
+frontend/
+  web/        Next.js site: marketing pages, presenter demo, the web app shell   (@beyond/web)
+  mobile/     Expo app for Android/iOS, embedding the same screens               (@beyond/mobile)
+  ui/         Shared app screens, styles, themes and app state                   (@beyond/app-ui)
+backend/
+  api/        Product API. Routes in src/app/api/**/route.ts, logic in src/server (@beyond/api)
+shared/       Request/response schemas and typed API client used everywhere      (@beyond/shared)
+supabase/     Database: migrations, pgTAP tests, local config
+ai/           Reserved for the independent AI letter service (+ evaluation plan)
+tests/        Cross-stack checks: API smoke/acceptance, browser acceptance, design renders
+docs/         Architecture, API, database, AI contract, deployment, privacy, setup, demo
+```
 
-The non-AI text MVP includes sign-up/sign-in, Google OAuth handoff, password recovery, session refresh, server authorization, writing/editing/deletion, revision conflicts and safe retries, preferences, explicitly approved memory corrections, standalone and accepted-action todos, paginated exports, content clearing and optional durable account deletion. The backend supports consent, next-local-morning jobs, independent versioned AI HTTP handoff, bounded retries, lease fencing, letter storage/corrections and explicit action decisions. Writing always works independently of AI configuration.
+## Docs
 
-See [the connected app milestone](docs/connected-app.md) for exact contracts, setup, privacy behavior, validation and remaining work. The combined integration was merged through PR5; cloud deployment preparation is a follow-up. [Cloud setup](docs/cloud-setup.md) records the selected Supabase project, partial migration state and provider blockers; the web/API have not been deployed.
+| Doc                                  | Read it for                                                       |
+| ------------------------------------ | ----------------------------------------------------------------- |
+| [Architecture](docs/architecture.md) | How the pieces connect, and the full route → handler map          |
+| [API reference](docs/api.md)         | Every endpoint, its inputs, limits and errors                     |
+| [Database](docs/database.md)         | Tables, migrations, how to add schema                             |
+| [AI service](docs/ai-service.md)     | **The remaining feature**: exact contract and how to switch it on |
+| [Deployment](docs/deployment.md)     | What's live where, environment variables, rollout steps           |
+| [Setup](docs/setup.md)               | Running everything locally                                        |
+| [Privacy](docs/privacy.md)           | Data handling rules                                               |
+| [Demo](docs/demo.md)                 | The fictional presenter mode                                      |
 
-Use Node `24.20.0`, npm `11.19.0` and one root lockfile:
+## Quick start
+
+Node `24.20.0` and npm `11.19.0`, one root lockfile.
 
 ```sh
 npm ci
-npm run dev:api
-npm run dev:web
-npm run dev:mobile
+cp backend/api/.env.example backend/api/.env.local      # then fill in
+cp frontend/web/.env.example frontend/web/.env.local    # then fill in
+npm run dev:api -- --port 3002
+npm run dev:web                                         # http://localhost:3000
 ```
 
-Copy each workspace's `.env.example` to `.env.local` and fill in its own environment. Clients receive public Supabase keys and the API URL only. Configure Supabase Auth callback allowlists and exact API CORS origins. Native devices need a reachable HTTPS API. See [setup](docs/setup.md) and [deployment](docs/deployment.md).
+- `http://localhost:3000/#/`: marketing site
+- `http://localhost:3000/#/app`: the real app (needs Supabase + API configured)
+- `http://localhost:3000/?demo=1&mode=present#/app`: fictional presenter demo (no backend needed)
+
+Checks (all run in CI):
 
 ```sh
-npm run check:deps
-npm run format:check
-npm run lint
-npm run typecheck
-npm test
-npm run test:design
-npm run test:palette
-npm run build:api
-npm run build:web
-npm run check:mobile
+npm run lint && npm run typecheck && npm test
+npm run test:design && npm run test:palette
+npm run build:api && npm run build:web && npm run check:mobile
 ```
 
-Real local acceptance requires Docker:
+Database tests need Docker: `npm run db:start && npm run db:test`.
 
-```sh
-npm run db:start
-npm run db:test
-npm run build:api
-npm run test:api:writing
-```
+## What's built
 
-CI also builds the configured website and runs real browser account/writing/privacy checks against local Supabase. JS exports are distinct from device/native build validation. Voice capture/transcription and analytics/Life Film remain later features; their production areas are empty. Packages are private and must not be published to npm.
+Sign-up/sign-in, Google sign-in handoff, password recovery and session refresh. Writing, editing and deleting entries with revision conflicts and safe retries. Preferences, explicitly approved memories, to-dos, paginated exports, content clearing and optional account deletion. The backend side of letters is also done: per-entry consent, next-morning scheduling, durable jobs, the HTTP handoff to the AI service, storing letters, corrections and accept/reject of suggested tasks. The designed screens are wired to all of this.
+
+## What's left
+
+1. **AI letter service.** Build it in `ai/` to the contract in [docs/ai-service.md](docs/ai-service.md), then switch it on with four environment variables and a scheduler.
+2. **Hosting finishing touches.** Auth email/redirect URLs, Google provider keys, and the account-deletion scheduler. See [deployment](docs/deployment.md).
+3. **Native release.** Device testing and store builds for Android/iOS.
+4. **Later features.** Voice capture/transcription, and real patterns/Wrapped analysis. Their screens stay empty for real accounts until then.
+
+Packages are private and must not be published to npm.

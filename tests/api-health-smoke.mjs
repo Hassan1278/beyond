@@ -19,7 +19,7 @@ const server = spawn(
     '--port',
     '3002',
   ],
-  { cwd: path.join(root, 'apps/api'), env: environment, stdio: ['ignore', 'pipe', 'pipe'] },
+  { cwd: path.join(root, 'backend/api'), env: environment, stdio: ['ignore', 'pipe', 'pipe'] },
 );
 
 try {

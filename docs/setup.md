@@ -1,8 +1,8 @@
 # Setup
 
-Use Node24.20.0 and npm11.19.0. Install workspaces from the root with `npm ci`; keep one root lockfile. See [connected app contracts and limitations](connected-app.md).
+Use Node24.20.0 and npm11.19.0. Install workspaces from the root with `npm ci`; keep one root lockfile. See [architecture](architecture.md) for how the pieces fit.
 
-Copy `apps/api/.env.example`, `apps/web/.env.example` and `apps/mobile/.env.example` to their workspace's `.env.local`. Fill in public Supabase URL/key and the API URL on clients. Only the API receives optional privileged worker credentials. Never commit local environment files.
+Copy `backend/api/.env.example`, `frontend/web/.env.example` and `frontend/mobile/.env.example` to their workspace's `.env.local`. Fill in public Supabase URL/key and the API URL on clients. Only the API receives optional privileged worker credentials. Never commit local environment files.
 
 For local Supabase with Docker:
 
