@@ -8,15 +8,13 @@ export default defineConfig({
       {
         resolve: {
           alias: {
-            '@beyond/shared': fileURLToPath(
-              new URL('./packages/shared/src/index.ts', import.meta.url),
-            ),
+            '@beyond/shared': fileURLToPath(new URL('./shared/src/index.ts', import.meta.url)),
           },
         },
         test: {
           name: 'backend',
           environment: 'node',
-          include: ['packages/shared/src/**/*.test.ts', 'apps/api/src/**/*.test.ts'],
+          include: ['shared/src/**/*.test.ts', 'backend/api/src/**/*.test.ts'],
           passWithNoTests: false,
         },
       },
@@ -24,18 +22,16 @@ export default defineConfig({
         plugins: [react()],
         resolve: {
           alias: {
-            '@beyond/shared': fileURLToPath(
-              new URL('./packages/shared/src/index.ts', import.meta.url),
-            ),
+            '@beyond/shared': fileURLToPath(new URL('./shared/src/index.ts', import.meta.url)),
           },
         },
         test: {
           name: 'frontend',
           environment: 'jsdom',
           include: [
-            'packages/app-ui/src/**/*.test.ts',
-            'packages/app-ui/src/**/*.test.tsx',
-            'apps/mobile/src/secure-session.test.ts',
+            'frontend/ui/src/**/*.test.ts',
+            'frontend/ui/src/**/*.test.tsx',
+            'frontend/mobile/src/secure-session.test.ts',
           ],
           passWithNoTests: false,
         },

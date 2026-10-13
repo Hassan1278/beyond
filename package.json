@@ -2,7 +2,7 @@
   "name": "beyond",
   "version": "0.0.0",
   "private": true,
-  "description": "Beyond web, native mobile, and shared backend monorepo",
+  "description": "Beyond: frontend (web, mobile, shared UI), backend API, shared contracts and Supabase database",
   "license": "UNLICENSED",
   "packageManager": "npm@11.19.0",
   "engines": {
@@ -10,8 +10,9 @@
     "npm": ">=11.19.0 <12"
   },
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "frontend/*",
+    "backend/*",
+    "shared"
   ],
   "scripts": {
     "dev:web": "npm run dev --workspace=@beyond/web",

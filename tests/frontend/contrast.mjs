@@ -144,8 +144,8 @@ const HEAVY = ['paper', 'night', 'mist', 'ink-faint', 'paper-line', 'night-line'
 
 /* -------------------------------------------------------------------- run */
 
-const tokensCss = await readFile(join(root, 'packages/app-ui/src/styles/tokens.css'), 'utf8');
-const themesCss = await readFile(join(root, 'packages/app-ui/src/styles/themes.css'), 'utf8');
+const tokensCss = await readFile(join(root, 'frontend/ui/src/styles/tokens.css'), 'utf8');
+const themesCss = await readFile(join(root, 'frontend/ui/src/styles/themes.css'), 'utf8');
 
 const base = declarations(blockFor(tokensCss, ':root'));
 const palettes = {};
@@ -157,7 +157,7 @@ for (const id of THEMES) {
 /* The Wrapped cards put light text on the lighter end of their own gradient,
    which is where it is hardest to read. Read the first stop of each straight
    out of the data, so this checks what actually ships. */
-const contentTs = await readFile(join(root, 'packages/app-ui/src/data/content.ts'), 'utf8');
+const contentTs = await readFile(join(root, 'frontend/ui/src/data/content.ts'), 'utf8');
 for (const [, quarter] of contentTs.matchAll(/quarter: '([^']+)'/g)) {
   const at = contentTs.indexOf(`quarter: '${quarter}'`);
   const grad = /grad:\s*'([^']+)'/.exec(contentTs.slice(at))?.[1] ?? '';
@@ -227,8 +227,8 @@ for (const token of HEAVY) {
 
 /* The dots in the nav, and the browser-chrome tint, are written out by hand.
    If either drifts from themes.css the picker starts lying about the page. */
-const pickerTsx = await readFile(join(root, 'apps/web/src/site/ThemePicker.tsx'), 'utf8');
-const themeTs = await readFile(join(root, 'packages/app-ui/src/lib/theme.ts'), 'utf8');
+const pickerTsx = await readFile(join(root, 'frontend/web/src/site/ThemePicker.tsx'), 'utf8');
+const themeTs = await readFile(join(root, 'frontend/ui/src/lib/theme.ts'), 'utf8');
 
 /** The hexes of one `key: [...]` list that follows `id: '<theme>'`. */
 function listAfter(src, id, key) {

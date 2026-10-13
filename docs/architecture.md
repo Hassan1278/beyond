@@ -1,15 +1,62 @@
 # Architecture
 
-One root npm monorepo contains independently deployed web, Expo mobile, product API and reserved AI service. [Connected app milestone](connected-app.md) is the current detailed contract; historical backend CI records remain in the change log.
+```
+               ┌──────────── frontend/ ────────────┐
+               │ web (Next)    mobile (Expo)       │  both render the same screens from frontend/ui
+               └──────┬───────────────┬────────────┘
+     Supabase Auth ◄──┤  bearer token │
+     (sign-in, refresh)               ▼
+               ┌──────────── backend/api ──────────┐
+               │ routes: src/app/api/**/route.ts   │  verify token → active profile → live session
+               │ logic:  src/server/*.ts           │
+               └──────┬───────────────────┬────────┘
+                      │ user-scoped RPCs  │ (optional, server-only)
+                      ▼                   ▼
+               supabase/ (Postgres)     ai/ letter service  ← not built yet
+```
 
-Web owns the marketing/presenter/router and Next entry points. Shared `packages/app-ui` owns the existing React DOM designs and authenticated product controller. Expo DOM embeds the same screens in mobile and exposes a narrow native auth/API/file-sharing bridge; credentials remain native. Shared `packages/shared` contracts/client are portable and contain no UI or privileged credentials. `apps/api` contains API-only Next Node routes, user-scoped services and isolated optional workers. `services/ai` is independent and remains unimplemented.
+`shared/` holds the request/response schemas and the typed API client used by the frontend, the backend and (later) the AI service.
 
-Supabase owns Auth/passwords/OAuth/email/session refresh and Postgres. The API freshly verifies each bearer and active profile. Owned live session IDs are also enforced in RLS and validated security-definer RPCs. Original creation payloads, retired keys and context/queue/quota metadata are private. Ordinary routes never require admin credentials. Browser CORS accepts exact configured origins; native clients use bearers without Origin. All private responses are no-store.
+## Frontend
 
-Writes are revisioned, retries preserve original payload equality and return surviving current resources, and deleted keys cannot resurrect content. The product controller binds operations to the initiating account, cancels on switches and fences late responses. Journals live in memory/backend only. Web sessions use sessionStorage; mobile sessions use encrypted SecureStore chunks committed through a manifest. Logout erases owned credentials and local state; server logout removes the session row used by backend authorization.
+| Folder            | What it is                                                                                          |
+| ----------------- | --------------------------------------------------------------------------------------------------- |
+| `frontend/ui`     | All app screens, styles, themes and the app state/controller (`src/state/store.tsx`)                |
+| `frontend/web`    | Next.js site: marketing pages (`src/site`), presenter (`src/presenter`), hash router, auth callback |
+| `frontend/mobile` | Expo app that embeds `frontend/ui` through Expo DOM, with native sign-in, SecureStore and sharing   |
 
-Reflection consent is separate from writing. Next-local-calendar-morning scheduling snapshots voice/timezone/time. Private metadata-only jobs have bounded claims, leases, fenced reads/commits, retries/backoff and terminal failure. The independent AI HTTP client sends only consented live text, bounded approved context and explicit corrections; it validates version/identity/revision/output and never generates a fictional fallback. Commit locks serialize with privacy mutations. Edits/deletions/forgotten context invalidate pending and derived work.
+Web routes are hash-based (`src/router.tsx`): `#/` marketing, `#/how`, `#/privacy`, `#/beta` …, `#/app` the real app, and `?demo=1#/app` the fictional presenter demo. Production journal text is never stored in the browser; web keeps only the Auth session in sessionStorage, mobile keeps it in encrypted SecureStore chunks.
 
-Stored letters and explicit corrections are owned resources. Accept/reject decisions serialize per reflection; acceptance creates at most one todo, returns a surviving edited todo on retries and conflicts after explicit deletion. AI does not automatically create memories. Standalone todos remain independent of entry/reflection cascades. Account clear/export/deletion use recent sign-in and privacy cleanup. Optional account deletion marks the profile deleting, durably purges product content and then hard-deletes Auth with recovery/fencing.
+## Backend routes
 
-Full voice/private-media/transcription, theme analytics/Wrapped, offline sync and notifications are later features. There is no end-to-end encryption or perfect-safety claim; server/provider processing and their retention policy must be evaluated before enabling AI.
+Each URL is a folder under `backend/api/src/app/api/` containing a `route.ts` that delegates to `src/server/`.
+
+| Route                                         | Handler (`src/server/`)                  |
+| --------------------------------------------- | ---------------------------------------- |
+| `GET /api/health/live`, `/api/health/ready`   | `health-check.ts`, `health.ts`           |
+| `/api/v1/entries`, `/entries/:id`             | `writing-runtime.ts`                     |
+| `/api/v1/settings`                            | `product-runtime.ts`                     |
+| `/api/v1/memories`, `/memories/:id`           | `product-runtime.ts`                     |
+| `/api/v1/todos`, `/todos/:id`                 | `product-runtime.ts`                     |
+| `/api/v1/account`, `/account/data`            | `account-runtime.ts`                     |
+| `/api/v1/account/export`                      | `export-runtime.ts`                      |
+| `/api/v1/entries/:id/reflection`              | `reflection-runtime.ts`                  |
+| `/api/v1/reflections`, `/:id`, `/:id/actions` | `reflection-runtime.ts`                  |
+| `POST /api/v1/internal/reflections/process`   | `reflection-runtime.ts` (scheduler only) |
+| `POST /api/v1/internal/accounts/process`      | `account-runtime.ts` (scheduler only)    |
+
+Shared plumbing: `http.ts` (responses, CORS, request IDs, no-store), `transport.ts` (bounded body reading), `budget.ts` (rate limits), `config.ts` (environment). Full contracts are in [API reference](api.md).
+
+Every product request freshly verifies the Supabase bearer, requires an active profile and a live owned Auth session, and derives ownership server-side. CORS allows exact configured origins only; it is not authentication. Normal routes use only the public Supabase key; admin credentials are used only by the optional scheduler workers.
+
+## Database
+
+See [database](database.md). RLS and validated `security definer` RPCs enforce ownership even if the API were bypassed.
+
+## AI
+
+See [AI service](ai-service.md). The backend already handles consent, next-morning scheduling, leases, retries, validation, storage and privacy cleanup. The service only turns one entry into one letter.
+
+## Data rules
+
+Writes are revisioned; retries replay the original payload and return the current resource; deleted content cannot be resurrected. Editing or deleting an entry cancels its letter work and removes derived letters/tasks. Pausing or changing memory cancels queued context. AI never approves memories or creates to-dos on its own. More detail: [privacy](privacy.md).

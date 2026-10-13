@@ -28,8 +28,8 @@ supabase/signing_keys.json
 *.mobileprovision
 
 # Generated native projects: Expo Continuous Native Generation
-apps/mobile/android/
-apps/mobile/ios/
+frontend/mobile/android/
+frontend/mobile/ios/
 
 # Local harness artifacts, editors, and OS files
 .worktrees/

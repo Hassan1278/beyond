@@ -12,7 +12,7 @@ import { isDeepStrictEqual } from 'node:util';
 // Requires running local Supabase for project beyond and an existing API production build.
 // Never starts/resets Supabase, builds the API, or reads/deletes existing users.
 const root = path.resolve(process.argv[2] ?? fileURLToPath(new URL('../', import.meta.url)));
-const apiDirectory = path.join(root, 'apps/api');
+const apiDirectory = path.join(root, 'backend/api');
 const apiUrl = 'http://127.0.0.1:3002';
 const collection = '/api/v1/entries';
 const allowedOrigin = 'http://127.0.0.1:3000';

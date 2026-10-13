@@ -6,4 +6,4 @@ The existing pitch presentation is `/?demo=1#/app`, with `mode=present` or `mode
 
 Product demonstrations use fictional fixture accounts on local Supabase and the real backend: login, writing/editing/reload, approved memories, tasks, export/content clear/logout/owner isolation. While production AI is deferred, real letter/pattern/Wrapped areas stay empty. Do not imply model results, voice recording or deployment are working. Speak remains disabled for the current text MVP.
 
-The old pitch offline cache is retired. An installed old worker deletes only Beyond-owned cache entries and unregisters; product content is never cached offline. [Connected app milestone](connected-app.md) contains remaining release/AI/native work.
+The old pitch offline cache is retired. An installed old worker deletes only Beyond-owned cache entries and unregisters; product content is never cached offline. Remaining work is listed in the [README](../README.md#whats-left).
