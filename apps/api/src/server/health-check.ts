@@ -11,14 +11,14 @@ export async function checkWritingReadiness(
   try {
     const config = configSource();
     const signal = AbortSignal.timeout(1500);
-    // A migration must provide this RPC; connectivity alone never establishes readiness.
-    const response = await fetcher(`${config.supabaseUrl}/rest/v1/rpc/api_schema_ready`, {
+    // The initial schema's gate can pass before this release's later migrations exist.
+    const response = await fetcher(`${config.supabaseUrl}/rest/v1/rpc/api_release_ready`, {
       method: 'POST',
       headers: {
         apikey: config.supabasePublishableKey,
         'Content-Type': 'application/json',
       },
-      body: '{}',
+      body: JSON.stringify({ p_release: 'connected-text-v1' }),
       cache: 'no-store',
       redirect: 'error',
       signal,
