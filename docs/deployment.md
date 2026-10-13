@@ -41,19 +41,43 @@ Pushes to `main` deploy to production; pull requests get previews. Previews shar
 
 `NEXT_PUBLIC_*` values are baked in at build time, so redeploy the web project after changing them.
 
-Optional, API only, leave unset until each worker is scheduled and tested:
+Optional, API only:
 
-- Account deletion: `ACCOUNT_DELETION_ENABLED=true`, `SUPABASE_SECRET_KEY`, `ACCOUNT_JOB_TRIGGER_SECRET`, plus a scheduler calling `POST /api/v1/internal/accounts/process`.
+- Account deletion: `ACCOUNT_JOB_TRIGGER_SECRET` (set, sensitive), `SUPABASE_SECRET_KEY` (the project's `sb_secret_…` key, sensitive; added by the owner in the Vercel dashboard), then `ACCOUNT_DELETION_ENABLED=true` and a redeploy. Until all three are present the delete button stays disabled and the worker returns `503`.
 - Letters: see [AI service](ai-service.md#turning-it-on).
+
+### Account cleanup scheduler
+
+The cleanup worker is triggered from the database itself, so there is no extra service to run:
+
+- Extensions `pg_cron` and `pg_net` are enabled. `pg_net` belongs in the `extensions` schema (`drop extension pg_net; create extension pg_net with schema extensions;`); its functions always live under `net.*`.
+- Supabase Vault holds the trigger bearer as `beyond_account_job_trigger` (same value as the API's `ACCOUNT_JOB_TRIGGER_SECRET`).
+- Cron job `beyond-account-cleanup` runs every 5 minutes and `POST`s `{"limit":5}` to `https://beyond-api-three.vercel.app/api/v1/internal/accounts/process` with that bearer and no `Origin` header.
+
+Check recent runs with `select status_code, created from net._http_response order by created desc limit 5;` and `select * from cron.job_run_details order by start_time desc limit 5;`. To rotate the secret, update the Vault secret and the Vercel variable together, then redeploy the API. If the API address changes, `cron.alter_job` the URL. This setup is environment-specific and intentionally not a migration.
 
 ## Supabase Auth settings (dashboard)
 
-Authentication → URL Configuration:
+**Authentication → URL Configuration**
 
-- **Site URL:** the web production origin.
-- **Redirect URLs:** `<web origin>/auth/callback` and `<web origin>/auth/callback?flow=recovery`, plus `http://localhost:3000/auth/callback` for local development and `beyond://auth/callback` for the native app.
+- **Site URL:** `https://beyond-web-wheat.vercel.app`
+- **Redirect URLs:**
+  - `https://beyond-web-wheat.vercel.app/auth/callback`
+  - `https://beyond-web-wheat.vercel.app/auth/callback?flow=recovery`
+  - `http://localhost:3000/auth/callback` (local development)
+  - `beyond:///auth/callback` (native app; this is what `Linking.createURL('/auth/callback', { scheme: 'beyond' })` produces)
 
-Authentication → Providers: email/password is on by default. Supabase's built-in mailer is rate-limited, so configure custom SMTP before real users sign up. For Google sign-in, add the Google OAuth client ID/secret and add Supabase's callback URL to the Google console.
+**Authentication → Sign In / Providers → Google**
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create or pick a project.
+2. **Google Auth Platform → Branding:** app name `Beyond`, your support email and developer contact email. The app domain fields can stay empty until Beyond has its own domain.
+3. **Audience:** user type **External**. While it is in **Testing**, only listed test users can sign in; click **Publish app** to allow everyone. The default `openid`, `email` and `profile` scopes do not need Google verification.
+4. **Clients → Create client:** type **Web application**.
+   - Authorized JavaScript origins: `https://beyond-web-wheat.vercel.app`
+   - Authorized redirect URIs: `https://wrjlpfnotylrdewvgsgn.supabase.co/auth/v1/callback`
+5. Copy the client ID and secret into Supabase's Google provider and enable it. The same client serves web and the native app, because both go through Supabase's callback.
+
+**Email:** Supabase's built-in mailer only sends a few messages per hour. Configure custom SMTP (Authentication → Emails → SMTP settings) before real users sign up.
 
 ## Verify a deployment
 
