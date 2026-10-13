@@ -220,7 +220,9 @@ export async function runBrowserAcceptance({
       const prior = first.token;
       try {
         first.token = token;
-        statusIs(await api('/api/v1/entries', first), 403, 'forbidden');
+        // Fresh Supabase Auth verification rejects the revoked session before
+        // the API reaches profile/RPC authorization.
+        statusIs(await api('/api/v1/entries', first), 401, 'unauthorized');
         const direct = await rest(first, '/rpc/settings_get', json('POST', {}));
         statusIs(direct, 400);
         check(
