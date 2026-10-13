@@ -22,7 +22,7 @@ export function AppPhone({ chrome = 'device' }: { chrome?: 'device' | 'frame' })
         onCloseSheet={() => dispatch({ type: 'sheet', open: false })}
       />
       {state.product?.status === 'error' && (
-        <button className="pb ghost" type="button" onClick={() => void refresh()}>
+        <button className="pb ghost app-retry" type="button" onClick={() => void refresh()}>
           Retry connection
         </button>
       )}
