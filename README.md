@@ -64,7 +64,7 @@ Sign-up/sign-in, Google sign-in handoff, password recovery and session refresh. 
 ## What's left
 
 1. **AI letter service.** Build it in `ai/` to the contract in [docs/ai-service.md](docs/ai-service.md), then switch it on with four environment variables and a scheduler.
-2. **Hosting finishing touches.** Auth email/redirect URLs, Google provider keys, and the account-deletion scheduler. See [deployment](docs/deployment.md).
+2. **Hosting finishing touches.** Supabase Auth redirect URLs, Google provider keys, custom SMTP, and the Supabase secret key that switches on account deletion (its scheduler already runs). See [deployment](docs/deployment.md).
 3. **Native release.** Device testing and store builds for Android/iOS.
 4. **Later features.** Voice capture/transcription, and real patterns/Wrapped analysis. Their screens stay empty for real accounts until then.
 
