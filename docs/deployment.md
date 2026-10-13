@@ -1,28 +1,70 @@
-# Deployment and rollback
+# Deployment
 
-The user authorized cloud setup and deployment after the combined integration work. [Cloud setup](cloud-setup.md) records the selected project, applied migrations and provider blockers; the app is not live. Read [connected app milestone](connected-app.md) for tested behavior and remaining features.
+## Hosted resources
 
-Deploy `apps/web` and `apps/api` as separate Node/Next projects using the root npm lockfile. Set the project Root Directories to the corresponding app, Node24.x, and include source files outside the Root Directory. Their checked-in `vercel.json` files install npm11.19.0 and run root `npm ci --prefix ../..` from that app directory; the app-local build command is `npm run build`. Local/CI builds from the repository root remain `npm run build:web` and `npm run build:api`. Workspace Next output lives under the corresponding app. Preserve workspace transpilation in their Next configs and the Singapore region near the selected database. See [Vercel monorepos](https://vercel.com/docs/monorepos/monorepo-faq).
+| Piece             | Where                                                                                             | Status                                           |
+| ----------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Database + Auth   | Supabase org **Beyond**, project `beyond` (ref `wrjlpfnotylrdewvgsgn`, Singapore, Postgres 17)    | All 10 migrations applied; readiness gate passes |
+| Product API       | Vercel team `smigmi1278-9965`, project `beyond-api`, Root Directory `backend/api`, region `sin1`  | Created; `https://beyond-api-three.vercel.app`   |
+| Website + web app | Vercel team `smigmi1278-9965`, project `beyond-web`, Root Directory `frontend/web`, region `sin1` | Created; `https://beyond-web-wheat.vercel.app`   |
+| AI letter service | `ai/`, see [AI service](ai-service.md)                                                            | Not built                                        |
 
-| Target                       | Required values                                                                                           | Optional feature state for the first release                                                   |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| API production               | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, exact `CORS_ALLOWED_ORIGINS`                                  | `ACCOUNT_DELETION_ENABLED=false`, `REFLECTIONS_ENABLED=false` until their workers are verified |
-| Web production, before build | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, stable `NEXT_PUBLIC_API_URL`          | Public values only; no worker/provider/backend secret                                          |
-| Mobile, before export/build  | `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, reachable HTTPS `EXPO_PUBLIC_API_URL` | Native release/configuration is separate                                                       |
-| Connected preview            | Isolated preview database plus matching API/web URLs, exact CORS and Auth callbacks                       | Never share privileged production credentials across previews                                  |
+Supabase URL: `https://wrjlpfnotylrdewvgsgn.supabase.co`. Only the publishable key (`sb_publishable_…`) ever goes to the API's normal routes or to clients.
 
-1. PR5 has merged the combined integration into main. Use the cloud follow-up's tested head, including its release-specific readiness fix; review/merge after its checks pass. Reuse the selected Beyond Supabase project rather than creating a duplicate. Create the API/web projects in the verified Vercel team once team access works.
-2. Apply all additive Supabase migrations in order, respecting the recorded partial history. Verify `/api/health/live` and `/api/health/ready` (see API route files), including `api_release_ready('connected-text-v1')` and its complete catalog checks. The early `api_schema_ready()` alone cannot prove the newer API release is ready. A missing release gate must return503. Readiness is database schema/access readiness, independent of AI reachability.
-3. Configure API Supabase URL/public key and exact `CORS_ALLOWED_ORIGINS`. Configure `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_API_URL` **before building** web. Configure corresponding Expo public variables before exporting/building native. No admin, worker or AI token is public.
-4. Configure Supabase email confirmation/delivery/reset/site URLs, web/native PKCE allowlists and Google provider credentials. Verify no-store health responses, readiness200 for the full schema, anonymous product401 and exact allowed/denied CORS. Test sign-up, email confirmation, password recovery, Google, refresh, writing/edit/reload, second-owner isolation, export/content clearing, sign-out and revoked-token denial on the actual deployment. Local fixture harnesses refuse hosted targets and must not be repurposed to reset cloud users. Verify the candidate deployment and actual environment before directing production users to it.
-5. Account deletion stays disabled until its backend secret and independent trigger bearer are set and an authenticated scheduler calls `POST /api/v1/internal/accounts/process`. Test202 deletion, interrupted cleanup recovery and final Auth/product removal before enabling its UI capability.
-6. Reflections stay disabled until the AI owner implements the versioned service and its evaluations pass. Set the service URL/token, a separate reflection trigger secret and backend secret, and schedule `POST /api/v1/internal/reflections/process`. Test timezone/calendar delivery, failures, leases, deletion/context revocation and accepted-action replay before enabling `REFLECTIONS_ENABLED=true`.
-7. Build/install Android/iOS development/release candidates through Expo EAS after confirming identifiers/signing. Verify real devices, keyboard/sizing, deep links/recovery, SecureStore, background refresh and exports. JavaScript exports are a separate preliminary check.
+## Database
 
-Schedulers must send the appropriate trigger bearer with no browser Origin. They need only bounded JSON limits; do not log private bodies, authorization headers, access tokens or provider outputs. Keep admin credentials isolated from ordinary user-scoped routes and the independent AI service. Trigger tokens and AI service tokens should be independently generated and rotated.
+Apply migrations in filename order, once each, with `supabase db push` or the Supabase GitHub integration; the hosted migration history matches `supabase/migrations/`. Never edit an applied migration.
 
-The supplied mobile design uses Expo DOM components inside a native WebView. Keep the DOM bridge limited to the defined auth/API/export actions and disable arbitrary Expo-module access. Native/browser auth sessions are stored differently; journal contents are never offline cached. The old pitch service worker is retired and removes only Beyond's cache.
+After applying, verify with the Supabase security and performance advisors, and check that `GET /api/health/ready` on the API returns `200`. It returns `503` until the `connected-text-v1` release marker exists.
 
-Rollback web/API through the hosting provider to a known compatible revision. Disable optional reflection processing/consent first if the service is failing; ordinary writing remains independent. Do not blindly reverse destructive database migrations or reset a project. Existing migrations are additive and older data survives; compatibility and pending jobs must be reviewed against the chosen rollback version. Durable account deletions must keep their cleanup worker active until requested deletions finish.
+## Vercel projects
 
-Voice/media/transcription, analysis/Wrapped, notifications and store release remain outside this text deployment milestone. [Cloud setup](cloud-setup.md) is the current record of hosted changes; Auth delivery/callback settings, worker schedules and native releases remain pending.
+Both projects import `Hassan1278/beyond` from GitHub and use:
+
+- **Root Directory:** `backend/api` or `frontend/web`
+- **Include files outside the Root Directory:** on
+- **Node.js:** 24.x
+- Install/build come from each app's `vercel.json`: npm 11.19.0, root `npm ci`, `npm run build`, region `sin1`
+
+Pushes to `main` deploy to production; pull requests get previews. Previews share the production database only if you give them production variables, so leave preview variables unset (unconfigured previews show a setup screen) or point them at a Supabase branch.
+
+### Environment variables
+
+| Project      | Variable                               | Value                                                                                       |
+| ------------ | -------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `beyond-api` | `SUPABASE_URL`                         | `https://wrjlpfnotylrdewvgsgn.supabase.co`                                                  |
+|              | `SUPABASE_PUBLISHABLE_KEY`             | the project's `sb_publishable_…` key                                                        |
+|              | `CORS_ALLOWED_ORIGINS`                 | the web production origin, `https://beyond-web-wheat.vercel.app` (exact, no trailing slash) |
+| `beyond-web` | `NEXT_PUBLIC_SUPABASE_URL`             | same Supabase URL                                                                           |
+|              | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | same publishable key                                                                        |
+|              | `NEXT_PUBLIC_API_URL`                  | the API production origin, `https://beyond-api-three.vercel.app`                            |
+
+`NEXT_PUBLIC_*` values are baked in at build time, so redeploy the web project after changing them.
+
+Optional, API only, leave unset until each worker is scheduled and tested:
+
+- Account deletion: `ACCOUNT_DELETION_ENABLED=true`, `SUPABASE_SECRET_KEY`, `ACCOUNT_JOB_TRIGGER_SECRET`, plus a scheduler calling `POST /api/v1/internal/accounts/process`.
+- Letters: see [AI service](ai-service.md#turning-it-on).
+
+## Supabase Auth settings (dashboard)
+
+Authentication → URL Configuration:
+
+- **Site URL:** the web production origin.
+- **Redirect URLs:** `<web origin>/auth/callback` and `<web origin>/auth/callback?flow=recovery`, plus `http://localhost:3000/auth/callback` for local development and `beyond://auth/callback` for the native app.
+
+Authentication → Providers: email/password is on by default. Supabase's built-in mailer is rate-limited, so configure custom SMTP before real users sign up. For Google sign-in, add the Google OAuth client ID/secret and add Supabase's callback URL to the Google console.
+
+## Verify a deployment
+
+1. `GET <api>/api/health/live` → `200`. `GET <api>/api/health/ready` → `200`.
+2. `GET <api>/api/v1/entries` without a token → `401`. A preflight from an unlisted origin is refused.
+3. On the website `#/app`: sign up, confirm the email, write, edit, reload, sign out, then sign back in and see the entry. A second account must not see it.
+
+## Mobile
+
+Set `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `EXPO_PUBLIC_API_URL` (the API origin) before an EAS build. Bundle identifiers are provisional; confirm them before store registration. JS exports in CI do not prove a native build; test on devices.
+
+## Rollback
+
+Roll back web/API with Vercel's "Promote previous deployment". Migrations are additive, so older API versions keep working against the newer schema. Never reset the hosted database. If letters misbehave, set `REFLECTIONS_ENABLED=false` and redeploy the API; writing keeps working.
