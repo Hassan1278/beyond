@@ -15,7 +15,7 @@ The pitch folder and its separate dependency lock/provider endpoints have been r
 
 The non-AI text MVP includes sign-up/sign-in, Google OAuth handoff, password recovery, session refresh, server authorization, writing/editing/deletion, revision conflicts and safe retries, preferences, explicitly approved memory corrections, standalone and accepted-action todos, paginated exports, content clearing and optional durable account deletion. The backend supports consent, next-local-morning jobs, independent versioned AI HTTP handoff, bounded retries, lease fencing, letter storage/corrections and explicit action decisions. Writing always works independently of AI configuration.
 
-See [the connected app milestone](docs/connected-app.md) for exact contracts, setup, privacy behavior, validation and remaining work. This is reviewable feature work; it has not been deployed or merged by this task.
+See [the connected app milestone](docs/connected-app.md) for exact contracts, setup, privacy behavior, validation and remaining work. The combined integration was merged through PR5; cloud deployment preparation is a follow-up. [Cloud setup](docs/cloud-setup.md) records the selected Supabase project, partial migration state and provider blockers; the web/API have not been deployed.
 
 Use Node `24.20.0`, npm `11.19.0` and one root lockfile:
 

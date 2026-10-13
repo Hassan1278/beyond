@@ -1,6 +1,6 @@
 # Connected app milestone
 
-This branch combines the frontend merged through PR4 with the private backend. It creates one combined PR for review; no hosted deployment, migration or automatic merge is performed.
+PR5 merged the frontend from PR4 with the private backend. The integration checks and implementation are described below. A subsequent authorized cloud setup created the selected Supabase project and applied the first two migrations; [cloud setup](cloud-setup.md) records the exact state and blockers. Cloud deployment preparation is a follow-up from merged main. Web/API deployment remains pending.
 
 ## Repository and design
 
@@ -70,7 +70,7 @@ CI runs clean root installs/dependency/format/lint/types, backend and frontend u
 ## Remaining work
 
 - The AI owner implements and deploys the versioned independent service, generation/safety/provenance/retention policy and realistic evaluation. Configure/verify its secrets and reflection scheduler afterward.
-- Deploy web/API/Supabase, apply migrations, configure email delivery/confirmation/reset URLs, enable Google provider callbacks, exact CORS and public client environments. Enable/test account cleanup only after its scheduler is running. No hosted resources were changed here.
+- Finish the remaining migrations in the selected Supabase project, deploy web/API, configure email delivery/confirmation/reset URLs, enable Google provider callbacks, exact CORS and public client environments. Enable/test account cleanup only after its scheduler is running. See [cloud setup](cloud-setup.md) for applied migrations and current provider errors.
 - Build/install and test Android/iOS on devices: DOM sizing/keyboard, encrypted storage, browser redirects/recovery, background refresh and file sharing. The existing bundle identifiers remain provisional; confirm them before registration/store release.
 - Voice capture, private media Storage, separate transcription consent, reviewed transcript UI and transcription service are a later feature. No audio is recorded/uploaded; Speak is disabled in the production text MVP. This is additional work, not just a missing model key.
 - Patterns/themes/Quarterly Wrapped/Life Film need real analysis contracts and population. Their real-user areas remain empty and keep the supplied design. Offline sync, notifications, billing and social features remain outside this MVP.
