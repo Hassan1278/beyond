@@ -1,6 +1,5 @@
 import { useState, type ReactElement } from 'react';
-import { beginSignup } from '@beyond/app-ui/signup-intent';
-import { Link } from '../../router';
+import { useRouter } from 'next/navigation';
 
 /**
  * The last page, and the only one that asks for anything. Two ways to go: try
@@ -10,6 +9,7 @@ import { Link } from '../../router';
 export function BetaPage(): ReactElement {
   const [email, setEmail] = useState('');
   const [msg, setMsg] = useState('');
+  const router = useRouter();
 
   return (
     <section className="sec night join">
@@ -22,9 +22,9 @@ export function BetaPage(): ReactElement {
         </p>
 
         <div className="ctas beta-ctas" data-reveal="">
-          <Link to="/app" className="btn btn-light">
+          <a href="/app" className="btn btn-light">
             Open Beyond
-          </Link>
+          </a>
         </div>
 
         <form
@@ -34,8 +34,8 @@ export function BetaPage(): ReactElement {
               setMsg('Enter an email address like you@example.com.');
               return;
             }
-            beginSignup(email.trim());
-            window.location.hash = '/app';
+            // The address is typed again on the sign-up form: never put it in a URL or storage.
+            router.push('/app?signup=1');
           }}
         >
           <label className="sr" htmlFor="betaEmail">

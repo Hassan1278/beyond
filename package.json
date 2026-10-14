@@ -2,7 +2,7 @@
   "name": "beyond",
   "version": "0.0.0",
   "private": true,
-  "description": "Beyond: frontend (web, mobile, shared UI), backend API, shared contracts and Supabase database",
+  "description": "Beyond: website and journal app (frontend/web), backend API, AI letter service, shared contracts and Supabase database",
   "license": "UNLICENSED",
   "packageManager": "npm@11.19.0",
   "engines": {
@@ -17,12 +17,11 @@
   ],
   "scripts": {
     "dev:web": "npm run dev --workspace=@beyond/web",
-    "dev:mobile": "npm run dev --workspace=@beyond/mobile",
     "dev:api": "npm run dev --workspace=@beyond/api",
     "build:api": "npm run build --workspace=@beyond/api",
-    "lint:backend": "npm run lint --workspace=@beyond/shared && npm run lint --workspace=@beyond/api",
-    "typecheck:backend": "npm run typecheck --workspace=@beyond/shared && npm run typecheck --workspace=@beyond/api",
-    "test:backend": "vitest run --project backend",
+    "lint:backend": "npm run lint --workspace=@beyond/shared && npm run lint --workspace=@beyond/api && npm run lint --workspace=@beyond/ai",
+    "typecheck:backend": "npm run typecheck --workspace=@beyond/shared && npm run typecheck --workspace=@beyond/api && npm run typecheck --workspace=@beyond/ai",
+    "test:backend": "vitest run --project backend --project ai",
     "test:api:smoke": "node tests/api-health-smoke.mjs",
     "test:api:writing": "node tests/api-writing-acceptance.mjs",
     "lint": "npm run lint --workspaces --if-present",
@@ -33,15 +32,14 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "build:web": "npm run build --workspace=@beyond/web",
-    "check:mobile": "npm run check:bundle --workspace=@beyond/mobile",
     "check:deps": "npm ls --all",
     "db:start": "supabase start --exclude realtime,storage-api,imgproxy,studio,edge-runtime,logflare,vector,supavisor,postgres-meta",
     "db:stop": "supabase stop",
     "db:test": "supabase test db",
-    "lint:frontend": "npm run lint --workspace=@beyond/app-ui && npm run lint --workspace=@beyond/web && npm run lint --workspace=@beyond/mobile",
-    "typecheck:frontend": "npm run typecheck --workspace=@beyond/app-ui && npm run typecheck --workspace=@beyond/web && npm run typecheck --workspace=@beyond/mobile",
+    "lint:frontend": "npm run lint --workspace=@beyond/web",
+    "typecheck:frontend": "npm run typecheck --workspace=@beyond/web",
     "test:frontend": "vitest run --project frontend",
-    "test:design": "node tests/frontend/design-smoke.mjs",
+    "test:design": "node tests/frontend/journal-smoke.mjs",
     "test:palette": "node tests/frontend/contrast.mjs",
     "dev:ai": "npm run dev --workspace=@beyond/ai",
     "build:ai": "npm run build --workspace=@beyond/ai",
@@ -50,7 +48,6 @@
   "devDependencies": {
     "@playwright/test": "1.63.0",
     "@types/node": "24.19.1",
-    "eas-cli": "24.10.0",
     "eslint": "9.39.5",
     "prettier": "3.9.9",
     "supabase": "2.119.0",
@@ -60,11 +57,6 @@
     "vite": "8.3.4",
     "@vitejs/plugin-react": "6.1.2",
     "jsdom": "30.1.2"
-  },
-  "overrides": {
-    "@react-native/metro-config": "0.86.3",
-    "react-native-reanimated": "4.5.1",
-    "react-native-worklets": "0.10.1"
   },
   "allowScripts": {
     "protobufjs@7.6.6": true,

@@ -14,6 +14,7 @@ export async function runBrowserAcceptance({
   rest,
   json,
   statusIs,
+  letterTriggerSecret,
 }) {
   const origin = 'http://127.0.0.1:3000';
   let processError = false,
@@ -63,83 +64,83 @@ export async function runBrowserAcceptance({
     const first = await createUser('browser-a', randomUUID());
     const second = await createUser('browser-b', randomUUID());
     const signin = async (user) => {
-      await page.getByRole('button', { name: 'Step beyond', exact: true }).click();
-      await page.getByRole('textbox', { name: 'Email', exact: true }).fill(user.email);
-      await page.getByLabel('Password', { exact: true }).fill(user.password);
+      await page.locator('#email').fill(user.email);
+      await page.locator('#password').fill(user.password);
       await page.getByRole('button', { name: 'Sign in', exact: true }).click();
-      await page.getByRole('button', { name: 'Start an entry', exact: true }).waitFor();
     };
-    await group(
-      'browser login, private writing, reload and edit with the unchanged app styles',
-      async () => {
-        await page.goto(origin + '/#/app');
-        await signin(first);
-        await page.getByRole('button', { name: 'Start an entry', exact: true }).click();
-        await page
-          .getByRole('textbox', { name: "Tonight's entry" })
-          .fill('Fictional browser private entry');
-        await page.getByRole('button', { name: 'Leave it for tonight', exact: true }).click();
-        await page.getByRole('button', { name: 'Back to your journal', exact: true }).click();
-        await page.reload();
-        await page
-          .getByRole('button')
-          .filter({ hasText: 'Fictional browser private entry' })
-          .click();
-        await page
-          .getByRole('textbox', { name: "Tonight's entry" })
-          .fill('Fictional browser corrected entry');
-        await page.getByRole('button', { name: 'Leave it for tonight', exact: true }).click();
-        await page.getByRole('button', { name: 'Back to your journal', exact: true }).click();
-        const stored = await page.evaluate(() =>
+    const storageHas = (text) =>
+      page.evaluate(
+        (t) =>
           [...Object.values(localStorage), ...Object.values(sessionStorage)].some((value) =>
-            value.includes('Fictional browser'),
+            value.includes(t),
           ),
-        );
-        check(!stored, 'Journal text entered browser storage.');
-        const layout = await page.locator('.phone.device').count();
-        check(layout === 1, 'Product client did not retain the device shell.');
-        await page.setViewportSize({ width: 1280, height: 900 });
-        check(
-          (await page.locator('.phone.device').count()) === 1 &&
-            (await page.locator('body').getAttribute('data-mode')) === 'app',
-          'Product switched into fictional presentation on resize.',
-        );
-        await page.setViewportSize({ width: 390, height: 844 });
-      },
-    );
-    await group('browser owned todos, approved memory, export and content clearing', async () => {
-      await page.getByLabel('One small step you choose').fill('Fictional browser task');
-      await page.getByRole('button', { name: 'Save step', exact: true }).click();
-      await page.getByRole('checkbox', { name: 'Fictional browser task' }).waitFor();
-      await page.getByRole('checkbox', { name: 'Fictional browser task' }).click();
-      await page.getByRole('button', { name: 'You', exact: true }).click();
-      await page.getByRole('button', { name: 'Add a memory', exact: true }).click();
-      await page
-        .getByLabel('Memory you explicitly approve')
-        .fill('Fictional browser approved memory');
-      await page.getByRole('button', { name: 'Approve memory', exact: true }).click();
+        text,
+      );
+    await group('browser sign-in, onboarding and sealing a night on the real backend', async () => {
+      await page.goto(origin + '/app');
+      await page.getByText('Write tonight. A letter by morning.', { exact: true }).waitFor();
+      await signin(first);
+      await page.getByRole('button', { name: 'Start my journal', exact: true }).click();
+      await page.getByRole('button', { name: 'Start writing', exact: true }).click();
+      await page.locator('#entry').fill('Fictional browser private night by the harbour');
+      await page.getByRole('button', { name: 'Seal tonight', exact: true }).click();
+      await page.getByText('Sealed for the night.', { exact: true }).waitFor();
+      check(!(await storageHas('Fictional browser')), 'Journal text entered browser storage.');
+      await page.reload();
+      await page.getByText('Sealed for the night.', { exact: true }).waitFor();
+      const letters = statusIs(await api('/api/v1/letters', first), 200).data.items;
+      check(
+        letters.length === 1 &&
+          letters[0].entry.text === 'Fictional browser private night by the harbour',
+        'Sealing did not save the night with one letter.',
+      );
+    });
+    await group('browser letter arrives, opens early and saves a to-do', async () => {
+      const run = await api(
+        '/api/v1/internal/letters/process',
+        undefined,
+        json('POST', { limit: 3 }, { Authorization: `Bearer ${letterTriggerSecret}` }),
+      );
+      check(statusIs(run, 200).data.written >= 1, 'Worker did not write the browser letter.');
+      await page.getByRole('button', { name: 'Read it now', exact: true }).click();
+      await page.getByRole('button', { name: 'Open the letter', exact: true }).click();
+      await page.getByText('A fictional letter about your night').first().waitFor();
+      await page.locator('[data-todo]').first().click();
+      await page.locator('[data-check="0"]').click();
+      await page.getByRole('button', { name: 'Done', exact: true }).click();
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const letter = statusIs(await api('/api/v1/letters', first), 200).data.items[0];
+      check(letter.read_at !== null && letter.early === true, 'Opening early was not saved.');
+      check(letter.steps['step.0'] === 'tried', 'Ticking a to-do was not saved.');
+    });
+    await group('browser memory, export and clearing the journal', async () => {
+      await page.locator('.tab[data-go="you"]').click();
+      await page.locator('#mem-new').fill('Fictional browser approved memory');
+      await page.getByRole('button', { name: 'Remember', exact: true }).click();
       await page.getByText('Fictional browser approved memory', { exact: true }).waitFor();
       const download = page.waitForEvent('download');
-      await page.getByRole('button').filter({ hasText: 'Export my data' }).click();
+      await page.getByRole('button', { name: 'Download a copy', exact: true }).click();
       const file = await download;
-      const location = await file.path();
-      const exported = JSON.parse(await readFile(location, 'utf8'));
+      const exported = JSON.parse(await readFile(await file.path(), 'utf8'));
       check(
-        exported.entries.some((e) => e.text === 'Fictional browser corrected entry'),
-        'Browser export omitted the current entry.',
+        exported.entries.some((e) => e.text === 'Fictional browser private night by the harbour'),
+        'Browser export omitted the night.',
       );
       check(
         exported.memories.some((m) => m.text === 'Fictional browser approved memory'),
-        'Browser export omitted an approved memory.',
+        'Browser export omitted a memory.',
       );
-      check(Array.isArray(exported.reflections), 'Export omitted reflection section.');
-      await page.getByRole('button', { name: 'Delete saved content', exact: true }).click();
-      await page.getByRole('button', { name: 'Confirm deletion', exact: true }).click();
-      await page.getByText('Nothing remembered.', { exact: true }).waitFor();
-      await page.getByRole('button', { name: 'Journal', exact: true }).click();
-      await page
-        .getByText('No entries yet. Your journal starts with what you write.', { exact: true })
-        .waitFor();
+      check(
+        exported.letters.length === 1 && Array.isArray(exported.notes),
+        'Export omitted letters.',
+      );
+      await page.getByRole('button', { name: 'Delete my journal', exact: true }).click();
+      await page.getByRole('button', { name: 'Delete everything', exact: true }).click();
+      await page.getByText('Your journal was deleted.').waitFor();
+      check(
+        statusIs(await api('/api/v1/letters', first), 200).data.items.length === 0,
+        'Clearing left letters behind.',
+      );
     });
     await group('browser logout revokes old session and another account starts empty', async () => {
       const token = await page.evaluate(() => {
@@ -148,100 +149,38 @@ export async function runBrowserAcceptance({
             const session = JSON.parse(value);
             if (session.access_token) return session.access_token;
           } catch {
-            /* unrelated UI key */
+            /* unrelated key */
           }
         }
         return null;
       });
       check(typeof token === 'string', 'Browser session fixture was not captured.');
-      await page.getByRole('button', { name: 'Start an entry', exact: true }).click();
-      await page
-        .getByRole('textbox', { name: "Tonight's entry" })
-        .fill('Fictional unsaved owner A draft');
-      await page.getByRole('button', { name: 'Close entry', exact: true }).click();
-      console.log('CHECK browser logout: draft closed');
-      await page.getByRole('button', { name: 'You', exact: true }).click();
       const control = page.getByRole('button', { name: 'Sign out', exact: true });
       await control.scrollIntoViewIfNeeded();
-      const hittable = await control.evaluate((element) => {
-        const box = element.getBoundingClientRect();
-        const top = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
-        return top !== null && element.contains(top);
-      });
-      check(hittable, 'Sign-out control is clipped or covered.');
-      console.log('CHECK browser logout: sign-out control reachable');
-      const observed = { request: false, response: null, failed: false };
-      const isLogout = (request) =>
-        request.url().includes('/auth/v1/logout') && request.method() === 'POST';
-      const requested = (request) => {
-        if (isLogout(request)) observed.request = true;
-      };
-      const failed = (request) => {
-        if (isLogout(request)) observed.failed = true;
-      };
-      page.on('request', requested);
-      page.on('requestfailed', failed);
-      try {
-        const [response] = await Promise.all([
-          page.waitForResponse((r) => isLogout(r.request())),
-          control.click(),
-        ]);
-        observed.response = response.status();
-        check(response.ok(), 'Server logout did not succeed.');
-      } catch {
-        // Only fixed labels, booleans and HTTP status are emitted, never page
-        // content, URLs, cookies, request headers, tokens or upstream errors.
-        console.log('Browser logout diagnostic', {
-          ...observed,
-          signedOut:
-            (await page.getByRole('button', { name: 'Step beyond', exact: true }).count()) > 0,
-          localSession: await page.evaluate(() =>
-            Object.values(sessionStorage).some((value) => {
-              try {
-                return Boolean(JSON.parse(value).access_token);
-              } catch {
-                return false;
-              }
-            }),
-          ),
-          networkNotice:
-            (await page
-              .getByText('Signed out locally. Network sign-out could not be confirmed.', {
-                exact: true,
-              })
-              .count()) > 0,
-        });
-        throw new Error('Browser server logout was not confirmed.');
-      } finally {
-        page.off('request', requested);
-        page.off('requestfailed', failed);
-      }
-      await page.getByRole('button', { name: 'Step beyond', exact: true }).waitFor();
+      const [response] = await Promise.all([
+        page.waitForResponse(
+          (r) => r.url().includes('/auth/v1/logout') && r.request().method() === 'POST',
+        ),
+        control.click(),
+      ]);
+      check(response.ok(), 'Server logout did not succeed.');
+      await page.getByText('Write tonight. A letter by morning.', { exact: true }).waitFor();
       const prior = first.token;
       try {
         first.token = token;
-        // Fresh Supabase Auth verification rejects the revoked session before
-        // the API reaches profile/RPC authorization.
         statusIs(await api('/api/v1/entries', first), 401, 'unauthorized');
         const direct = await rest(first, '/rpc/settings_get', json('POST', {}));
         statusIs(direct, 400);
-        check(
-          direct.body.message === 'unauthorized',
-          'Revoked session could still call direct product RPC.',
-        );
+        check(direct.body.message === 'unauthorized', 'Revoked session could still call RPCs.');
       } finally {
         first.token = prior;
       }
       await signin(second);
+      await page.getByRole('button', { name: 'Start my journal', exact: true }).waitFor();
       check(
-        !(await page.getByText('Fictional unsaved owner A draft').count()),
-        'Previous owner draft survived account switch.',
+        !(await page.getByText('Fictional browser').count()),
+        'Previous owner content survived account switch.',
       );
-      await page
-        .getByText('No entries yet. Your journal starts with what you write.', { exact: true })
-        .waitFor();
-      await page.getByRole('button', { name: 'Letters', exact: true }).click();
-      await page.getByText('No letter yet.', { exact: true }).waitFor();
       check(errors.length === 0, 'Browser raised an unhandled application error.');
     });
     await context.close();

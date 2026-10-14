@@ -36,10 +36,14 @@ jobs:
         run: npm run lint:backend
       - name: Check backend types
         run: npm run typecheck:backend
-      - name: Run backend unit tests
+      - name: Run backend, shared and AI service unit tests
         run: npm run test:backend
       - name: Build independent product API
         run: npm run build:api
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Build independent AI letter service
+        run: npm run build:ai
         env:
           NEXT_TELEMETRY_DISABLED: '1'
       - name: Smoke-test production API health
@@ -64,15 +68,15 @@ jobs:
         run: npx --no-install supabase start --exclude realtime,storage-api,imgproxy,studio,edge-runtime,logflare,vector,supavisor,postgres-meta
       - name: Test database permissions and private RPCs
         run: npm run db:test
-      - name: Build independent API
-        run: npm run build:api
+      - name: Build independent API and AI service
+        run: npm run build:api && npm run build:ai
         env:
           NEXT_TELEMETRY_DISABLED: '1'
       - name: Install browser for real integration acceptance
         run: npx --no-install playwright install --with-deps chromium
       - name: Build connected browser against local public Supabase settings
         run: node tests/build-connected-web.mjs
-      - name: Test production private API, connected browser and account cleanup
+      - name: Test production API, letters through the AI service, connected browser and cleanup
         run: npm run test:api:writing
         env:
           TEST_CONNECTED_BROWSER: 'true'
@@ -81,7 +85,7 @@ jobs:
         run: npx --no-install supabase stop
 
   frontend:
-    name: Connected web and mobile checks
+    name: Website and journal app checks
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -96,13 +100,18 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Check frontend lint and types
         run: npm run lint:frontend && npm run typecheck:frontend
-      - name: Test account switching, retries and secure session storage
+      - name: Test the journal backend adapter and the memory-only site demo
         run: npm run test:frontend
-      - name: Render original designs and verify palette
-        run: npm run test:design && npm run test:palette
-      - name: Build production website
+      - name: Verify palette contrast
+        run: npm run test:palette
+      - name: Build the website and journal against fictional public settings
         run: npm run build:web
         env:
           NEXT_TELEMETRY_DISABLED: '1'
-      - name: Export Android and iOS JavaScript including shared DOM screens
-        run: npm run check:mobile
+          NEXT_PUBLIC_SUPABASE_URL: https://sb.example.test
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_fixture
+          NEXT_PUBLIC_API_URL: https://api.example.test
+      - name: Install browser
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Drive the journal app and site in a browser with a fake backend
+        run: npm run test:design

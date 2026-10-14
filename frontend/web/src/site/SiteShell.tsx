@@ -87,9 +87,9 @@ export function SiteShell({
           </div>
           <ThemePicker />
           <Clock time={time} />
-          <Link to="/app" className="btn btn-light btn-sm">
+          <a href="/app" className="btn btn-light btn-sm">
             Open the app
-          </Link>
+          </a>
         </div>
       </nav>
 

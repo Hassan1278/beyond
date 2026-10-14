@@ -7,11 +7,11 @@
  * in the app, and live AI works in both places with no second implementation.
  */
 import { useEffect, useState, type ReactElement } from 'react';
-import { SCRIPTED_LETTERS, VOICES, voiceById } from '@beyond/app-ui/data/content';
-import { morning, tonight } from '@beyond/app-ui/lib/date';
-import { useBeyond } from '@beyond/app-ui/state/store';
-import { Safety } from '@beyond/app-ui/screens/Safety';
-import { needsSafetyCheck } from '@beyond/app-ui/lib/safety';
+import { SCRIPTED_LETTERS, VOICES, voiceById } from '../demo/content';
+import { morning, tonight } from '../demo/date';
+import { useDemo } from '../demo/store';
+import { Safety } from '../demo/Safety';
+import { needsSafetyCheck } from '../demo/crisis';
 
 type Phase = 'writing' | 'safety' | 'overnight' | 'morning';
 
@@ -19,7 +19,7 @@ type Phase = 'writing' | 'safety' | 'overnight' | 'morning';
 const FROM = 23 * 60 + 48;
 
 export function TryOneNight(): ReactElement {
-  const { state, dispatch, generate, go } = useBeyond();
+  const { state, dispatch, generate, go } = useDemo();
   const [phase, setPhase] = useState<Phase>(() => (state.ai.letter ? 'morning' : 'writing'));
   const [clock, setClock] = useState(FROM);
   const [warn, setWarn] = useState(false);
@@ -88,8 +88,6 @@ export function TryOneNight(): ReactElement {
       <div className="entry">
         {phase === 'safety' ? (
           <Safety
-            state={state}
-            live
             onSeal={() => {
               go('sealed');
               setClock(FROM);

@@ -4,7 +4,7 @@
  * reads on - so the dot previews the page rather than hinting at it.
  */
 import { useState, type CSSProperties, type ReactElement } from 'react';
-import { applyTheme, readTheme, type ThemeId } from '@beyond/app-ui/lib/theme';
+import { applyTheme, readTheme, type ThemeId } from '../demo/theme';
 
 /** night, dawn, paper. Kept in step with themes.css by scripts/contrast.mjs. */
 const THEMES: { id: ThemeId; name: string; note: string; bands: [string, string, string] }[] = [
