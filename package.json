@@ -12,7 +12,8 @@
   "workspaces": [
     "frontend/*",
     "backend/*",
-    "shared"
+    "shared",
+    "ai"
   ],
   "scripts": {
     "dev:web": "npm run dev --workspace=@beyond/web",
@@ -41,7 +42,10 @@
     "typecheck:frontend": "npm run typecheck --workspace=@beyond/app-ui && npm run typecheck --workspace=@beyond/web && npm run typecheck --workspace=@beyond/mobile",
     "test:frontend": "vitest run --project frontend",
     "test:design": "node tests/frontend/design-smoke.mjs",
-    "test:palette": "node tests/frontend/contrast.mjs"
+    "test:palette": "node tests/frontend/contrast.mjs",
+    "dev:ai": "npm run dev --workspace=@beyond/ai",
+    "build:ai": "npm run build --workspace=@beyond/ai",
+    "test:ai": "vitest run --project ai"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

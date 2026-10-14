@@ -380,7 +380,7 @@ BEGIN
  WITH candidates AS (SELECT j.letter_id FROM private.letter_jobs j JOIN public.profiles p ON p.id=j.owner_id AND p.status='active'
   WHERE j.attempts<6 AND j.next_attempt_at<=v_now AND (j.lease_until IS NULL OR j.lease_until<=v_now)
   ORDER BY j.next_attempt_at, j.letter_id FOR UPDATE OF j SKIP LOCKED LIMIT p_limit), claimed AS (
-  UPDATE private.letter_jobs j SET lease_token=gen_random_uuid(), lease_until=v_now+interval '120 seconds', attempts=j.attempts+1
+  UPDATE private.letter_jobs j SET lease_token=gen_random_uuid(), lease_until=v_now+interval '240 seconds', attempts=j.attempts+1
   FROM candidates c WHERE j.letter_id=c.letter_id RETURNING j.letter_id, j.lease_token)
  SELECT COALESCE(jsonb_agg(jsonb_build_object('id',letter_id,'lease_token',lease_token)),'[]'::jsonb) INTO v_result FROM claimed;
  RETURN v_result;

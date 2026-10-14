@@ -19,6 +19,14 @@ export default defineConfig({
         },
       },
       {
+        test: {
+          name: 'ai',
+          environment: 'node',
+          include: ['ai/src/**/*.test.ts'],
+          passWithNoTests: false,
+        },
+      },
+      {
         plugins: [react()],
         resolve: {
           alias: {
