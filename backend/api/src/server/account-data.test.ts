@@ -32,7 +32,7 @@ describe('connected account HTTP controls', () => {
     expect(await res.json()).toEqual({
       data: {
         status: 'active',
-        capabilities: { account_deletion: false, reflections: false, voice_transcription: false },
+        capabilities: { account_deletion: false, letters: false, voice_transcription: false },
       },
     });
     expect(res.headers.get('Cache-Control')).toBe('no-store');

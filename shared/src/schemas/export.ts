@@ -1,15 +1,19 @@
 import { z } from 'zod';
-import { reflectionSchema } from './reflections';
+import { letterSchema, noteSchema } from './letters';
 import { entrySchema, entryCursorSchema, entryListQuerySchema } from './entries';
 import { memorySchema, todoSchema, settingsSchema } from './product';
 
 export const accountExportQuerySchema = z
   .strictObject({
-    section: z.enum(['settings', 'entries', 'memories', 'todos', 'reflections']),
+    section: z.enum(['settings', 'entries', 'memories', 'todos', 'letters', 'notes']),
     limit: entryListQuerySchema.shape.limit.refine((v) => v === undefined || Number(v) <= 50),
     cursor: entryListQuerySchema.shape.cursor,
   })
-  .refine((v) => v.section !== 'settings' || (v.limit === undefined && v.cursor === undefined));
+  .refine(
+    (v) =>
+      !['settings', 'notes'].includes(v.section) ||
+      (v.limit === undefined && v.cursor === undefined),
+  );
 export const accountExportMetadataSchema = z.strictObject({
   format_version: z.literal(1),
   exported_at: entryCursorSchema.shape.created_at,
@@ -19,10 +23,10 @@ const page = {
   next_cursor: entryListQuerySchema.shape.cursor.unwrap().nullable(),
 };
 export const accountExportPageSchema = z.discriminatedUnion('section', [
-  z.strictObject({
-    ...page,
-    section: z.literal('reflections'),
-    items: reflectionSchema.array().max(50),
+  z.strictObject({ ...page, section: z.literal('letters'), items: letterSchema.array().max(50) }),
+  accountExportMetadataSchema.extend({
+    section: z.literal('notes'),
+    items: noteSchema.array().max(200),
   }),
   accountExportMetadataSchema.extend({ section: z.literal('settings'), settings: settingsSchema }),
   z.strictObject({ ...page, section: z.literal('entries'), items: entrySchema.array().max(50) }),

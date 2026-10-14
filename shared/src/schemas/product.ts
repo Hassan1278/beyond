@@ -16,12 +16,31 @@ export const timezoneSchema = z
       return false;
     }
   });
+/** Letters arrive at a quarter hour between 05:00 and 12:45 local time. */
+export const deliveryTimeSchema = z.string().regex(/^(0[5-9]|1[0-2]):(00|15|30|45)$/);
+export const directionKeySchema = z.enum([
+  'young-entrepreneur',
+  'maker-builder',
+  'creative-explorer',
+  'curious-learner',
+  'community-builder',
+  'world-explorer',
+]);
+export const directionsSchema = z.partialRecord(
+  directionKeySchema,
+  z.enum(['suggested', 'confirmed', 'dismissed', 'removed']),
+);
 export const settingsSchema = z.strictObject({
   timezone: timezoneSchema,
   morning_time: z.enum(['07:00', '07:30', '08:00']),
   voice: z.enum(['friend', 'mentor', 'future', 'diary']),
   memory_paused: z.boolean(),
   reflection_enabled: z.literal(false),
+  letter_language: z.enum(['auto', 'en', 'zh-hant', 'zh-hans']),
+  delivery_time: deliveryTimeSchema,
+  allow_early: z.boolean(),
+  onboarded: z.boolean(),
+  directions: directionsSchema,
   revision,
   updated_at: timestamp,
 });
@@ -31,6 +50,11 @@ export const patchSettingsSchema = z
     morning_time: settingsSchema.shape.morning_time.optional(),
     voice: settingsSchema.shape.voice.optional(),
     memory_paused: z.boolean().optional(),
+    letter_language: settingsSchema.shape.letter_language.optional(),
+    delivery_time: deliveryTimeSchema.optional(),
+    allow_early: z.boolean().optional(),
+    onboarded: z.boolean().optional(),
+    directions: directionsSchema.optional(),
     expected_revision: revision,
   })
   .refine((value) => Object.keys(value).length > 1);
@@ -38,6 +62,7 @@ export const memorySchema = z.strictObject({
   id: z.uuid(),
   text: shortText,
   source_entry_id: z.uuid().nullable(),
+  kind: z.enum(['told', 'learned', 'edited']),
   created_at: timestamp,
   revision,
   updated_at: timestamp,

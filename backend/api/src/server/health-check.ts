@@ -18,7 +18,7 @@ export async function checkWritingReadiness(
         apikey: config.supabasePublishableKey,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ p_release: 'connected-text-v1' }),
+      body: JSON.stringify({ p_release: 'beyond-letters-v1' }),
       cache: 'no-store',
       redirect: 'error',
       signal,

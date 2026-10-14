@@ -1,13 +1,19 @@
 import { z } from 'zod';
 import {
-  reflectionSchema,
-  reflectionListSchema,
-  reflectionJobSchema,
-  requestReflectionSchema,
-  correctionSchema,
-  reflectionDecisionSchema,
-  reflectionDecisionResultSchema,
-} from '../schemas/reflections';
+  letterSchema,
+  letterListSchema,
+  requestLetterSchema,
+  patchLetterSchema,
+  noteSchema,
+  noteListSchema,
+  writeNoteSchema,
+  aiStatusSchema,
+  transcriptSchema,
+  spokenLanguageSchema,
+  type RequestLetter,
+  type PatchLetter,
+  type SpokenLanguage,
+} from '../schemas/letters';
 import { apiErrorSchema } from '../schemas/health';
 import { accountSchema, clearedAccountDataSchema } from '../schemas/account';
 import {
@@ -77,6 +83,8 @@ export function createApiClient(options: {
   const timeoutMs = options.timeoutMs ?? 20_000;
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 60_000)
     throw new Error('Invalid API timeout.');
+  // Writing a note or transcribing waits on the AI service, so those calls get longer.
+  const slowTimeoutMs = 180_000;
   const fetcher = options.fetcher ?? fetch;
   const id = (value: string) => entryParamsSchema.parse({ id: value }).id;
   const query = (value: { limit?: string; cursor?: string } = {}) => {
@@ -90,7 +98,9 @@ export function createApiClient(options: {
     schema: z.ZodType<T>,
     body?: unknown,
     signal?: AbortSignal,
+    extra: { raw?: { body: Blob; type: string }; timeoutMs?: number } = {},
   ): Promise<T> {
+    const raw = extra.raw;
     const abort = new AbortController();
     let rejectCancelled: (error: ApiClientError) => void = () => undefined;
     const cancelled = new Promise<never>((_resolve, reject) => {
@@ -102,7 +112,7 @@ export function createApiClient(options: {
       rejectCancelled(new ApiClientError('cancelled', 0));
     };
     signal?.addEventListener('abort', onAbort, { once: true });
-    const timer = setTimeout(onAbort, timeoutMs);
+    const timer = setTimeout(onAbort, extra.timeoutMs ?? timeoutMs);
     if (signal?.aborted) onAbort();
     const bounded = <R>(work: Promise<R>): Promise<R> => Promise.race([work, cancelled]);
     try {
@@ -118,9 +128,13 @@ export function createApiClient(options: {
           signal: abort.signal,
           headers: {
             Authorization: `Bearer ${token}`,
-            ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+            ...(raw
+              ? { 'Content-Type': raw.type }
+              : body === undefined
+                ? {}
+                : { 'Content-Type': 'application/json' }),
           },
-          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+          ...(raw ? { body: raw.body } : body === undefined ? {} : { body: JSON.stringify(body) }),
         }),
       );
       if (!response.body) throw new ApiClientError('invalid_response', response.status);
@@ -169,45 +183,42 @@ export function createApiClient(options: {
     }
   }
   return {
-    reflections: {
+    letters: {
       list: (page?: { limit?: string; cursor?: string }, signal?: AbortSignal) =>
-        call(`/reflections${query(page)}`, 'GET', reflectionListSchema, undefined, signal),
+        call(`/letters${query(page)}`, 'GET', letterListSchema, undefined, signal),
       get: (value: string, signal?: AbortSignal) =>
-        call(`/reflections/${id(value)}`, 'GET', reflectionSchema, undefined, signal),
-      request: (
-        entryId: string,
-        body: z.infer<typeof requestReflectionSchema>,
-        signal?: AbortSignal,
-      ) =>
-        call(
-          `/entries/${id(entryId)}/reflection`,
+        call(`/letters/${id(value)}`, 'GET', letterSchema, undefined, signal),
+      /** Seal a saved night: asks for one letter about it. */
+      request: (body: RequestLetter, signal?: AbortSignal) =>
+        call('/letters', 'POST', letterSchema, requestLetterSchema.parse(body), signal),
+      update: (value: string, body: PatchLetter, signal?: AbortSignal) =>
+        call(`/letters/${id(value)}`, 'PATCH', letterSchema, patchLetterSchema.parse(body), signal),
+      retry: (value: string, signal?: AbortSignal) =>
+        call(`/letters/${id(value)}/retry`, 'POST', letterSchema, undefined, signal),
+    },
+    notes: {
+      list: (signal?: AbortSignal) => call('/notes', 'GET', noteListSchema, undefined, signal),
+      write: (key: string, signal?: AbortSignal) =>
+        call('/notes', 'POST', noteSchema, writeNoteSchema.parse({ key }), signal, {
+          timeoutMs: slowTimeoutMs,
+        }),
+    },
+    ai: {
+      status: (signal?: AbortSignal) => call('/ai', 'GET', aiStatusSchema, undefined, signal),
+      /** One recording in, words out. The backend and AI service keep nothing. */
+      transcribe: (audio: Blob, spoken: SpokenLanguage, signal?: AbortSignal) => {
+        const type = (audio.type || 'audio/webm').split(';')[0]!.trim().toLowerCase();
+        if (!/^audio\/[a-z0-9.+-]{1,40}$/.test(type) || audio.size < 100 || audio.size > 4_000_000)
+          throw new ApiClientError('bad_request', 0);
+        return call(
+          `/transcribe?lang=${encodeURIComponent(spokenLanguageSchema.parse(spoken))}`,
           'POST',
-          reflectionJobSchema,
-          requestReflectionSchema.parse(body),
+          transcriptSchema,
+          undefined,
           signal,
-        ),
-      cancel: (entryId: string, signal?: AbortSignal) =>
-        call(`/entries/${id(entryId)}/reflection`, 'DELETE', entryParamsSchema, undefined, signal),
-      correct: (value: string, body: z.infer<typeof correctionSchema>, signal?: AbortSignal) =>
-        call(
-          `/reflections/${id(value)}`,
-          'PATCH',
-          reflectionSchema,
-          correctionSchema.parse(body),
-          signal,
-        ),
-      decide: (
-        value: string,
-        body: z.infer<typeof reflectionDecisionSchema>,
-        signal?: AbortSignal,
-      ) =>
-        call(
-          `/reflections/${id(value)}/actions`,
-          'POST',
-          reflectionDecisionResultSchema,
-          reflectionDecisionSchema.parse(body),
-          signal,
-        ),
+          { raw: { body: audio, type }, timeoutMs: slowTimeoutMs },
+        );
+      },
     },
     entries: {
       list: (page?: { limit?: string; cursor?: string }, signal?: AbortSignal) =>

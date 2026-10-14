@@ -236,6 +236,7 @@ export async function rpc(
               case 'forbidden':
               case 'not_found':
               case 'conflict':
+              case 'rate_limited':
                 fail(result.message);
             }
           }
