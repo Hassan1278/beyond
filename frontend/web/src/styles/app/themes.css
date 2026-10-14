@@ -1,4 +1,4 @@
-/* Two palettes.
+/* Two palettes: Candle (the app's own) and Bloom.
  *
  * Every theme redefines the same token set, so nothing in the rest of the CSS
  * needs to know which one is active. Each keeps the structure the design
@@ -17,32 +17,33 @@
  * Contrast for every text-on-surface pair is checked by scripts/contrast.mjs.
  */
 
-/* Night - the default. Neutral graphite, cream, a peach dawn. */
+/* Candle - the default, from the journal app's own grading. Warm charcoal,
+   cream, an amber dawn: the same light the app is written in. */
 :root,
-:root[data-theme='night'] {
-  --night: #0b0c0e;
-  --night-2: #141519;
-  --night-3: #1f2025;
-  --night-line: #2b2c31;
-  --paper: #f4f3ee;
-  --paper-2: #e8e6dc;
-  --paper-hi: #fbfaf6;
-  --paper-line: #d2d0c4;
-  --ink: #0b0c0e;
-  --ink-soft: #5f605a;
-  --ink-faint: #656660;
-  --moon: #a7a8a3;
-  --mist: #9fa19c;
-  --dusk: #7183b0;
-  --dawn: #e8b48a;
-  --ok: #3d7553;
+:root[data-theme='candle'] {
+  --night: #15100e;
+  --night-2: #201815;
+  --night-3: #2d231e;
+  --night-line: #3c3029;
+  --paper: #f6ecdf;
+  --paper-2: #ece2d3;
+  --paper-hi: #fcf7f0;
+  --paper-line: #d9cbb8;
+  --ink: #17110e;
+  --ink-soft: #5b5149;
+  --ink-faint: #685e55;
+  --moon: #b8a898;
+  --mist: #c1b2a2;
+  --dusk: #8e86b8;
+  --dawn: #f3c68e;
+  --ok: #4f8a5e;
   --alert: #b4513a;
-  --phone: #17181a;
-  --g1: #121419;
-  --g2: #1a1d29;
-  --g3: #1e2338;
-  --g4: #3a3554;
-  --warm: #f0cdaa;
+  --phone: #201815;
+  --g1: #1a1310;
+  --g2: #261a14;
+  --g3: #3a2418;
+  --g4: #7a4526;
+  --warm: #f3c68e;
 }
 
 /* Bloom - aubergine night, blush paper, a hot rose dawn. */

@@ -139,19 +139,23 @@ export const COMPARE = [
 export const SAFEGUARDS = [
   {
     title: 'Your private account',
-    body: 'Signed-in entries, approved memories, tasks and preferences are stored in your account. Journal text stays out of browser storage. Your sign-in session is stored separately. This is not end-to-end encryption; use fictional content in the separate browser demo.',
+    body: 'Your nights, letters, memories, notes and settings are stored in your Beyond account, readable only with your sign-in. Nothing you write is kept in browser storage, and closing the tab signs you out on shared devices. This is not end-to-end encryption: Beyond’s servers can read what they store in order to write your letters.',
   },
   {
-    title: 'You see what goes to AI',
-    body: 'Writing does not grant AI permission. When the independent service is connected, you choose which saved entry to allow. Pausing memory excludes approved memories and past corrections from that context. AI receives no database credentials.',
+    title: 'Sealing is the permission',
+    body: 'A night goes to the letter writer only when you seal it. Just that night, the voice and language you chose, memories you can see (unless paused) and the headlines of up to four earlier letters you kept. Never your email, name or account. The letter writer is a separate service with no access to the database and keeps nothing.',
+  },
+  {
+    title: 'Memory you can see',
+    body: 'A letter may remember at most two small things you wrote, each linked to its night. Edit or forget any of them; a forgotten memory is never learned again. Keep a night out of Patterns and nothing learned from it is used. Changing your words removes that night’s letter.',
   },
   {
     title: 'Control what stays',
-    body: 'Correct or forget memories, export your data, or delete saved content after signing in again. Full account deletion is available when account cleanup is configured. Downloads and historical hosting backups have separate lifecycles; deletion cannot recall your exported copies.',
+    body: 'Download a copy, delete your journal, or delete your account after confirming it’s you. Deletion removes letters, notes and memories too. Copies you downloaded, and the AI provider’s own short-lived processing records, are outside what deletion can reach.',
   },
   {
     title: 'Not therapy',
-    body: 'Beyond doesn’t diagnose or treat anything. A limited keyword check can show support contacts before sealing, but it can miss urgent entries. A morning letter is not emergency help.',
+    body: 'Beyond doesn’t diagnose or treat anything. A limited keyword check shows support contacts while you write, and a letter that senses risk points you to people, but both can miss things. A morning letter is not emergency help.',
   },
 ];
 
@@ -185,7 +189,7 @@ export const MEMORY_POINTS = [
   { b: 'Edit or forget any line', s: 'Forgotten means gone, not hidden.' },
   {
     b: 'Pause memory',
-    s: 'For one night or for good. Letters then use tonight’s entry only.',
+    s: 'For one night or for good. Letters then use that night’s words only.',
   },
 ];
 

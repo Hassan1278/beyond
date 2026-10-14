@@ -9,10 +9,10 @@ import { applyTheme, readTheme, type ThemeId } from '../demo/theme';
 /** night, dawn, paper. Kept in step with themes.css by scripts/contrast.mjs. */
 const THEMES: { id: ThemeId; name: string; note: string; bands: [string, string, string] }[] = [
   {
-    id: 'night',
-    name: 'Night',
-    note: 'Graphite, cream, a peach dawn',
-    bands: ['#0b0c0e', '#e8b48a', '#f4f3ee'],
+    id: 'candle',
+    name: 'Candle',
+    note: 'Warm charcoal, cream, an amber dawn',
+    bands: ['#15100e', '#f3c68e', '#f6ecdf'],
   },
   {
     id: 'bloom',

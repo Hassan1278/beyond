@@ -410,7 +410,7 @@ function vTonight() {
       <p class="tn-foot">Nothing replies tonight. Your letter comes from your <button class="link" data-go="you">${esc((VOICES[S.voice] || VOICES.friend).name)}</button>.</p>
       ${isGuest() ? `<p class="fine">Judge preview · ${AUTH.user.left ?? 0} AI letters left today</p>` : ''}
       ${OFFLINE ? '<p class="fine">Offline trial · letters are simple templates. See START HERE for the online version with Claude.</p>' : ''}
-      ${speak ? `<p class="fine voice-privacy">${mixedOK() ? '粵 + 普 + EN: Beyond records, turns it into text, then deletes the audio. Single languages use your browser’s speech service (Chrome: Google, Safari: Apple) and show words live; you can switch mid-sentence.' : SR ? 'Your browser turns your voice into text (Chrome uses Google’s speech service, Safari uses Apple’s), one language at a time; tap a language to switch, even mid-sentence. Beyond keeps only the words.' : RECORDS ? 'Your recording is turned into text, then deleted. Only the words are kept.' : 'Your device turns your voice into text. Beyond never hears the audio.'}</p>` : ''}
+      ${speak ? `<p class="fine voice-privacy">${mixedOK() ? '粵 + 普 + EN: Beyond records, turns it into text, then deletes the audio. Single languages use your browser’s speech service (Chrome: Google, Safari: Apple) and show words live; you can switch mid-sentence.' : SR ? 'Your browser turns your voice into text (Chrome uses Google’s speech service, Safari uses Apple’s), one language at a time; tap a language to switch, even mid-sentence. Beyond keeps only the words.' : RECORDS && SERVER_STT ? 'Your recording is turned into text, then deleted. Only the words are kept.' : 'Your device turns your voice into text. Beyond never hears the audio.'}</p>` : ''}
       <p class="fine" id="claude-note">${claudeNote()}</p>
     </section>`;
 }
@@ -471,7 +471,7 @@ function paintVoice() {
     : `Your device’s dictation: ${dictationHint()}`;
   else if (voice.blocked && !IN_CLAUDE) hint.innerHTML = `The microphone is blocked for this page. Allow it from the icon in the address bar, or ${dictationHint()}`;
   else if (speechLang() === 'mixed') hint.innerHTML = 'Tap the light and just talk, in any mix of 粵語, 普通话 and English. Your words appear when you tap again.';
-  else hint.innerHTML = canListen() || RECORDS ? 'Tap the light and just talk. Your words appear as you speak.' : `Tap the light, then ${dictationHint()}`;
+  else hint.innerHTML = canListen() || (RECORDS && SERVER_STT) ? 'Tap the light and just talk. Your words appear as you speak.' : `Tap the light, then ${dictationHint()}`;
   const chips = $('#slang-chips'); if (chips) { chips.hidden = !(SR || mixedOK()) || (voice.blocked && IN_CLAUDE); chips.innerHTML = langChips(); }
 }
 function setEntry(text) {
@@ -538,7 +538,7 @@ async function orbTap() {
   if (voice.state === 'rec') return stopRecording();
   if (voice.state === 'busy') return;
   if (canListen()) return startListening();
-  if (!RECORDS || (SR && speechLang() !== 'mixed' && voice.blocked && IN_CLAUDE)) return useDictation();
+  if (!RECORDS || !SERVER_STT || (SR && speechLang() !== 'mixed' && voice.blocked && IN_CLAUDE)) return useDictation();
   let stream;
   try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) {
     toast(e.name === 'NotAllowedError' ? 'The microphone is blocked. Allow it in your browser settings, or use your keyboard’s dictation.' : 'No microphone was found. You can type instead.'); return;

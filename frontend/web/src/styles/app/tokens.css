@@ -1,23 +1,23 @@
-/* Design tokens, carried over unchanged from the Beyond website and app preview. */
+/* Design tokens. Defaults match the Candle palette in themes.css, the journal app's own grading. */
 :root {
-  --night: #0b0c0e;
-  --night-2: #141519;
-  --night-3: #1f2025;
-  --night-line: #2b2c31;
-  --paper: #f4f3ee;
-  --paper-2: #eceae2;
-  --paper-hi: #fbfaf6;
-  --paper-line: #d8d6cc;
-  --ink: #0b0c0e;
-  --ink-soft: #5f605a;
-  --ink-faint: #8b8c85;
-  --moon: #a7a8a3;
-  --mist: #9fa19c;
-  --dusk: #7183b0;
-  --dawn: #e8b48a;
-  --ok: #3d7553;
+  --night: #15100e;
+  --night-2: #201815;
+  --night-3: #2d231e;
+  --night-line: #3c3029;
+  --paper: #f6ecdf;
+  --paper-2: #ece2d3;
+  --paper-hi: #fcf7f0;
+  --paper-line: #d9cbb8;
+  --ink: #17110e;
+  --ink-soft: #5b5149;
+  --ink-faint: #685e55;
+  --moon: #b8a898;
+  --mist: #c1b2a2;
+  --dusk: #8e86b8;
+  --dawn: #f3c68e;
+  --ok: #4f8a5e;
   --alert: #b4513a;
-  --phone: #17181a;
+  --phone: #201815;
   --f-display: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --f-letter: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
   --f-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;

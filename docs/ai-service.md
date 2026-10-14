@@ -1,84 +1,98 @@
 # AI service
 
-This is the one remaining product feature. Everything around it (consent, scheduling, retries, storage, the letter screen, accept/reject of suggested tasks, corrections and privacy cleanup) is already built and tested. The AI service only has to turn one journal entry into one letter over a single authenticated HTTP call.
+The letter writer lives in [`ai/`](../ai) and deploys as its own Vercel project (`beyond-ai`). It turns one prepared input into one checked result and stores nothing. It never sees the database, Supabase keys, the person's email or account. The prompts, the example letter, the four voices and the quality checks are the prototype's, ported unchanged.
 
-Build it in [`ai/`](../ai). It is a separate deployable service: it never touches the database and never receives database credentials.
+Everything works before provider keys are added. Sealed nights wait in the queue, and the app says the letter writer isn't switched on yet. Once a key is set, the next scheduled run writes them.
 
-## How it is called
+## How a letter is written
 
 ```
-user saves entry ──► user taps "send for a letter" ──► POST /api/v1/entries/:id/reflection {consent:true}
-                                                         │ (job scheduled for next local morning 07:00/07:30/08:00)
-scheduler ──► POST /api/v1/internal/reflections/process  │
-                 │ claims ≤5 due jobs with 60 s leases   ▼
-                 └──► POST <AI_SERVICE_URL>/v1/reflections   ◄── your service
-                         Authorization: Bearer <AI_SERVICE_TOKEN>
-                 ◄── letter JSON ──► validated, fenced commit ──► GET /api/v1/reflections shows it
+seal ──► POST /api/v1/entries (the night) ──► POST /api/v1/letters {consent:true} ──► queued
+pg_cron every minute ──► POST /api/v1/internal/letters/process  (LETTER_JOB_TRIGGER_SECRET)
+   │ GET  <AI_SERVICE_URL>/v1/health        letters: false? stop here, claim nothing
+   │ letter_claim (≤5, 240 s fenced leases) ─► letter_input (DB builds the input below)
+   │ POST <AI_SERVICE_URL>/v1/letters        Authorization: Bearer AI_SERVICE_TOKEN
+   └ 200 ─► letter_finish (stores content, learns ≤2 checked memories)
+     503 not_configured ─► letter_release (no attempt spent)
+     422 invalid_output | refused, 5xx, timeout ─► letter_fail (retries after 1, 5, 15, 60, 180 min; refusal is final)
 ```
 
-The backend sends at most one request per job attempt, waits at most **25 seconds**, reads at most **128 KB** of response, and retries failures up to 5 attempts with exponential backoff. Any non-2xx, malformed, oversized or mismatched response counts as a failure. There is no fallback letter.
+The backend waits up to 170 s per letter and reads at most 200 KB. The service may ask the model twice: the second time it says what was wrong with the first answer.
 
-## Request
+## `POST /v1/letters`
 
-`POST /v1/reflections` with `Content-Type: application/json`:
+Request (built by the database; nothing else is sent):
 
 ```json
 {
-  "version": 1,
-  "request_id": "6f1c…-uuid",
-  "entry": { "id": "uuid", "revision": 3, "text": "The journal entry, 1–20000 UTF-16 units" },
-  "voice": "friend",
-  "memories": [{ "id": "uuid", "text": "Approved memory, ≤2000 units" }],
-  "corrections": [
-    { "id": "uuid", "text": "A correction the user made to an earlier letter, ≤2000 units" }
-  ]
+  "version": 2,
+  "request_id": "uuid of the letter",
+  "journal_date": "2026-10-14",
+  "language": "auto | en | zh-hant | zh-hans",
+  "voice": "friend | mentor | future | diary",
+  "memories": ["memories the person can see, ≤20; [] when paused"],
+  "earlier_letters": [
+    {
+      "date": "2026-10-12",
+      "headline": "…",
+      "themes": ["rest"],
+      "openQuestions": ["…"],
+      "stepsTheyMarkedNotForMe": ["…"]
+    }
+  ],
+  "entries": [{ "id": "uuid", "written_at": "22:40", "text": "the sealed night, ≤20000 units" }]
 }
 ```
 
-- `voice` is one of `friend`, `mentor`, `future`, `diary` (the app labels the last one "Plain diary").
-- `memories`: up to 20, only ones the user explicitly approved. Empty when memory is paused.
-- `corrections`: up to 5 of the user's own earlier corrections. Empty when memory is paused.
-- Accept requests up to about 256 KB. Reject anything without the correct bearer token.
+Learned memories are included only while a letter they came from is kept in Patterns. Earlier letters are at most four, and only ones kept in Patterns.
 
-## Response
+Response `200`: `{ "version": 2, "request_id", "content", "model" }`. `content` is the prototype's letter shape after `validateLetter`:
 
-Return `200` with:
+- `greeting`, `signoff`, `headline`, `recap`
+- `analysis` (1–2): quotes must be the person's exact words, otherwise they are dropped
+- `challenge`, `advice`, `encouragement`
+- `steps`: exactly 3
+- `themes` from the fixed list, plus `openQuestions` and `wins`
+- `tone` and `safetyConcern`
+- `remember` (≤2, none when there is a safety concern)
+- `voice` and `language`
 
-```json
-{
-  "version": 1,
-  "request_id": "same as request",
-  "entry_revision": 3,
-  "letter": {
-    "greet": "Hey,",
-    "said": "What you wrote, reflected back (must be non-empty)",
-    "rec": "What you noticed / a gentle observation",
-    "step": "One small next step",
-    "sign": "Talk tonight,"
-  },
-  "actions": [{ "id": "uuid", "title": "Optional suggested task, ≤2000 units" }],
-  "provenance": { "model": "provider/model-name", "prompt_version": "letters-v1" }
-}
-```
+The shared `letterContentSchema` in [`shared/src/schemas/letters.ts`](../shared/src/schemas/letters.ts) is what the backend accepts.
 
-- Each letter part is at most 5000 UTF-16 units, with no NUL characters or unpaired surrogates.
-- `actions`: at most 5, with unique UUIDs. They only become to-dos if the user accepts them.
-- `provenance.model` must match `[A-Za-z0-9_.:/-]{1,100}` and `prompt_version` must match `[A-Za-z0-9_.-]{1,100}`.
-- `request_id` and `entry_revision` must echo the request, or the result is discarded as stale.
+## `POST /v1/notes`
 
-The authoritative schemas are `aiInputSchema` and `aiOutputSchema` in [`shared/src/schemas/reflections.ts`](../shared/src/schemas/reflections.ts). Import them from `@beyond/shared` if the service is written in TypeScript.
+Request: `{ "version": 2, "key": "2026-10" | "Y2026", "voice", "language", "letters": [...] }`. Each letter carries its date, headline, tone, themes, the quoted words, open questions and the status of its to-dos. Only delivered letters kept in Patterns are included. Response: `{ "text", "model" }`.
+
+## `POST /v1/transcribe?lang=mixed|yue-Hant-HK|zh-CN|en-US`
+
+The request body is the raw audio (`audio/*`, ≤4.2 MB); the response is `{ "text" }`. The recording is passed to an OpenAI-compatible `/audio/transcriptions` endpoint with the prototype's Cantonese, Mandarin and English hints. Nothing is kept. The app records only when transcription is configured; otherwise Speak uses the browser's own speech recognition or the keyboard's dictation.
+
+## `GET /v1/health`
+
+Returns `{ letters, notes, transcribe, provider, model }`. Every route requires the bearer token. Errors are `{ "error": code }` and never contain upstream text.
 
 ## Turning it on
 
-1. Deploy the service on HTTPS and generate a random `AI_SERVICE_TOKEN` (32+ URL-safe characters) that it requires.
-2. On the `beyond-api` Vercel project, set `REFLECTIONS_ENABLED=true`, `AI_SERVICE_URL`, `AI_SERVICE_TOKEN`, a different `REFLECTION_JOB_TRIGGER_SECRET`, and `SUPABASE_SECRET_KEY` (API only; never in a client or the AI service). Redeploy.
-3. Schedule `POST https://<api>/api/v1/internal/reflections/process` every few minutes with `Authorization: Bearer <REFLECTION_JOB_TRIGGER_SECRET>`, for example from a Vercel Cron job or Supabase `pg_cron` + `pg_net`.
-4. The consent button appears in the app automatically once `GET /api/v1/account` reports reflections as available.
+1. **AI project:** on the Vercel project `beyond-ai` (Root Directory `ai`), set `AI_SERVICE_TOKEN` to a random value of 32+ URL-safe characters.
+   - For letters and notes, set `ANTHROPIC_API_KEY`, and optionally `ANTHROPIC_MODEL` (default `claude-sonnet-5-5`).
+   - Or use `OPENAI_API_KEY`, `OPENAI_MODEL` and `OPENAI_BASE_URL` for any OpenAI-compatible endpoint. `AI_PROVIDER=auto|anthropic|openai` picks between them.
+   - For voice, set `TRANSCRIBE_API_KEY` (or reuse the OpenAI key) and `TRANSCRIBE_MODEL` (default `whisper-1`).
+2. **API project:** on `beyond-api`, set:
+   - `AI_SERVICE_URL`: the AI origin
+   - `AI_SERVICE_TOKEN`: the same token as the AI project
+   - `LETTER_JOB_TRIGGER_SECRET`: a different random value
+   - `SUPABASE_SECRET_KEY`: already set for account deletion
 
-## What the service owns
+   Then redeploy.
 
-- Choosing the provider/model, writing the prompts, and the safety behaviour for difficult content.
-- The retention policy for anything it sends to a provider.
-- Evaluations in [`ai/evals`](../ai/evals/README.md), run with fictional entries before launch.
+3. **Scheduler:** in Supabase, the `beyond-letter-writer` `pg_cron` job POSTs `{"limit":3}` every minute to `/api/v1/internal/letters/process`, with the trigger bearer from Vault. See [deployment](deployment.md#schedulers).
 
-Patterns, themes, Quarterly Wrapped and Life Film are later analysis features with no contract yet. Their screens stay empty for real accounts until one is designed.
+Leave the provider keys empty and steps 1–3 still work. Letters simply wait until a key is added.
+
+## Limits and safety
+
+- Each person gets 6 letters, 10 notes and 40 transcriptions per day (UTC), enforced in the database.
+- Letters never diagnose. When the model flags a safety concern, the letter points to people and to the app's Hong Kong support contacts.
+- The keyword check in the app shows support while the person is still writing.
+- The provider sees what is sent, under its own retention terms. Review those terms before real users write.
+- Evaluations: see [`ai/evals`](../ai/evals/README.md). Unit tests mock the provider; CI runs the real service against a stub model.

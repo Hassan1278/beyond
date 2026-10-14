@@ -7,14 +7,14 @@
  * default on load.
  */
 
-export const THEME_IDS = ['night', 'bloom'] as const;
+export const THEME_IDS = ['candle', 'bloom'] as const;
 export type ThemeId = (typeof THEME_IDS)[number];
 
 const KEY = 'beyond.theme';
 
 /** The browser-chrome colour each palette should tint to. */
 const BAR: Record<ThemeId, string> = {
-  night: '#0b0c0e',
+  candle: '#15100e',
   bloom: '#27102f',
 };
 
@@ -28,7 +28,7 @@ export function readTheme(): ThemeId {
   } catch {
     /* private window or blocked site data: fall through to the default */
   }
-  return 'night';
+  return 'candle';
 }
 
 export function applyTheme(id: ThemeId): void {
