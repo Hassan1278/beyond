@@ -34,9 +34,9 @@ SELECT is(
 
 SELECT is(public.api_schema_ready(), true, 'Writing schema readiness is true');
 SELECT is(
-  (SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname IN ('public','private') AND tablename ~ '(ai|job|reflection)' AND tablename NOT IN ('reflection_jobs','reflections')),
+  (SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname IN ('public','private') AND tablename ~ '(ai|job|reflection|letter|provider)' AND tablename NOT IN ('letter_jobs','letters','letter_notes','ai_daily_usage')),
   0::bigint,
-  'Only the explicit backend reflection tables exist; no provider tables are created'
+  'Only the explicit backend letter tables exist; no provider tables are created'
 );
 
 -- Clear the legacy claim so auth.uid() reads only the JSON claims below.
