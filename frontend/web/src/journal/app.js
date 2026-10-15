@@ -1,9 +1,11 @@
 /* ======================================================================
    Beyond — the journal app.
    Write tonight, nothing replies, a letter arrives in the morning.
-   Ported from the prototype (client/web/app.src.html). The views, wording and
-   motion are unchanged; storage and letter writing now go through Beyond's
-   backend. Journal text is kept in memory only, never in browser storage.
+   Ported from the prototype (client/web/app.src.html); storage and letter
+   writing go through Beyond's backend. Journal text is kept in memory only,
+   never in browser storage.
+   PC redesign: ink on night, letters on paper, hand-drawn marks instead of
+   boxes. Identity has its own tab; Profile is about you, Settings is separate.
    ====================================================================== */
 /* eslint-disable */
 import SAMPLE_DATA from './sample.json';
@@ -239,16 +241,25 @@ function go(r, p = null, opts = {}) {
 function readHash() {
   const h = decodeURIComponent(location.hash.slice(1));
   const m = h.match(/^(letter|patterns)-(.+)$/);
-  if (m) { route = m[1]; param = m[2]; } else if (['tonight', 'letters', 'patterns', 'you', 'support', 'welcome'].includes(h)) { route = h; param = null; }
+  if (h === 'patterns-identity') { route = 'identity'; param = null; } // old links
+  else if (m) { route = m[1]; param = m[2]; }
+  else if (h === 'you') { route = 'profile'; param = null; } // old links
+  else if (['tonight', 'letters', 'identity', 'patterns', 'profile', 'settings', 'support', 'welcome'].includes(h)) { route = h; param = null; }
 }
 window.addEventListener('popstate', () => { closeSheet(false); readHash(); render(); });
 
 /* ---------- icons ---------- */
+/* Hand-drawn line marks: slightly uneven strokes, never perfect geometry. */
+const HAND = 'fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"';
 const I = {
-  moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></svg>',
-  mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></svg>',
-  sky: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="16" r="1.4"/><circle cx="11" cy="9" r="1.4"/><circle cx="18" cy="13" r="1.4"/><circle cx="20" cy="5" r="1"/><path d="m6.2 15 3.7-5M12.3 9.7l4.4 2.6"/></svg>',
-  you: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c1-4 4-5.5 7-5.5s6 1.5 7 5.5"/></svg>',
+  moon: `<svg viewBox="0 0 24 24" ${HAND}><path d="M15.6 3.6c-4.3.6-7.3 4.4-6.9 8.7.4 4.2 4.2 7.4 8.5 7.1-1.6 1.4-3.8 2.2-6.1 2-4.6-.4-8-4.4-7.6-9 .4-4.4 4.1-7.8 8.6-7.6 1.3.1 2.4-.4 3.5-1.2Z"/></svg>`,
+  mail: `<svg viewBox="0 0 24 24" ${HAND}><path d="M3.4 6.2c5.8-.5 11.5-.6 17.3-.1.4 4 .3 8 .1 11.9-5.8.4-11.5.4-17.2 0-.4-3.9-.5-7.9-.2-11.8Z"/><path d="M3.8 6.7c2.6 2.3 5.3 4.4 8.3 6.3 2.9-1.9 5.6-4 8.2-6.4"/></svg>`,
+  bubbles: `<svg viewBox="0 0 24 24" ${HAND}><path d="M9.2 4.4c3 0 5.3 2.3 5.2 5.2-.1 2.9-2.5 5-5.4 4.9-2.8-.1-4.9-2.4-4.8-5.2.2-2.7 2.3-4.9 5-4.9Z"/><path d="M16.9 12.6c2 .1 3.6 1.8 3.5 3.8-.1 2-1.9 3.6-3.9 3.5-2-.1-3.5-1.8-3.4-3.8.1-2 1.8-3.6 3.8-3.5Z"/><path d="M6.6 16.8c1.1 0 2 .9 2 2s-1 1.9-2.1 1.9c-1 0-1.9-.9-1.9-2 0-1 .9-1.9 2-1.9Z"/></svg>`,
+  sky: `<svg viewBox="0 0 24 24" ${HAND}><path d="M6 13.4c.3 1.6.9 2.4 2.4 2.7-1.5.4-2.1 1.1-2.4 2.8-.3-1.6-.9-2.4-2.5-2.7 1.6-.4 2.2-1.1 2.5-2.8Z"/><path d="M15.4 3.6c.5 2.6 1.6 3.9 4.1 4.4-2.5.6-3.6 1.9-4.1 4.6-.5-2.6-1.6-3.9-4.2-4.4 2.6-.6 3.7-1.9 4.2-4.6Z"/><path d="M8.7 15.4c2-1.4 3.6-2.9 5.2-4.6" stroke-dasharray="0.1 2.6"/></svg>`,
+  you: `<svg viewBox="0 0 24 24" ${HAND}><path d="M12.1 4.6c1.9 0 3.4 1.6 3.3 3.5 0 1.9-1.6 3.4-3.5 3.3-1.8 0-3.3-1.6-3.2-3.5.1-1.8 1.5-3.3 3.4-3.3Z"/><path d="M5.2 19.8c.9-3.6 3.8-5.4 6.9-5.4 3.2 0 6 1.8 6.8 5.5"/></svg>`,
+  star: `<svg viewBox="0 0 24 24" ${HAND}><path d="M12.2 3.2c.6 4.1 2.2 6.3 6.6 7.3-4.3.9-6 3-6.7 7.8-.7-4.5-2.4-6.8-6.9-7.6 4.4-1 6.3-3.2 7-7.5Z"/></svg>`,
+  gear: `<svg viewBox="0 0 24 24" ${HAND}><path d="M12 8.6c1.9 0 3.4 1.5 3.4 3.4 0 1.9-1.6 3.5-3.5 3.4-1.8 0-3.3-1.6-3.3-3.5.1-1.8 1.6-3.3 3.4-3.3Z"/><path d="M12 2.9v2.6M12 18.6v2.5M4.1 7.4l2.3 1.3M17.6 15.3l2.2 1.3M4.2 16.7l2.2-1.3M17.6 8.7l2.3-1.4M7.6 3.9l.9 1.7M15.5 18.4l.9 1.8M3.1 12h2.5M18.4 12.1h2.6"/></svg>`,
+  search: `<svg viewBox="0 0 24 24" ${HAND}><path d="M10.6 4.2c3.6 0 6.4 2.8 6.3 6.3-.1 3.5-3 6.2-6.4 6.1-3.4-.1-6.1-2.9-6-6.3.1-3.3 2.8-6.1 6.1-6.1Z"/><path d="M15.4 15.6c1.6 1.5 3.2 3 4.9 4.6"/></svg>`,
   left: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m14 6-6 6 6 6"/></svg>',
   right: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m10 6 6 6-6 6"/></svg>',
   x: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
@@ -260,9 +271,35 @@ const I = {
 };
 function ring(L, size = 46) {
   const p = progress(L); const C = 2 * Math.PI * 20; const frac = p.need ? p.done / p.need : 0;
-  return `<span class="ring ${p.complete ? 'is-done' : ''}" style="width:${size}px;height:${size}px">
+  if (p.complete) return goldSeal(size);
+  return `<span class="ring" style="width:${size}px;height:${size}px">
     <svg viewBox="0 0 46 46" aria-hidden="true"><circle cx="23" cy="23" r="20" class="rt"/><circle cx="23" cy="23" r="20" class="rp" style="stroke-dasharray:${(frac * C).toFixed(1)} ${C.toFixed(1)}"/></svg>
-    <span class="n">${p.complete ? I.check : `${p.done}/${p.need}`}</span></span>`;
+    <span class="n">${p.done}/${p.need}</span></span>`;
+}
+/* The gold seal: a stamped wax disc with a scalloped edge and a hand-drawn tick. */
+function goldSeal(size = 46) {
+  const n = 18; let d = '';
+  for (let i = 0; i <= n; i++) { const a = (i / n) * Math.PI * 2 - Math.PI / 2; const r = i % 2 ? 19.2 : 22; d += `${i ? 'L' : 'M'}${(23 + Math.cos(a) * r).toFixed(1)} ${(23 + Math.sin(a) * r).toFixed(1)} `; }
+  return `<span class="ring is-done" style="width:${size}px;height:${size}px"><svg viewBox="0 0 46 46" aria-hidden="true"><path d="${d}Z" class="seal-edge"/><path d="${wobble('seal', 23, 23, 15, .04)}" class="seal-in"/><path d="M15.6 23.6c2 1.5 3.6 3.2 5 5.1 2.8-4.6 5.9-8.2 9.6-11" class="seal-tick"/></svg></span>`;
+}
+/* An uneven circle, as if drawn by hand: seeded so it looks the same every time. */
+function wobble(seed, cx, cy, r, j = .06, n = 10) {
+  const rnd = seeded(String(seed)); const off = rnd() * Math.PI * 2; const pts = [];
+  for (let i = 0; i < n; i++) { const a = off + (i / n) * Math.PI * 2; const rr = r * (1 + (rnd() - .5) * 2 * j); pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]); }
+  const f = (v) => v.toFixed(1); const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+  const start = mid(pts[n - 1], pts[0]);
+  let d = `M${f(start[0])} ${f(start[1])}`;
+  for (let i = 0; i < n; i++) { const p = pts[i]; const q = mid(pts[i], pts[(i + 1) % n]); d += ` Q${f(p[0])} ${f(p[1])} ${f(q[0])} ${f(q[1])}`; }
+  // overshoot a little past the start, the way a pen does
+  const p = pts[0]; const q = mid(pts[0], pts[1 % n]);
+  return `${d} Q${f(p[0] * .985 + cx * .015)} ${f(p[1] * .985 + cy * .015)} ${f(q[0] * .97 + cx * .03)} ${f(q[1] * .97 + cy * .03)}`;
+}
+/* A four-point star drawn freehand. */
+function sparkle(seed, s) {
+  const r = seeded(String(seed)); const j = () => 1 + (r() - .5) * .3; const k = .2;
+  const pt = (x, y) => `${(x).toFixed(1)} ${(y).toFixed(1)}`;
+  const t = -s * j(), ri = s * j(), b = s * j(), l = -s * j();
+  return `M${pt(0, t)} C${pt(s * k, t * k)} ${pt(ri * k, -s * k)} ${pt(ri, 0)} C${pt(ri * k, s * k)} ${pt(s * k, b * k)} ${pt(0, b)} C${pt(-s * k, b * k)} ${pt(l * k, s * k)} ${pt(l, 0)} C${pt(l * k, -s * k)} ${pt(-s * k, t * k)} ${pt(0, t)}Z`;
 }
 
 /* ---------- render ---------- */
@@ -273,19 +310,21 @@ function render() {
   if (!S.onboarded && !['support', 'login'].includes(route)) route = 'welcome';
   document.body.classList.add('night');
   setAmbient(route === 'tonight' || route === 'welcome' ? 'full' : 'soft');
-  const views = { welcome: vWelcome, login: vLogin, tonight: vTonight, letters: vLetters, letter: vLetter, patterns: vPatterns, you: vYou, support: vSupport };
+  if (route === 'you') route = 'profile';
+  const views = { welcome: vWelcome, login: vLogin, tonight: vTonight, letters: vLetters, letter: vLetter, identity: vIdentity, patterns: vPatterns, profile: vProfile, settings: vSettings, support: vSupport };
   const html = (views[route] || vTonight)();
   const unread = allLetters().some((l) => delivered(l) && !l.readAt);
   setAmbient(route === 'login' ? 'full' : undefined);
+  const here = (r) => route === r || (r === 'letters' && route === 'letter') || (r === 'profile' && route === 'settings');
   const nav = route === 'welcome' || route === 'login' ? '' : `
     <header class="topbar">
-      <button class="brand" data-go="tonight" aria-label="Beyond, Tonight">${I.crescent}Beyond</button>
+      <button class="brand" data-go="tonight" aria-label="Beyond, Tonight">${I.moon}<span>Beyond</span></button>
       <nav class="tabs" aria-label="Main">
-        ${[['tonight', 'Tonight', I.moon], ['letters', 'Letters', I.mail], ['patterns', 'Patterns', I.sky], ['you', 'You', I.you]].map(([r, l, ic]) =>
-          `<button class="tab" data-go="${r}" ${route === r || (r === 'letters' && route === 'letter') ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${r === 'letters' && unread ? '<i class="dot" aria-label="Unread letter"></i>' : ''}</button>`).join('')}
+        ${[['tonight', 'Tonight', I.moon], ['letters', 'Letters', I.mail], ['identity', 'Identity', I.bubbles], ['patterns', 'Patterns', I.sky], ['profile', 'Profile', I.you]].map(([r, l, ic]) =>
+          `<button class="tab" data-go="${r}" ${here(r) ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${r === 'letters' && unread ? '<i class="dot" aria-label="Unread letter"></i>' : ''}</button>`).join('')}
       </nav>
     </header>`;
-  $('#app').innerHTML = `${nav}<main id="main">${html}</main>`;
+  $('#app').innerHTML = `${nav}<main id="main" class="v-${route}">${html}</main>`;
   after.forEach((f) => f()); after = [];
 }
 function setAmbient(mode) {
@@ -296,13 +335,16 @@ function setAmbient(mode) {
     const r = seeded('embers');
     a.innerHTML = '<i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i>' + Array.from({ length: 16 }, () =>
       `<i class="ember" style="left:${(r() * 100).toFixed(1)}%;--z:${(2 + r() * 3).toFixed(1)}px;--t:${(11 + r() * 12).toFixed(1)}s;--dl:${(-r() * 20).toFixed(1)}s;--dx:${((r() - .5) * 120).toFixed(0)}px"></i>`).join('');
+    // plus a few pencil stars in the margins
+    const spots = [[4, 12, 9], [93, 8, 7], [88, 46, 5], [6, 64, 6], [96, 82, 8], [14, 90, 5], [72, 20, 4]];
+    a.innerHTML += spots.map(([x, y, s], i) => `<svg class="pencil-star" style="left:${x}%;top:${y}%;width:${s * 3}px;height:${s * 3}px" viewBox="-10 -10 20 20"><path d="${sparkle(`amb${i}`, 8)}"/></svg>`).join('');
   }
   a.hidden = false;
 }
 
 function sampleBanner() {
   if (!demoOn()) return '';
-  return `<div class="sample-banner"><span><b>Demo mode</b> · Kit's sample letters (fictional) are shown with yours.</span><button class="link" data-act="own">Turn off demo mode</button></div>`;
+  return `<p class="sample-banner">Demo mode: Kit's sample letters (fictional) are shown with yours. <button class="link" data-act="own">Turn off demo mode</button></p>`;
 }
 
 /* ----- welcome ----- */
@@ -315,22 +357,22 @@ function vWelcome() {
     after.push(() => setTimeout(() => $('.welcome')?.classList.add('is-quiet'), 1800));
     return `<section class="welcome">
       <div class="noise" aria-hidden="true">${words}</div>
-      <span class="k" style="color:var(--amber)">Beyond · a journal that writes back in the morning</span>
-      <h1 class="title">Write tonight. Nothing replies. A letter arrives in the morning.</h1>
+      <p class="brand-line">${I.moon}<span>Beyond, a journal that writes back in the morning</span></p>
+      <h1 class="display">Write tonight. Nothing replies. A letter arrives in the morning.</h1>
       <ol class="how">
         <li><b>Tonight</b>Write or just talk about whatever is on your mind. No feed, no likes, no reply.</li>
         <li><b>Overnight</b>It's sealed. Claude reads it next to your earlier nights.</li>
         <li><b>Morning</b>A short letter, and three small to-dos you can tick off.</li>
       </ol>
       <div class="row">${isGuest() || OFFLINE
-        ? `<button class="btn amber" data-act="start-sample">Try it with Kit's sample journal</button><button class="btn secondary" data-act="start-own">Start an empty journal</button>`
-        : `<button class="btn amber" data-act="start-own">Start my journal</button><button class="btn secondary" data-act="start-sample">See an example first (demo)</button>`}</div>
+        ? `<button class="btn amber" data-act="start-sample">Try it with Kit's sample journal</button><button class="link" data-act="start-own">Start an empty journal</button>`
+        : `<button class="btn amber" data-act="start-own">Start my journal</button><button class="link" data-act="start-sample">See an example first (demo)</button>`}</div>
       <p class="fine">${OFFLINE ? 'Offline trial: letters here are simple templates. The online version writes them with Claude.' : LOCAL ? (isGuest() ? 'Judge preview: you have your own empty journal, and Claude writes your letters.' : 'Letters are written by Claude. Your journal is saved to your Beyond account, private to you.') : 'Letters are written by Claude on your own claude.ai account. Your journal stays in this browser.'}</p>
     </section>`;
   }
   return `<section class="welcome" style="align-content:center">
-    <span class="k" style="color:var(--amber)">One choice before tonight</span>
-    <h1 class="title" style="max-width:18ch">Who should write your morning letters?</h1>
+    <p class="lead">One choice before tonight.</p>
+    <h1 class="display" style="max-width:18ch">Who should write your morning letters?</h1>
     <div class="voices" role="group" aria-label="Letter voice">${voiceCards()}</div>
     <p class="fine">The voice changes the tone only. Every letter quotes your exact words and never invents anything. You can change this later.</p>
     <div class="row"><button class="btn amber" data-act="finish-welcome">Start writing</button></div>
@@ -382,17 +424,17 @@ function vTonight() {
     }, 5200);
   });
   return `<section class="tn ${speak ? 'is-speak' : ''}">
-      ${unread ? `<button class="pill" data-open="${unread.id}">${I.mail}<span><b>A letter arrived</b> · ${fmtDay(unread.date)}${unread.sample ? ' (sample)' : ''}</span><span class="go">Open</span></button>` : ''}
-      <div class="seg mode-seg" role="group" aria-label="How do you want to say it tonight?">
-        <button data-imode="type" aria-pressed="${!speak}">${I.pen}<span>Write</span></button>
-        <button data-imode="speak" aria-pressed="${speak}">${I.mic}<span>Speak</span></button>
+      ${unread ? `<p class="arrived">${I.mail}<span>A letter arrived for ${fmtDay(unread.date)}${unread.sample ? ' (sample)' : ''}.</span> <button class="link" data-open="${unread.id}">Open it</button></p>` : ''}
+      <div class="switch mode-seg" role="group" aria-label="How do you want to say it tonight?">
+        <button data-imode="type" aria-pressed="${!speak}">Write</button>
+        <button data-imode="speak" aria-pressed="${speak}">Speak</button>
       </div>
       ${speak ? `<div class="voice-stage" id="vstage">
           <canvas id="vcanvas" aria-hidden="true"></canvas>
           <button class="voice-orb" id="orb" data-act="orb" type="button" aria-label="${RECORDS ? 'Start talking' : 'Start talking with your device’s dictation'}"><span class="lantern"></span><span class="glyph" id="glyph">${I.mic}</span></button>
         </div>`
         : `<div class="lantern-wrap" id="lantern-wrap" style="${lanternVars(words)}" aria-hidden="true"><div class="lantern"></div></div>`}
-      <span class="k tn-date">${fmtDay(journalDate())} · Tonight</span>
+      <p class="tn-date">${fmtDay(journalDate())}, tonight</p>
       <h1 class="tn-prompt" id="prompt"><span>${esc((speak ? SPEAK_PROMPTS : PROMPTS)[0])}</span></h1>
       ${speak ? `<div class="chips slang-chips" id="slang-chips" role="group" aria-label="I'm speaking"></div>
         <p class="voice-hint" id="vhint" aria-live="polite"></p>` : ''}
@@ -407,12 +449,41 @@ function vTonight() {
         </div>
         <button class="btn amber" data-act="seal" id="b-seal" ${S.draft.trim() ? '' : 'disabled'}>Seal tonight</button>
       </div>
-      <p class="tn-foot">Nothing replies tonight. Your letter comes from your <button class="link" data-go="you">${esc((VOICES[S.voice] || VOICES.friend).name)}</button>.</p>
+      <p class="tn-foot">Nothing replies tonight. Your letter comes from your <button class="link" data-go="settings">${esc((VOICES[S.voice] || VOICES.friend).name)}</button>.</p>
       ${isGuest() ? `<p class="fine">Judge preview · ${AUTH.user.left ?? 0} AI letters left today</p>` : ''}
       ${OFFLINE ? '<p class="fine">Offline trial · letters are simple templates. See START HERE for the online version with Claude.</p>' : ''}
       ${speak ? `<p class="fine voice-privacy">${mixedOK() ? '粵 + 普 + EN: Beyond records, turns it into text, then deletes the audio. Single languages use your browser’s speech service (Chrome: Google, Safari: Apple) and show words live; you can switch mid-sentence.' : SR ? 'Your browser turns your voice into text (Chrome uses Google’s speech service, Safari uses Apple’s), one language at a time; tap a language to switch, even mid-sentence. Beyond keeps only the words.' : RECORDS && SERVER_STT ? 'Your recording is turned into text, then deleted. Only the words are kept.' : 'Your device turns your voice into text. Beyond never hears the audio.'}</p>` : ''}
       <p class="fine" id="claude-note">${claudeNote()}</p>
+      ${identityGlance()}
     </section>`;
+}
+/* Identity at a glance, under the writing area: quiet, and one tap from the map. */
+function visibleDirections(all = directions()) {
+  return all.filter((d) => (d.status === 'confirmed' && d.evidence.length) || (d.status === 'suggested' && d.sufficient))
+    .sort((a, b) => b.days - a.days || b.evidence.length - a.evidence.length || a.key.localeCompare(b.key));
+}
+function nightsToFirst(all = directions()) { return Math.max(1, 3 - Math.max(0, ...all.map((d) => d.days))); }
+function miniMap(list, W = 112, H = 72) {
+  // Drawn on a 112 x 72 grid; larger circles have more nights behind them.
+  const slots = [[44, 37], [87, 22], [88, 55], [13, 18], [14, 57]];
+  const caps = [27, 16, 14, 11, 10];
+  const max = Math.max(1, ...list.map((d) => d.days));
+  const circles = (list.length ? list.slice(0, 5) : [null, null, null]).map((d, i) => {
+    const [x, y] = slots[i]; const r = d ? Math.max(7, caps[i] * Math.sqrt(d.days / max)) : [18, 10, 8][i];
+    return `<path d="${wobble(d ? d.key : `empty${i}`, x, y, r, .07)}" class="${d ? (d.status === 'confirmed' ? 'is-confirmed' : '') : 'is-empty'}"/>`;
+  }).join('');
+  return `<svg class="mini-map" viewBox="0 0 112 72" width="${W}" height="${H}" aria-hidden="true">${circles}</svg>`;
+}
+function identityGlance() {
+  const all = directions(); const vis = visibleDirections(all);
+  if (vis.length) {
+    const top = vis[0];
+    return `<button class="glance" data-go="identity" aria-label="Identity: your strongest direction is ${esc(top.name)}, across ${plural(top.days, 'night')}. Open Identity">
+      ${miniMap(vis)}<span class="glance-t"><span class="glance-k">Strongest direction</span><b>${esc(top.name)}</b><span>${plural(top.days, 'night')}${vis.length > 1 ? `, and ${plural(vis.length - 1, 'other direction')}` : ''}</span></span></button>`;
+  }
+  const n = nightsToFirst(all);
+  return `<button class="glance is-empty" data-go="identity" aria-label="Identity: write ${plural(n, 'more night')} to see your first direction. Open Identity">
+    ${miniMap([])}<span class="glance-t"><b>Write ${plural(n, 'more night')} to see your first direction</b><span>A direction appears when letters from three nights point the same way.</span></span></button>`;
 }
 function claudeNote() {
   if (claudeState !== 'off') return '';
@@ -672,22 +743,22 @@ async function ascend(text, id, rect, lrect) {
 function vSealed(L) {
   const n = L.entries.reduce((a, e) => a + countWords(e.text), 0);
   const stars = starPositions(L.id, 26);
-  const status = L.status === 'writing' ? `<span class="status"><i></i>${claudeState === 'off' ? 'Sealed and waiting for the letter writer' : 'Claude is writing quietly'}</span>`
-    : L.status === 'failed' ? `<span class="status err"><i></i>The letter couldn't be written yet</span>`
-    : `<span class="status ok"><i></i>Written and sealed until ${atTime(L)}</span>`;
-  return `<section class="skycard sealed">
+  const status = L.status === 'writing' ? `<p class="status"><i></i>${claudeState === 'off' ? 'Sealed and waiting for the letter writer' : 'Claude is writing quietly'}</p>`
+    : L.status === 'failed' ? `<p class="status err"><i></i>The letter couldn't be written yet</p>`
+    : `<p class="status ok"><i></i>Written and sealed until ${atTime(L)}</p>`;
+  return `<section class="sealed">
       ${stars.map((s) => `<i class="s" style="left:${s.x}%;top:${s.y * 0.7}%;--tw:${s.tw}s;--dl:${s.dl}s"></i>`).join('')}
       <span class="mini-lantern" aria-hidden="true"></span>
       <div class="env" aria-hidden="true"><div class="env-back"></div><div class="env-paper"><i></i><i style="width:80%"></i><i style="width:60%"></i></div><div class="env-pocket"></div><div class="env-flap"></div><div class="env-seal">${I.crescent}</div></div>
-      <h1 style="font:500 28px/1.2 var(--f-letter)">Sealed for the night.</h1>
-      <p style="color:var(--mist);max-width:40ch">${plural(n, 'word')} written at ${L.sealedAt || '—'}. Sleep well. It will be waiting here.</p>
+      <h1 class="display sm">Sealed for the night.</h1>
+      <p class="lead">${plural(n, 'word')} written at ${L.sealedAt || '—'}. Sleep well. It will be waiting here.</p>
       <label class="pick" for="ltime"><span>Arrives at</span><select id="ltime">${timeOptions(atTime(L))}</select></label>
       ${status}
-      ${L.status === 'failed' ? `<p class="notice warn" style="text-align:left">${esc(L.error)}</p><div class="row" style="justify-content:center"><button class="btn sm" data-retry="${L.id}">Try again</button></div>` : ''}
+      ${L.status === 'failed' ? `<p class="notice warn">${esc(L.error)}</p><div class="row"><button class="btn sm" data-retry="${L.id}">Try again</button></div>` : ''}
       ${!canSkip() ? '' : isDemoSkip() ? `<button class="btn amber" data-act="skip" ${L.status === 'failed' ? 'disabled' : ''}>Skip to morning</button>
       <p class="fine">Demo: Skip to morning shows the letter now. It doesn't change your device's clock.</p>`
-        : `<button class="btn secondary" data-act="readnow" ${L.status === 'failed' ? 'disabled' : ''}>Read it now</button>
-      <p class="fine">Can’t wait? That’s fine. You can turn this button off in You.</p>`}
+        : `<button class="link" data-act="readnow" ${L.status === 'failed' ? 'disabled' : ''}>Read it now</button>
+      <p class="fine">Can’t wait? That’s fine. You can turn this off in Settings.</p>`}
     </section>`;
 }
 
@@ -751,13 +822,13 @@ function vLetter() {
   secHans = c.language === 'zh-hans' || (c.language === 'en' && S.lang === 'zh-hans');
   const greet = c.greeting ?? v[lang][0]; const sign = c.signoff ?? v[lang][1];
   if (!L.readAt && opening !== L.id) {
-    return `<button class="btn ghost sm" data-go="letters" style="justify-self:start">${I.left} Letters</button>
-      <section class="skycard env-stage night">
+    return `<button class="link back" data-go="letters">${I.left}Letters</button>
+      <section class="env-stage">
         <span class="stars" aria-hidden="true"></span>
-        <span class="k" style="color:var(--amber);position:relative">${fmtDay(L.date)}${L.sample ? ' · Kit’s sample' : ''}</span>
-        <h1 style="position:relative;font:500 26px/1.2 var(--f-letter)">From your ${esc(v.name)}</h1>
+        <p class="tn-date">${fmtDay(L.date)}${L.sample ? ', Kit’s sample' : ''}</p>
+        <h1 class="display sm">From your ${esc(v.name)}</h1>
         <div class="env" id="env"><div class="env-back"></div><div class="env-paper"><i></i><i style="width:80%"></i><i style="width:60%"></i></div><div class="env-pocket"></div><div class="env-flap"></div><div class="env-seal">${I.crescent}</div></div>
-        <button class="btn amber" data-openenv="${L.id}" style="position:relative">Open the letter</button>
+        <button class="btn amber" data-openenv="${L.id}">Open the letter</button>
       </section>`;
   }
   const highlight = (e) => {
@@ -772,9 +843,10 @@ function vLetter() {
   const fresh = opening === L.id; if (fresh) opening = null;
   const insights = (c.analysis || []).slice(0, 2);
   const enc = c.encouragement || c.closing;
-  return `<button class="btn ghost sm" data-go="letters" style="justify-self:start">${I.left} Letters</button>
-    <article class="letter ${fresh ? 'reveal' : ''}" lang="${{ en: 'en', 'zh-hans': 'zh-Hans' }[c.language] || 'zh-Hant-HK'}">
-      <div class="letter-meta" style="--i:0"><span class="k">${fmtDay(L.date)}${L.sample ? ' · sample' : ''}</span><span class="k">From your ${esc(v.name)}</span></div>
+  return `<button class="link back" data-go="letters">${I.left}Letters</button>
+    <article class="letter paper ${fresh ? 'reveal' : ''}" lang="${{ en: 'en', 'zh-hans': 'zh-Hans' }[c.language] || 'zh-Hant-HK'}">
+      <span class="paper-moon" aria-hidden="true">${I.moon}${I.star}</span>
+      <div class="letter-meta" style="--i:0"><span>${fmtDay(L.date)}${L.sample ? ', sample' : ''}</span><span>From your ${esc(v.name)}</span></div>
       ${c.safetyConcern ? `<div class="notice warn" style="--i:0"><b>Please don't carry this alone.</b><span>Beyond isn't watched by a person. If you're struggling, people can help right now.</span><button class="btn sm" data-go="support" style="justify-self:start">See who to talk to</button></div>` : ''}
       <header style="--i:1">${greet ? `<p class="greet">${esc(greet)}</p>` : ''}<h1 class="headline">${esc(c.headline)}</h1></header>
       <section class="ls" style="--i:2">${secLabel('recap')}<div class="ls-body"><p>${esc(c.recap)}</p></div></section>
@@ -784,11 +856,11 @@ function vLetter() {
       ${c.challenge ? `<section class="ls" style="--i:4">${secLabel('challenge')}<div class="ls-body"><p class="issue">${esc(c.challenge.issue)}</p>${c.challenge.cause ? `<p class="cause"><b>Why</b><span>${esc(c.challenge.cause)}</span></p>` : ''}</div></section>` : ''}
       <section class="ls" style="--i:5">${secLabel('improve')}<div class="ls-body"><p>${esc(c.advice.text)}</p></div></section>
       ${enc || sign ? `<section class="ls" style="--i:6">${secLabel('encourage')}<div class="ls-body">${enc ? `<p>${esc(enc)}</p>` : ''}${sign ? `<p class="signoff">${esc(sign)}</p>` : ''}</div></section>` : ''}
-      <button class="todo-cta" data-todo="${L.id}" style="--i:7">${ring(L)}<span class="t"><b>Today's 3 to-dos</b><span>${p.complete ? 'All done. Gold seal earned.' : `${p.done} of ${p.need} done · tap to check them off`}</span></span>${I.right}</button>
+      <button class="todo-cta" data-todo="${L.id}" style="--i:7">${ring(L)}<span class="t"><b>Today's 3 to-dos</b><span>${p.complete ? 'All done. Gold seal earned.' : `${p.done} of ${p.need} done. Tap to check them off.`}</span></span></button>
       <details class="words-d" style="--i:8"><summary>Your words from that night</summary>
         <ul class="words">${L.entries.map((e) => `<li><span class="k">${esc(e.t || '')}</span><p>${highlight(e)}</p></li>`).join('')}</ul>
       </details>
-      ${(() => { const learned = (S.memories || []).filter((m) => m.letterIds.includes(L.id)); return learned.length ? `<div class="remembers" style="--i:9"><span class="k">Beyond will remember</span><ul>${learned.map((m) => `<li>${esc(m.text)}</li>`).join('')}</ul><button class="link" data-go="you">See, edit or forget</button></div>` : ''; })()}
+      ${(() => { const learned = (S.memories || []).filter((m) => m.letterIds.includes(L.id)); return learned.length ? `<div class="remembers" style="--i:9"><span class="k">Beyond will remember</span><ul>${learned.map((m) => `<li>${esc(m.text)}</li>`).join('')}</ul><button class="link" data-go="profile" data-to="memory">See, edit or forget</button></div>` : ''; })()}
       <div class="provenance" style="--i:9"><span>${by}</span>
         <button class="toggle" role="switch" aria-checked="${!!L.private}" data-private="${L.id}"><span class="track"></span><span>Keep this night out of Patterns</span></button>
       </div>
@@ -806,13 +878,13 @@ function drawSheet({ first = false, burst = null, celebrate = false } = {}) {
   if (!w) { w = document.createElement('div'); w.className = 'sheet-wrap'; $('#layer').appendChild(w); }
   const still = first ? '' : 'style="animation:none"';
   w.innerHTML = `<div class="sheet-bg" data-close ${still}></div>
-    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-t" ${still}>
-      <div class="sheet-head">${ring(L, 52)}<div class="t"><span class="k">${fmtDay(L.date)}${L.sample ? ' · sample' : ''}</span><h2 id="sheet-t">Today's 3 to-dos</h2></div><button class="x" data-close aria-label="Close">${I.x}</button></div>
-      ${p.complete ? `<div class="alldone">${celebrate ? `<span class="ring is-done"><span class="n">${I.check}</span></span>` : ''}<b>${celebrate ? 'All done.' : 'Completed'}</b><span class="fine">${celebrate ? 'Small steps, actually taken. This letter now has a gold seal.' : 'This letter has a gold seal.'}</span></div>` : ''}
+    <div class="sheet paper" role="dialog" aria-modal="true" aria-labelledby="sheet-t" ${still}>
+      <div class="sheet-head">${ring(L, 52)}<div class="t"><span class="sheet-date">${fmtDay(L.date)}${L.sample ? ', sample' : ''}</span><h2 id="sheet-t">Today's 3 to-dos</h2></div><button class="x" data-close aria-label="Close">${I.x}</button></div>
+      ${p.complete ? `<div class="alldone">${celebrate ? goldSeal(76) : ''}<b>${celebrate ? 'All done.' : 'Completed'}</b><span class="fine">${celebrate ? 'Small steps, actually taken. This letter now has a gold seal.' : 'This letter has a gold seal.'}</span></div>` : ''}
       <ul class="todos">${c.steps.map((s, i) => { const st = L.actions?.[`step.${i}`]; return `<li class="todo ${st === 'tried' ? 'is-done' : ''} ${st === 'skipped' ? 'is-skipped' : ''}">
         <button class="check ${burst === i ? 'pop' : ''}" data-check="${i}" aria-pressed="${st === 'tried'}" aria-label="${st === 'tried' ? 'Mark not done' : 'Mark done'}: ${esc(s.text)}"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></button>
         <p>${esc(s.text)}</p>
-        <div class="todo-meta"><span>${s.minutes} min · ${esc(s.kind)}</span>${st === 'tried' ? '' : `<button data-skip="${i}">${st === 'skipped' ? 'Bring it back' : 'Not for me'}</button>`}</div>
+        <div class="todo-meta"><span>${s.minutes} min, ${esc(s.kind)}</span>${st === 'tried' ? '' : `<button data-skip="${i}">${st === 'skipped' ? 'Bring it back' : 'Not for me'}</button>`}</div>
       </li>`; }).join('')}</ul>
       <p class="fine">All optional. “Not for me” tells future letters to suggest something different.</p>
       <button class="btn" data-close>Done</button>
@@ -823,37 +895,52 @@ function drawSheet({ first = false, burst = null, celebrate = false } = {}) {
       for (let k = 0; k < 10; k++) { const sp = document.createElement('i'); sp.className = 'spark'; const a = (k / 10) * Math.PI * 2; sp.style.setProperty('--x', `${Math.cos(a) * 30}px`); sp.style.setProperty('--y', `${Math.sin(a) * 30}px`); if (k % 2) sp.style.background = 'var(--ember)'; b.appendChild(sp); }
     }
     if (celebrate) {
-      const sheet = w.querySelector('.sheet'); const cols = ['var(--gold)', 'var(--ember)', 'var(--amber)', 'var(--rose)', '#fff3d6'];
+      const sheet = w.querySelector('.sheet'); const cols = ['var(--gold)', 'var(--ember)', '#b8862c', 'var(--rose)', '#8a6a3c'];
       for (let k = 0; k < 26; k++) { const cf = document.createElement('i'); cf.className = 'confetti'; const a = Math.random() * Math.PI * 2, d = 80 + Math.random() * 120; cf.style.background = cols[k % cols.length]; cf.style.setProperty('--x', `${Math.cos(a) * d}px`); cf.style.setProperty('--y', `${Math.sin(a) * d * .7 + 60}px`); cf.style.setProperty('--r', `${Math.random() * 540 - 270}deg`); sheet.appendChild(cf); setTimeout(() => cf.remove(), 1400); }
     }
   }
   if (first) w.querySelector('.check')?.focus({ preventScroll: true });
 }
 
-/* ----- letters list ----- */
+/* ----- letters: what arrived lately. The full archive, with search, is in Profile. ----- */
+const RECENT = 8;
+function letterRow(l, extra = '') {
+  const d = parse(l.date); const p = progress(l);
+  return `<li class="lrow">
+    <button class="lmain" data-open="${l.id}"><time>${d.getDate()}<small>${WD[d.getDay()]}</small></time>
+      <span class="head">${!l.readAt ? '<i class="new" aria-label="New"></i>' : ''}<span class="h">${extra && extra.head ? extra.head : esc(l.content.headline)}</span>${l.sample ? '<span class="smp">sample</span>' : ''}${extra && extra.snip ? `<span class="snip">${extra.snip}</span>` : ''}</span></button>
+    <button class="ring-btn" data-todo="${l.id}" aria-label="To-dos for ${fmtDay(l.date)}: ${p.complete ? 'all done, gold seal' : `${p.done} of ${p.need} done`}">${ring(l, 40)}</button>
+  </li>`;
+}
 function vLetters() {
   const list = allLetters();
   const ready = list.filter(delivered);
   const pending = S.letters.filter((l) => !delivered(l));
-  const groups = {};
-  for (const l of ready) (groups[l.date.slice(0, 7)] = groups[l.date.slice(0, 7)] || []).push(l);
   const sealedCount = ready.filter((l) => progress(l).complete).length;
-  return `<header class="stack" style="gap:6px"><span class="k">${plural(ready.length, 'letter')} · ${sealedCount} gold ${sealedCount === 1 ? 'seal' : 'seals'}</span><h1 class="title">Letters</h1>
-      <p class="fine">Tap a letter to read it. Tap its circle to see that day's 3 to-dos.</p></header>
+  const recent = ready.slice(0, RECENT);
+  const [first, ...rest] = recent;
+  return `<header class="page-head">
+      <h1 class="display">Letters</h1>
+      <p class="lead">${ready.length ? `${plural(ready.length, 'letter')} so far, ${sealedCount} with a gold seal. Tap a letter to read it, or its circle for that day's to-dos.` : 'Your morning letters collect here.'}</p>
+    </header>
     ${sampleBanner()}
-    ${pending.length ? `<button class="todo-cta" data-go="tonight"><span class="t"><b>On its way</b><span>Your letter for ${fmtDay(pending[0].date)} arrives at ${atTime(pending[0])}.</span></span>${I.right}</button>` : ''}
-    ${!ready.length ? `<div class="card stack"><p class="lead">No letters yet. Write tonight and the first one arrives tomorrow morning.</p><button class="btn" data-go="tonight" style="justify-self:start">Write tonight</button></div>` : ''}
-    ${Object.entries(groups).map(([m, ls]) => `<section class="month-group"><h2 class="k"><b>${MONTH[+m.slice(5) - 1]} ${m.slice(0, 4)}</b><span>${plural(ls.length, 'letter')}</span></h2>
-      ${ls.map((l) => { const d = parse(l.date); const p = progress(l); return `<div class="lrow">
-        <button class="lmain" data-open="${l.id}"><time>${d.getDate()}<small>${WD[d.getDay()]}</small></time>
-          <span class="head">${!l.readAt ? '<i class="new" aria-label="New"></i>' : ''}${esc(l.content.headline)}${l.sample ? '<span class="smp">sample</span>' : ''}</span></button>
-        <button class="ring-btn" data-todo="${l.id}" aria-label="To-dos for ${fmtDay(l.date)}: ${p.complete ? 'all done' : `${p.done} of ${p.need} done`}">${ring(l)}</button>
-      </div>`; }).join('')}
-    </section>`).join('')}`;
+    ${pending.length ? `<p class="arrived">${I.mail}<span>Your letter for ${fmtDay(pending[0].date)} arrives at ${atTime(pending[0])}.</span> <button class="link" data-go="tonight">See tonight</button></p>` : ''}
+    ${!ready.length ? `<section class="empty"><span class="empty-mark" aria-hidden="true">${I.moon}${I.star}</span><p class="lead">No letters yet. Write tonight and the first one arrives tomorrow morning.</p><button class="btn amber" data-go="tonight">Write tonight</button></section>` : `
+    <section class="spread latest">
+      <div class="feature">
+        <p class="tn-date">${!first.readAt ? 'New, ' : 'Latest, '}${fmtDay(first.date)}${first.sample ? ', sample' : ''}</p>
+        <button class="feature-h" data-open="${first.id}">${esc(first.content.headline)}</button>
+        <p class="feature-r">${esc(clip(first.content.recap, 220))}</p>
+        <div class="row"><button class="link" data-open="${first.id}">Read the letter</button><button class="ring-btn" data-todo="${first.id}" aria-label="To-dos for ${fmtDay(first.date)}">${ring(first, 40)}</button></div>
+      </div>
+      <div>${rest.length ? `<ul class="lrows">${rest.map((l) => letterRow(l)).join('')}</ul>` : ''}
+        <p class="more">${ready.length > RECENT ? `${plural(ready.length - RECENT, 'older letter')} in` : 'Every letter, by month and with search, is in'} <button class="link" data-go="profile" data-to="archive">your Profile</button>.</p>
+      </div>
+    </section>`}`;
 }
 
 /* ----- patterns: Month · Year · Identity ----- */
-const PTABS = [['month', 'Month'], ['year', 'Year'], ['identity', 'Identity']];
+const PTABS = [['month', 'Month'], ['year', 'Year']];
 const DIRECTIONS = [
   { key: 'young-entrepreneur', name: 'Young Entrepreneur', themes: ['business'], blurb: 'turning ideas into something people can use or buy' },
   { key: 'maker-builder', name: 'Maker & Builder', themes: ['technology'], blurb: 'building things like apps, sites and prototypes' },
@@ -890,21 +977,22 @@ function monthKeys(list) { return [...new Set(list.map((l) => l.date.slice(0, 7)
 function countThemes(ls) { const c = new Map(); for (const l of ls) for (const t of new Set(realThemes(l))) c.set(t, (c.get(t) || 0) + 1); return [...c.entries()].sort((a, b) => b[1] - a[1]); }
 
 function vPatterns() {
-  const tab = ['year', 'identity'].includes(param) ? param : 'month';
-  const body = tab === 'year' ? pYear() : tab === 'identity' ? pIdentity() : pMonthView();
-  const sub = { month: 'What took up this month, what changed, and what you did.', year: 'Your year as one sky, and one frame per month in your own words.', identity: 'Who you might be turning into, drawn only from letters you kept.' }[tab];
-  return `<header class="stack" style="gap:6px"><span class="k">Patterns</span><h1 class="title">Your patterns, not their highlight reel.</h1></header>
-    <nav class="seg" aria-label="Patterns views">${PTABS.map(([k, l]) => `<button data-ptab="${k}" ${tab === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
-    <p class="lead" style="margin-top:-12px">${sub}</p>
+  const tab = param === 'year' ? 'year' : 'month';
+  const body = tab === 'year' ? pYear() : pMonthView();
+  const sub = { month: 'What took up this month, what changed, and what you did.', year: 'Your year as one sky, and one frame per month in your own words.' }[tab];
+  return `<header class="page-head">
+      <h1 class="display">Your patterns, not their highlight reel.</h1>
+      <div class="page-aside"><nav class="switch" aria-label="Patterns views">${PTABS.map(([k, l]) => `<button data-ptab="${k}" ${tab === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
+      <p class="lead">${sub}</p></div>
+    </header>
     ${sampleBanner()}
     ${body}`;
 }
 function skyCard(label, chips, selected) {
-  return `<section class="skycard" aria-label="${esc(label)}">
-      <span class="stars" aria-hidden="true"></span>
-      <div class="sky-head"><span class="k">${esc(label)}</span><span class="sky-legend"><span><i class="tone-dot tone-positive"></i>lighter night</span><span><i class="tone-dot tone-difficult"></i>heavier night</span></span></div>
+  return `<section class="sky-wrap" aria-label="${esc(label)}">
+      <div class="sky-head"><p>${esc(label)}</p><p class="sky-legend"><span><i class="tone-dot tone-positive"></i>lighter night</span><span><i class="tone-dot tone-difficult"></i>heavier night</span></p></div>
       <div class="sky" id="sky"></div>
-      ${chips.length ? `<div class="sky-chips" role="group" aria-label="Draw a theme's constellation">${chips.map(([t, c]) => `<button class="chip" data-theme="${t}" aria-pressed="${selected === t}">${esc(cap(THEMES[t]))}<small>${c}</small></button>`).join('')}</div>` : ''}
+      ${chips.length ? `<div class="chips sky-chips" role="group" aria-label="Draw a theme's constellation">${chips.map(([t, c]) => `<button class="chip" data-theme="${t}" aria-pressed="${selected === t}">${esc(cap(THEMES[t]))}<small>${c}</small></button>`).join('')}</div>` : ''}
     </section>`;
 }
 
@@ -990,7 +1078,7 @@ function pYear() {
       <div class="film-head"><h2 id="film-h" class="h2">Your Life Film</h2><p class="fine">One frame per month, with a line you wrote that month. Nobody else is in it to compare against.</p></div>
       <div class="film" tabindex="0" aria-label="Life Film frames">
         ${frames.map((f) => { const [a, b] = FRAME[f.top] || ['#4a3328', '#1c1411']; return f.n
-          ? `<button class="frame" data-film="${f.ym}" style="--g:linear-gradient(160deg, ${a}, ${b})" aria-label="${MONTH[+f.ym.slice(5) - 1]}: open this month"><span class="k">${MON[+f.ym.slice(5) - 1]} ${f.ym.slice(0, 4)}${f.sample ? ' · sample' : ''}</span><p>${f.q ? `“${esc(f.q)}”` : esc(cap(THEMES[f.top] || 'an ordinary month'))}</p><span class="k">${f.finished ? plural(f.n, 'night') : `In progress · ${plural(f.n, 'night')}`}${f.top ? ` · ${esc(THEMES[f.top])}` : ''}</span></button>`
+          ? `<button class="frame" data-film="${f.ym}" style="--g:${b};--a:${a}" aria-label="${MONTH[+f.ym.slice(5) - 1]}: open this month"><span class="k">${MON[+f.ym.slice(5) - 1]} ${f.ym.slice(0, 4)}${f.sample ? ' · sample' : ''}</span><p>${f.q ? `“${esc(f.q)}”` : esc(cap(THEMES[f.top] || 'an ordinary month'))}</p><span class="k">${f.finished ? plural(f.n, 'night') : `In progress · ${plural(f.n, 'night')}`}${f.top ? ` · ${esc(THEMES[f.top])}` : ''}</span></button>`
           : `<div class="frame is-blank"><span class="k">${MON[+f.ym.slice(5) - 1]} ${f.ym.slice(0, 4)}</span><p>No letters.</p><span></span></div>`; }).join('')}
         <div class="frame is-blank"><span class="k">${MON[+next.slice(5) - 1]} ${next.slice(0, 4)}</span><p>Not written yet.</p><span></span></div>
       </div>
@@ -1046,7 +1134,7 @@ function drawSky() {
     <defs><radialGradient id="glow"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".35" stop-color="#fbe9d2" stop-opacity=".35"/><stop offset="1" stop-color="#fbe9d2" stop-opacity="0"/></radialGradient></defs>
     ${tickList.map((t) => `<g class="ns-tick"><line x1="${t.x}" x2="${t.x}" y1="${H - 26}" y2="${H - 20}"/><text x="${t.x}" y="${H - 8}" text-anchor="middle">${t.label}</text></g>`).join('')}
     ${chosen.length > 1 ? `<path d="${path}" class="ns-line" pathLength="1"/>` : ''}
-    ${stars.map((s) => { const on = !theme || realThemes(s.l).includes(theme); return `<g class="ns-star tone-${s.l.content.tone} ${on ? '' : 'is-off'} ${pTip === s.l.id ? 'is-sel' : ''}" transform="translate(${s.x.toFixed(1)} ${s.y.toFixed(1)})" style="--tw:${s.tw}s;--dl:${s.dl}s" tabindex="0" role="button" aria-label="${esc(fmtDay(s.l.date))}: ${esc(s.l.content.headline)}" data-star="${s.l.id}"><circle r="${(s.size * 4.2).toFixed(1)}" class="halo" fill="url(#glow)"/><circle r="${s.size.toFixed(1)}" class="core"/><circle r="16" fill="transparent"/></g>`; }).join('')}
+    ${stars.map((s) => { const on = !theme || realThemes(s.l).includes(theme); return `<g class="ns-star tone-${s.l.content.tone} ${on ? '' : 'is-off'} ${pTip === s.l.id ? 'is-sel' : ''}" transform="translate(${s.x.toFixed(1)} ${s.y.toFixed(1)})" style="--tw:${s.tw}s;--dl:${s.dl}s" tabindex="0" role="button" aria-label="${esc(fmtDay(s.l.date))}: ${esc(s.l.content.headline)}" data-star="${s.l.id}"><circle r="${(s.size * 4.2).toFixed(1)}" class="halo" fill="url(#glow)"/><path d="${sparkle(s.l.id, s.size * 1.7)}" class="core"/><circle r="16" fill="transparent"/></g>`; }).join('')}
     ${theme && chosen[0] ? `<text x="${Math.min(Math.max(chosen[0].x, 60), W - 60)}" y="${chosen[0].y - 18}" class="ns-label" text-anchor="middle">${esc(cap(THEMES[theme]))}</text>` : ''}
   </svg>${!stars.length ? '<p class="ns-empty">No kept letters here yet. Each night you write becomes a star.</p>' : ''}`;
   const tip = pTip && stars.find((s) => s.l.id === pTip);
@@ -1054,7 +1142,7 @@ function drawSky() {
     const up = tip.y > H / 2;
     const d = document.createElement('div'); d.className = `ns-tip ${up ? 'up' : ''}`;
     d.style.left = `${Math.min(Math.max(tip.x, 135), W - 135)}px`; d.style.top = `${up ? tip.y - 16 : tip.y + 16}px`;
-    d.innerHTML = `<span class="k">${fmtDay(tip.l.date)}${tip.l.sample ? ' · sample' : ''}</span><b>${esc(tip.l.content.headline)}</b><span class="fine">${realThemes(tip.l).map((t) => esc(THEMES[t])).join(' · ')}</span><button class="link" data-open="${tip.l.id}">Read the letter →</button>`;
+    d.innerHTML = `<span class="k">${fmtDay(tip.l.date)}${tip.l.sample ? ', sample' : ''}</span><b>${esc(tip.l.content.headline)}</b><span class="fine">${realThemes(tip.l).map((t) => esc(THEMES[t])).join(', ')}</span><button class="link" data-open="${tip.l.id}">Read the letter</button>`;
     el.appendChild(d);
   }
 }
@@ -1096,34 +1184,42 @@ function bubbleLayout(items, W, H) {
   });
   return out;
 }
-function pIdentity() {
+function vIdentity() {
   const all = directions();
   const visible = all.filter((d) => (d.status === 'confirmed' && d.evidence.length) || (d.status === 'suggested' && d.sufficient));
   const hidden = all.filter((d) => d.status === 'dismissed' || d.status === 'removed');
   const f = visible.find((d) => d.id === identFocus) || null;
   if (!f) identFocus = null;
+  const n = nightsToFirst(all);
   after.push(() => startBubbles(visible));
-  return `<section class="skycard ident">
-      <span class="stars" aria-hidden="true"></span>
-      <div class="sky-head"><span class="k">Who you might become</span><span class="sky-legend"><span>larger = more letters</span><span>lines = shared letters</span></span></div>
+  return `<header class="page-head">
+      <h1 class="display">Who you might become</h1>
+      <p class="lead">Directions drawn only from letters you kept. A possibility you might recognise in yourself, never a label.</p>
+    </header>
+    ${sampleBanner()}
+    <section class="ident" aria-label="Your directions">
       ${visible.length ? `<div class="stage ${identVeiled ? 'is-veiled' : ''} ${f ? 'has-focus' : ''}" id="stage">
         <div class="stage-layer"><svg class="stage-links" aria-hidden="true"></svg></div>
-        <div class="veil"><span class="k" style="color:var(--amber)">Your field</span><h2>Bring it into focus.</h2><p>Directions gathered from your kept letters. The more often something appears, the larger it grows.</p><button class="btn amber" data-act="reveal">Open the map</button></div>
-      </div>` : `<div class="stage"><p class="ns-empty">A direction appears once kept letters from at least 3 different days point to it.</p></div>`}
+        <div class="veil"><h2>Bring it into focus.</h2><p>Directions gathered from your kept letters. The more often something appears, the larger it grows.</p><button class="btn amber" data-act="reveal">Open the map</button></div>
+      </div>
+      <p class="fine legend">Larger circles have more letters behind them. A line joins two directions that share a letter.</p>`
+      : `<div class="empty"><span class="empty-mark" aria-hidden="true">${miniMap([])}</span><p class="lead">Write ${plural(n, 'more night')} to see your first direction.</p><p class="fine">A direction appears once kept letters from at least three different nights point to it.</p><button class="btn amber" data-go="tonight">Write tonight</button></div>`}
     </section>
-    ${f ? `<section class="card focus" aria-label="${esc(f.name)}">
-      <div class="focus-top"><span class="k" style="color:${f.status === 'confirmed' ? 'var(--amber)' : 'var(--faint)'}">${f.status === 'confirmed' ? 'Confirmed by you' : 'A possibility'}</span><button class="x-btn" data-bubble="" aria-label="Close">${I.x}</button></div>
-      <h2 class="focus-name">${esc(f.name)}</h2>
-      <p class="focus-expl">${esc(f.explanation)}</p>
-      <h3 class="k">Evidence · ${plural(f.evidence.length, 'letter')}, ${plural(f.days, 'day')}</h3>
-      <ul class="ev-list">${f.evidence.slice(0, 6).map((l) => `<li><span class="k">${fmtDay(l.date)}${l.sample ? ' · sample' : ''}</span><button class="link" data-open="${l.id}">${esc(l.content.headline)}</button></li>`).join('')}</ul>
-      <div class="row">${f.status === 'suggested' ? `<button class="btn sm amber" data-dir="${f.key}" data-st="confirmed">This fits me</button><button class="btn sm ghost" data-dir="${f.key}" data-st="dismissed">Not for me</button>` : `<button class="btn sm ghost" data-dir="${f.key}" data-st="removed">Remove from my map</button>`}</div>
-    </section>` : ''}
-    <section class="qcard"><h3 class="k">All directions</h3>
-      ${visible.length ? `<ul class="dir-list">${visible.map((d) => `<li><button class="link" data-bubble="${d.id}">${esc(d.name)}</button><span class="fine">${d.status === 'confirmed' ? '<b style="color:var(--amber)">Confirmed</b>' : 'Suggested'} · ${plural(d.evidence.length, 'letter')}</span></li>`).join('')}</ul>` : '<p class="fine">Nothing yet.</p>'}
-      ${hidden.length ? `<details class="words-d"><summary>Dismissed or removed (${hidden.length})</summary><ul class="dir-list" style="margin-top:10px">${hidden.map((d) => `<li><span>${esc(d.name)}</span><button class="btn sm ghost" data-dir="${d.key}" data-st="suggested">Restore</button></li>`).join('')}</ul></details>` : ''}
-      <p class="fine">Suggested only when kept letters from at least 3 different days point to it. Private letters are never used.</p>
-    </section>`;
+    <div class="spread ${f ? 'is-focus' : ''}">
+      ${f ? `<section class="focus" aria-label="${esc(f.name)}">
+        <div class="focus-top"><p class="focus-st ${f.status === 'confirmed' ? 'is-confirmed' : ''}">${f.status === 'confirmed' ? 'Confirmed by you' : 'A possibility'}</p><button class="x-btn" data-bubble="" aria-label="Close">${I.x}</button></div>
+        <h2 class="focus-name">${esc(f.name)}</h2>
+        <p class="focus-expl">${esc(f.explanation)}</p>
+        <h3 class="qh">Evidence: ${plural(f.evidence.length, 'letter')} over ${plural(f.days, 'night')}</h3>
+        <ul class="ev-list">${f.evidence.slice(0, 6).map((l) => `<li><span class="k">${fmtDay(l.date)}${l.sample ? ', sample' : ''}</span><button class="link" data-open="${l.id}">${esc(l.content.headline)}</button></li>`).join('')}</ul>
+        <div class="row">${f.status === 'suggested' ? `<button class="btn sm amber" data-dir="${f.key}" data-st="confirmed">This fits me</button><button class="link" data-dir="${f.key}" data-st="dismissed">Not for me</button>` : `<button class="link" data-dir="${f.key}" data-st="removed">Remove from my map</button>`}</div>
+      </section>` : `<h2 class="sec">All directions</h2>`}
+      <section class="dirs">${f ? '<h3 class="qh">All directions</h3>' : ''}
+        ${visible.length ? `<ul class="dir-list">${visible.map((d) => `<li><button class="link" data-bubble="${d.id}">${esc(d.name)}</button><span class="fine">${d.status === 'confirmed' ? '<b class="is-confirmed">Confirmed</b>' : 'Suggested'}, ${plural(d.days, 'night')}</span></li>`).join('')}</ul>` : '<p class="fine">Nothing yet.</p>'}
+        ${hidden.length ? `<details class="words-d"><summary>Dismissed or removed (${hidden.length})</summary><ul class="dir-list">${hidden.map((d) => `<li><span>${esc(d.name)}</span><button class="link" data-dir="${d.key}" data-st="suggested">Restore</button></li>`).join('')}</ul></details>` : ''}
+        <p class="fine">Suggested only when kept letters from at least three different nights point to it. Private letters are never used.</p>
+      </section>
+    </div>`;
 }
 function startBubbles(visible) {
   cancelAnimationFrame(identRaf);
@@ -1142,8 +1238,8 @@ function startBubbles(visible) {
     const b = document.createElement('button'); b.type = 'button';
     b.className = `bubble is-${d.status} ${identFocus === d.id ? 'is-focused' : ''}`; b.dataset.bubble = d.id;
     b.style.width = b.style.height = `${g.size}px`; b.tabIndex = identVeiled ? -1 : 0;
-    b.setAttribute('aria-label', `${d.name}, ${d.status === 'confirmed' ? 'confirmed' : 'suggested'}, ${plural(d.evidence.length, 'letter')}`);
-    b.innerHTML = `<span class="orb"><span class="orb-st">${d.status === 'confirmed' ? 'Confirmed' : 'Suggested'}</span><span class="orb-name" style="font-size:${fs}px">${esc(d.name)}</span><span class="orb-n">${plural(d.evidence.length, 'letter')}</span></span>`;
+    b.setAttribute('aria-label', `${d.name}, ${d.status === 'confirmed' ? 'confirmed' : 'suggested'}, ${plural(d.days, 'night')}`);
+    b.innerHTML = `<span class="orb"><svg class="orb-line" viewBox="0 0 100 100" aria-hidden="true"><path d="${wobble(d.key, 50, 50, 46, .045, 11)}"/></svg><span class="orb-st">${d.status === 'confirmed' ? 'confirmed' : 'suggested'}</span><span class="orb-name" style="font-size:${fs}px">${esc(d.name)}</span><span class="orb-n">${plural(d.days, 'night')}</span></span>`;
     layer.appendChild(b); d.el = b;
   }
   const still = reduceMotion();
@@ -1163,65 +1259,196 @@ function startBubbles(visible) {
   identRaf = requestAnimationFrame(frame);
 }
 
-/* ----- you ----- */
+/* ----- profile: only about you ----- */
 let confirmDelete = false; let memEditing = null; let confirmAccount = false; let freshFor = null;
-function vYou() {
-  const own = S.letters.length;
-  const mems = allMemories();
-  const memRow = (m) => {
-    const src = m.kind === 'told' ? 'You told Beyond' : m.letterIds.map((id) => findLetter(id)).filter(Boolean).map((l) => `<button class="link" data-open="${l.id}">${fmtDay(l.date)}</button>`).join(', ') || 'From a letter';
-    if (memEditing === m.id) return `<li class="mem"><form class="mem-edit" data-memform="${m.id}"><label class="sr-only" for="mem-${m.id}">Edit memory</label><input id="mem-${m.id}" class="login-in" value="${esc(m.text)}" maxlength="140"><button class="btn sm amber" type="submit">Save</button><button class="btn sm ghost" type="button" data-memcancel>Cancel</button></form></li>`;
-    return `<li class="mem ${memoryInUse(m) && !S.memoryPaused ? '' : 'is-off'}"><p>${esc(m.text)}</p>
-      <span class="fine">${m.kind === 'told' ? src : `Learned from ${src}`}${m.sample ? ' · sample' : ''}${!memoryInUse(m) ? ' · Not used: its letter is kept out of Patterns' : ''}</span>
-      <span class="mem-acts">${m.sample ? '' : `<button class="link" data-memedit="${m.id}">Edit</button>`}<button class="link" data-memforget="${m.id}">Forget</button></span></li>`;
-  };
-  return `<header class="stack" style="gap:6px"><span class="k">You</span><h1 class="title">You</h1>
-      ${isGuest() ? `<p class="fine">Judge preview · ${AUTH.user.left ?? 0} AI letters left today. This journal belongs to your invite code only.</p>` : ''}</header>
-    <section class="setting" style="border-top:0;padding-top:0" id="memory"><h2 class="h2">Memory</h2>
-      <p class="fine">What your letters may remember about you. Each one shows where it came from. Forget anything, any time.</p>
-      ${mems.length ? `<ul class="mem-list">${mems.map(memRow).join('')}</ul>` : '<p class="fine">Nothing yet. Beyond learns at most two small things from a letter, and only things you wrote.</p>'}
-      <form class="mem-add" id="mem-add"><label class="sr-only" for="mem-new">Tell Beyond something to remember</label><input id="mem-new" class="login-in" placeholder="Tell Beyond something to remember…" maxlength="140"><button class="btn sm secondary" type="submit">Remember</button></form>
-      <button class="toggle" role="switch" aria-checked="${!!S.memoryPaused}" data-act="mem-pause"><span class="track"></span><span>Pause memory (letters won’t use it)</span></button>
-    </section>
-    <section class="setting"><h2 class="h2">Who writes your letters</h2><div class="voices" role="group" aria-label="Letter voice">${voiceCards()}</div><p class="fine">Applies to your next letter. The voice changes tone only, never the facts.</p></section>
-    <section class="setting"><h2 class="h2">Letters</h2>
-      <div class="row"><label class="pick" for="dtime"><span>Arrives at</span><select id="dtime">${timeOptions(deliverTime())}</select></label>
-      <label class="pick" for="ylang"><span>Language</span><select id="ylang">${LANGS.map(([k, l]) => `<option value="${k}" ${(S.lang || 'auto') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
-      <p class="fine">Auto writes back in the language you wrote in. Your own words are always quoted exactly as you wrote them.</p>
-      <button class="toggle" role="switch" aria-checked="${S.allowEarly !== false}" data-act="toggle-early"><span class="track"></span><span>Let me open a letter right away (“Read it now”)</span></button>
-      <p class="fine">Beyond is built around sleeping on it, but it’s your letter. Turn this off if you’d rather not be tempted.</p></section>
-    <section class="setting"><h2 class="h2">Demo mode</h2>
-      <button class="toggle" role="switch" aria-checked="${demoOn()}" data-act="toggle-sample"><span class="track"></span><span>Show Kit's sample journal and the Skip to morning button</span></button>
-      <p class="fine">For showing Beyond to others. Kit is fictional; the 18 sample letters show what months of Beyond look like. Leave it off for your own journal.</p></section>
-    <section class="setting"><h2 class="h2">AI</h2>
-      <p>${claudeState === 'checking' ? 'Connecting…' : claudeState === 'ready' ? `Letters are written by ${esc(aiLabel)} through Beyond’s letter service, after you seal a night.` : 'Beyond’s letter writer isn’t switched on yet. Sealed nights wait safely and are written as soon as it is.'}</p>
-      <p class="fine">The AI sees only the entry it writes about, the headlines of a few earlier letters, and your memories (unless paused). It never sees letters you keep out of Patterns.</p></section>
-    <section class="setting"><h2 class="h2">Your data</h2>
-      <p>Saved to your Beyond account${AUTH.user?.email ? ` (${esc(AUTH.user.email)})` : ''}, private to you. Nothing you write is kept in this browser.</p>
-      ${freshFor ? `<form class="mem-add" id="reauth-form"><label class="sr-only" for="reauth-pw">Password</label><input id="reauth-pw" class="login-in" type="password" autocomplete="current-password" placeholder="Your password" required><button class="btn sm amber" type="submit">Confirm it’s you</button><button class="btn sm ghost" type="button" data-act="reauth-google">Use Google</button></form><p class="fine">For your safety, downloading or deleting needs a fresh sign-in.</p>` : ''}
-      <div class="row"><button class="btn secondary sm" data-act="export">Download a copy</button></div>
-      ${confirmDelete ? `<div class="notice warn"><b>Delete ${plural(own, 'letter')}, your memories and everything you wrote?</b><span>This can't be undone. Download a copy first if you might want it. Your account stays, empty.</span><div class="row"><button class="btn sm" data-act="delete-yes">Delete everything</button><button class="btn sm secondary" data-act="delete-no">Keep it</button></div></div>`
-        : `<button class="btn ghost sm" data-act="delete" style="justify-self:start">Delete my journal</button>`}
-      ${!ACCOUNT.deletion ? '' : confirmAccount ? `<div class="notice warn"><b>Delete your Beyond account?</b><span>Your account and everything in it are removed for good within a few minutes. This can't be undone.</span><div class="row"><button class="btn sm" data-act="delete-account-yes">Delete my account</button><button class="btn sm secondary" data-act="delete-account-no">Keep it</button></div></div>`
-        : `<button class="btn ghost sm" data-act="delete-account" style="justify-self:start">Delete my account</button>`}
-    </section>
-    <section class="setting"><h2 class="h2">Talk to someone</h2><p>Beyond is a journal, not a crisis service.</p><button class="btn secondary sm" data-go="support" style="justify-self:start">Human support in Hong Kong</button></section>
-    ${AUTH.auth ? '<section class="setting"><button class="btn ghost sm" data-act="logout" style="justify-self:start">Sign out</button></section>' : ''}`;
+const fmtLong = (s) => { const d = parse(s); return `${d.getDate()} ${MONTH[d.getMonth()]} ${d.getFullYear()}`; };
+function memRow(m) {
+  const src = m.kind === 'told' ? 'You told Beyond' : m.letterIds.map((id) => findLetter(id)).filter(Boolean).map((l) => `<button class="link" data-open="${l.id}">${fmtDay(l.date)}</button>`).join(', ') || 'From a letter';
+  if (memEditing === m.id) return `<li class="mem"><form class="mem-edit" data-memform="${m.id}"><label class="sr-only" for="mem-${m.id}">Edit memory</label><input id="mem-${m.id}" class="login-in" value="${esc(m.text)}" maxlength="140"><button class="btn sm amber" type="submit">Save</button><button class="link" type="button" data-memcancel>Cancel</button></form></li>`;
+  return `<li class="mem ${memoryInUse(m) && !S.memoryPaused ? '' : 'is-off'}"><p>${esc(m.text)}</p>
+    <span class="fine">${m.kind === 'told' ? src : `Learned from ${src}`}${m.sample ? ', sample' : ''}${!memoryInUse(m) ? '. Not used: its letter is kept out of Patterns' : ''}</span>
+    <span class="mem-acts">${m.sample ? '' : `<button class="link" data-memedit="${m.id}">Edit</button>`}<button class="link" data-memforget="${m.id}">Forget</button></span></li>`;
 }
+function identitySummary() {
+  const all = directions(); const vis = visibleDirections(all);
+  if (!vis.length) return `<p class="lead">Write ${plural(nightsToFirst(all), 'more night')} to see your first direction.</p><p class="fine">Identity grows only from letters you keep. <button class="link" data-go="identity">How it works</button></p>`;
+  return `<div class="id-sum">${miniMap(vis, 150, 96)}<ol class="id-list">${vis.slice(0, 3).map((d) => `<li><b>${esc(d.name)}</b><span>${plural(d.days, 'night')}${d.status === 'confirmed' ? ', confirmed by you' : ''}</span></li>`).join('')}</ol></div>
+    <p><button class="link" data-go="identity">Open your Identity map</button></p>`;
+}
+function vProfile() {
+  const ls = allLetters(); const ready = ls.filter(delivered);
+  const nights = new Set(ls.map((l) => l.date)).size;
+  const first = ls.length ? ls.reduce((m, l) => (l.date < m.date ? l : m)) : null;
+  const seals = ready.filter((l) => progress(l).complete).length;
+  const mems = allMemories();
+  return `<header class="page-head profile-head">
+      <div><h1 class="display">${nights ? `${plural(nights, 'night')} written` : 'Your first night is tonight'}</h1>
+      <p class="lead">${first ? `Since ${fmtLong(first.date)}. ${plural(ready.length, 'letter')} arrived, ${seals} with a gold seal.` : 'Write tonight and your first letter arrives in the morning.'}</p></div>
+      <button class="gear" data-go="settings" aria-label="Settings" title="Settings">${I.gear}</button>
+    </header>
+    ${sampleBanner()}
+    <section class="spread" id="identity-summary"><h2 class="sec">Identity</h2><div>${identitySummary()}</div></section>
+    <section class="spread" id="memory"><h2 class="sec">Memory</h2><div class="stack">
+      <p class="fine">What your letters may remember about you. Each one shows where it came from. Forget anything, any time.</p>
+      ${S.memoryPaused ? '<p class="notice">Memory is paused, so letters won’t use it. <button class="link" data-go="settings" data-to="privacy">Turn it back on in Settings</button></p>' : ''}
+      ${mems.length ? `<ul class="mem-list">${mems.map(memRow).join('')}</ul>` : '<p class="fine">Nothing yet. Beyond learns at most two small things from a letter, and only things you wrote.</p>'}
+      <form class="mem-add" id="mem-add"><label class="sr-only" for="mem-new">Tell Beyond something to remember</label><input id="mem-new" class="login-in" placeholder="Tell Beyond something to remember…" maxlength="140"><button class="btn sm amber" type="submit">Remember</button></form>
+    </div></section>
+    <section class="spread" id="archive"><h2 class="sec">All letters</h2><div>${archive()}</div></section>`;
+}
+
+/* ----- all letters: by month, searchable, filterable ----- */
+const arch = { q: '', month: '', theme: '', gold: false };
+const escRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const searchTerms = (q) => [...new Set(String(q || '').trim().split(/\s+/).filter(Boolean))].slice(0, 8);
+const termRe = (terms) => new RegExp(terms.map(escRe).sort((a, b) => b.length - a.length).join('|'), 'giu');
+/* Escape first, then mark every match: case-insensitive, any language. */
+function hl(text, terms) {
+  const t = String(text ?? '');
+  if (!terms.length) return esc(t);
+  let out = ''; let last = 0;
+  for (const m of t.matchAll(termRe(terms))) { if (!m[0]) continue; out += esc(t.slice(last, m.index)) + `<mark>${esc(m[0])}</mark>`; last = m.index + m[0].length; }
+  return out + esc(t.slice(last));
+}
+function snippetOf(text, terms, n = 150) {
+  const t = norm(text); const m = termRe(terms).exec(t); if (!m) return null;
+  let from = Math.max(0, m.index - Math.floor((n - m[0].length) / 2)); let to = Math.min(t.length, from + n);
+  // start and end on a word boundary where there is one nearby (English); Chinese has none, so it cuts anywhere
+  const sp = t.indexOf(' ', from); if (from > 0 && sp !== -1 && sp < m.index && sp - from < 16) from = sp + 1;
+  const ep = t.lastIndexOf(' ', to); if (to < t.length && ep > m.index + m[0].length && to - ep < 16) to = ep;
+  return `${from > 0 ? '…' : ''}${hl(t.slice(from, to), terms)}${to < t.length ? '…' : ''}`;
+}
+/* The four places a word can be: title, summary, your own words, the to-dos. */
+function letterFields(l) {
+  return { title: l.content.headline || '', summary: l.content.recap || '', words: (l.entries || []).map((e) => e.text).join('\n\n'), todos: (l.content.steps || []).map((x) => x.text) };
+}
+function searchLetters(list, terms) {
+  if (!terms.length) return list.map((l) => ({ l, hits: 0 }));
+  const out = [];
+  for (const l of list) {
+    const f = letterFields(l); const hay = [f.title, f.summary, f.words, ...f.todos];
+    if (!terms.every((t) => { const re = new RegExp(escRe(t), 'iu'); return hay.some((h) => re.test(h)); })) continue;
+    const re = termRe(terms); let hits = 0; for (const h of hay) hits += (h.match(re) || []).length;
+    out.push({ l, hits });
+  }
+  return out;
+}
+function archiveMatches() {
+  const ready = allLetters().filter(delivered);
+  const terms = searchTerms(arch.q);
+  const filtered = ready.filter((l) => (!arch.month || l.date.startsWith(arch.month)) && (!arch.theme || (l.content.themes || []).includes(arch.theme)) && (!arch.gold || progress(l).complete));
+  return { ready, terms, found: searchLetters(filtered, terms) };
+}
+function archiveCount() {
+  const { ready, terms, found } = archiveMatches();
+  const n = found.length; const hits = found.reduce((a, x) => a + x.hits, 0);
+  const filtered = arch.month || arch.theme || arch.gold;
+  if (terms.length) return `${n === 1 ? '1 letter matches' : `${n} letters match`} “${esc(arch.q.trim())}”${n ? `, ${plural(hits, 'mention')}` : ''}${filtered ? ' with these filters' : ''}.`;
+  return filtered ? `${plural(n, 'letter')} of ${ready.length}.` : `${plural(ready.length, 'letter')}.`;
+}
+function archiveResults() {
+  const { ready, terms, found } = archiveMatches();
+  if (!ready.length) return '<p class="fine">Your letters will collect here, month by month.</p>';
+  if (!found.length) return `<p class="lead">Nothing matches${terms.length ? ` “${esc(arch.q.trim())}”` : ''}.</p><p class="fine">Try fewer words, another spelling, or <button class="link" data-act="arch-clear">clear the search and filters</button>.</p>`;
+  const groups = {};
+  for (const x of found) (groups[x.l.date.slice(0, 7)] = groups[x.l.date.slice(0, 7)] || []).push(x);
+  const LABEL = { summary: 'Summary', words: 'Your words', todos: 'To-do' };
+  return Object.entries(groups).map(([m, xs]) => `<section class="month-group"><h3><b>${MONTH[+m.slice(5) - 1]}</b> ${m.slice(0, 4)}<span>${plural(xs.length, 'letter')}</span></h3>
+    <ul class="lrows">${xs.map(({ l }) => {
+      if (!terms.length) return letterRow(l);
+      const f = letterFields(l); let snip = '';
+      for (const k of ['summary', 'words', 'todos']) {
+        const hit = k === 'todos' ? f.todos.find((t) => termRe(terms).test(t)) : f[k];
+        const sn = hit && snippetOf(hit, terms); if (sn) { snip = `<em>${LABEL[k]}</em> ${sn}`; break; }
+      }
+      return letterRow(l, { head: hl(f.title, terms), snip });
+    }).join('')}</ul></section>`).join('');
+}
+function archive() {
+  const ready = allLetters().filter(delivered);
+  const months = [...new Set(ready.map((l) => l.date.slice(0, 7)))];
+  const themes = [...new Set(ready.flatMap((l) => (l.content.themes || []).filter((t) => THEMES[t] && t !== 'ordinary')))].sort((a, b) => THEMES[a].localeCompare(THEMES[b]));
+  if (arch.month && !months.includes(arch.month)) arch.month = '';
+  if (arch.theme && !themes.includes(arch.theme)) arch.theme = '';
+  return `<div class="arch-controls">
+      <label class="search" for="arch-q">${I.search}<span class="sr-only">Search your letters</span><input id="arch-q" type="search" value="${esc(arch.q)}" placeholder="Search titles, summaries, your words and to-dos" autocomplete="off" spellcheck="false"></label>
+      <div class="arch-filters">
+        <label class="pick" for="arch-month"><span>Month</span><select id="arch-month"><option value="">All</option>${months.map((m) => `<option value="${m}" ${arch.month === m ? 'selected' : ''}>${MONTH[+m.slice(5) - 1]} ${m.slice(0, 4)}</option>`).join('')}</select></label>
+        <label class="pick" for="arch-theme"><span>Theme</span><select id="arch-theme"><option value="">All</option>${themes.map((t) => `<option value="${t}" ${arch.theme === t ? 'selected' : ''}>${esc(cap(THEMES[t]))}</option>`).join('')}</select></label>
+        <button class="filter-seal" data-act="arch-gold" aria-pressed="${arch.gold}">${goldSeal(20)}<span>Gold seal only</span></button>
+      </div>
+      <p class="arch-count" id="arch-count" aria-live="polite">${archiveCount()}</p>
+    </div>
+    <div id="arch-results">${archiveResults()}</div>`;
+}
+function refreshArchive() {
+  const r = $('#arch-results'); const c = $('#arch-count'); if (!r || !c) return;
+  r.innerHTML = archiveResults(); c.innerHTML = archiveCount();
+  const g = $('[data-act="arch-gold"]'); if (g) g.setAttribute('aria-pressed', String(arch.gold));
+}
+
+/* ----- settings ----- */
+function vSettings() {
+  const own = S.letters.length;
+  return `<header class="page-head">
+      <button class="link back" data-go="profile">${I.left}Profile</button>
+      <h1 class="display">Settings</h1>
+    </header>
+    <section class="spread" id="letters-settings"><h2 class="sec">Letters</h2><div class="stack">
+      <h3 class="qh">Who writes your letters</h3>
+      <div class="voices" role="group" aria-label="Letter voice">${voiceCards()}</div>
+      <p class="fine">Applies to your next letter. The voice changes tone only, never the facts.</p>
+      <h3 class="qh">When they arrive</h3>
+      <div class="row"><label class="pick" for="dtime"><span>Arrives at</span><select id="dtime">${timeOptions(deliverTime())}</select></label></div>
+      <button class="toggle" role="switch" aria-checked="${S.allowEarly !== false}" data-act="toggle-early"><span class="track"></span><span>Let me open a letter right away (“Read it now”)</span></button>
+      <p class="fine">Beyond is built around sleeping on it, but it’s your letter. Turn this off if you’d rather not be tempted.</p>
+      <h3 class="qh">Language</h3>
+      <div class="row"><label class="pick" for="ylang"><span>Write letters in</span><select id="ylang">${LANGS.map(([k, l]) => `<option value="${k}" ${(S.lang || 'auto') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
+      <p class="fine">Auto writes back in the language you wrote in. Your own words are always quoted exactly as you wrote them.</p>
+      <h3 class="qh">Demo mode</h3>
+      <button class="toggle" role="switch" aria-checked="${demoOn()}" data-act="toggle-sample"><span class="track"></span><span>Show Kit's sample journal and the Skip to morning button</span></button>
+      <p class="fine">For showing Beyond to others. Kit is fictional; the sample letters show what months of Beyond look like. Leave it off for your own journal.</p>
+    </div></section>
+    <section class="spread" id="privacy"><h2 class="sec">Privacy and memory</h2><div class="stack">
+      <button class="toggle" role="switch" aria-checked="${!!S.memoryPaused}" data-act="mem-pause"><span class="track"></span><span>Pause memory (letters won’t use it)</span></button>
+      <p class="fine">Your memories are listed in <button class="link" data-go="profile" data-to="memory">Profile</button>, where you can edit or forget each one.</p>
+      <p>${claudeState === 'checking' ? 'Connecting…' : claudeState === 'ready' ? `Letters are written by ${esc(aiLabel)} through Beyond’s letter service, after you seal a night.` : 'Beyond’s letter writer isn’t switched on yet. Sealed nights wait safely and are written as soon as it is.'}</p>
+      <p class="fine">The AI sees only the entry it writes about, the headlines of a few earlier letters, and your memories (unless paused). It never sees letters you keep out of Patterns.</p>
+    </div></section>
+    <section class="spread" id="data"><h2 class="sec">Your data</h2><div class="stack">
+      <p>Saved to your Beyond account, private to you. Nothing you write is kept in this browser.</p>
+      ${freshFor ? `<form class="mem-add" id="reauth-form"><label class="sr-only" for="reauth-pw">Password</label><input id="reauth-pw" class="login-in" type="password" autocomplete="current-password" placeholder="Your password" required><button class="btn sm amber" type="submit">Confirm it’s you</button><button class="link" type="button" data-act="reauth-google">Use Google</button></form><p class="fine">For your safety, downloading or deleting needs a fresh sign-in.</p>` : ''}
+      <p><button class="link" data-act="export">Download a copy</button> <span class="fine">as a JSON file of everything in your account.</span></p>
+      ${confirmDelete ? `<div class="notice warn"><b>Delete ${plural(own, 'letter')}, your memories and everything you wrote?</b><span>This can't be undone. Download a copy first if you might want it. Your account stays, empty.</span><div class="row"><button class="btn sm danger" data-act="delete-yes">Delete everything</button><button class="link" data-act="delete-no">Keep it</button></div></div>`
+        : `<p><button class="link danger" data-act="delete">Delete my journal</button></p>`}
+      ${!ACCOUNT.deletion ? '' : confirmAccount ? `<div class="notice warn"><b>Delete your Beyond account?</b><span>Your account and everything in it are removed for good within a few minutes. This can't be undone.</span><div class="row"><button class="btn sm danger" data-act="delete-account-yes">Delete my account</button><button class="link" data-act="delete-account-no">Keep it</button></div></div>`
+        : `<p><button class="link danger" data-act="delete-account">Delete my account</button></p>`}
+    </div></section>
+    <section class="spread" id="help"><h2 class="sec">Need help?</h2><div class="stack">
+      <p>Beyond is a journal, not a crisis service. If you’re struggling or in danger, people can help right now, free and confidential.</p>
+      <ul class="help-list">${SUPPORT.slice(0, 3).map(helpRow).join('')}</ul>
+      <p><button class="link" data-go="support">All human support in Hong Kong</button></p>
+    </div></section>
+    <section class="spread" id="account"><h2 class="sec">Account</h2><div class="stack">
+      ${AUTH.user?.email ? `<p>Signed in as <b>${esc(AUTH.user.email)}</b>.</p>` : ''}
+      ${AUTH.auth ? '<p><button class="btn sm" data-act="logout">Sign out</button></p>' : ''}
+    </div></section>`;
+}
+const helpRow = (s) => `<li class="help"><b>${esc(s.phone || s.url.replace('https://', ''))}</b><span>${esc(s.name)}. ${esc(s.note)}</span>${s.url ? `<a class="link" href="${s.url}" target="_blank" rel="noreferrer">Open</a>` : `<button class="link" data-copy="${esc(s.phone)}">Copy</button>`}</li>`;
 /* ----- sign in: Beyond accounts (email and password, or Google) ----- */
 let loginMode = 'signin'; let loginNote = '';
 function vLogin() {
   after.push(() => ($('#password-new') || $('#email'))?.focus());
   const m = loginMode;
   const title = { signin: 'Write tonight. A letter by morning.', signup: 'Start your journal.', forgot: 'Reset your password.', reset: 'Choose a new password.', sent: 'Check your email.' }[m];
-  const google = m === 'signin' || m === 'signup' ? `<button class="btn secondary" type="button" data-act="google">Continue with Google</button>` : '';
+  const google = m === 'signin' || m === 'signup' ? `<button class="link" type="button" data-act="google">Continue with Google</button>` : '';
   const fields = m === 'reset'
     ? `<label for="password-new" class="sr-only">New password</label><input id="password-new" class="login-in" type="password" autocomplete="new-password" placeholder="New password (8+ characters)" minlength="8" required>`
     : m === 'sent' ? ''
     : `<label for="email" class="sr-only">Email</label><input id="email" class="login-in" type="email" autocomplete="email" placeholder="Email" required>${m === 'forgot' ? '' : `<label for="password" class="sr-only">Password</label><input id="password" class="login-in" type="password" autocomplete="${m === 'signup' ? 'new-password' : 'current-password'}" placeholder="${m === 'signup' ? 'Password (8+ characters)' : 'Password'}" minlength="${m === 'signup' ? 8 : 1}" required>`}`;
   const submit = { signin: 'Sign in', signup: 'Create account', forgot: 'Send reset link', reset: 'Save password' }[m];
   const switches = {
-    signin: `<button class="link" data-login="signup">New here? Create an account</button> · <button class="link" data-login="forgot">Forgot password?</button>`,
+    signin: `<button class="link" data-login="signup">New here? Create an account</button><span class="sp"></span><button class="link" data-login="forgot">Forgot password?</button>`,
     signup: `<button class="link" data-login="signin">Already have an account? Sign in</button>`,
     forgot: `<button class="link" data-login="signin">Back to sign in</button>`,
     reset: '',
@@ -1229,13 +1456,13 @@ function vLogin() {
   }[m];
   return `<section class="welcome login">
       <div class="lantern-wrap" style="--k:.85;--b:1.05" aria-hidden="true"><div class="lantern"></div></div>
-      <span class="k" style="color:var(--amber)">Beyond</span>
-      <h1 class="title">${title}</h1>
+      <p class="brand-line">${I.moon}<span>Beyond</span></p>
+      <h1 class="display">${title}</h1>
       ${m === 'sent' ? `<p class="lead" style="max-width:36ch">${esc(loginNote)}</p>` : `<form class="login-form" id="login-form">${fields}<button class="btn amber" type="submit">${submit}</button>${google}</form>
       <p class="fine" id="login-err" role="alert">${esc(loginNote)}</p>`}
       <p class="fine">${switches}</p>
       <p class="fine">${backend.configured ? 'Your journal is private to your account. Nothing you write is kept in this browser.' : 'This copy of Beyond isn’t connected to its backend yet.'}</p>
-      <p class="fine"><a class="link" href="/">About Beyond</a> · <a class="link" href="/#/privacy">Privacy</a></p>
+      <p class="fine"><a class="link" href="/">About Beyond</a><span class="sp"></span><a class="link" href="/#/privacy">Privacy</a></p>
     </section>`;
 }
 async function exportJournal() {
@@ -1249,10 +1476,9 @@ async function exportJournal() {
   } catch (e) { needFreshSignIn(e, 'export'); }
 }
 function vSupport() {
-  return `<button class="btn ghost sm" data-back style="justify-self:start">${I.left} Back</button>
-    <header class="stack" style="gap:8px"><span class="k">Human support · Hong Kong</span><h1 class="title">Talk to someone tonight.</h1>
-      <p class="lead">Beyond isn't watched by a person and can't respond in an emergency. A morning letter is never emergency help. These people can help right now, free and confidential.</p></header>
-    <ul class="help-list">${SUPPORT.map((s) => `<li class="help"><b>${esc(s.phone || s.url.replace('https://', ''))}</b><span>${esc(s.name)} · ${esc(s.note)}</span>${s.url ? `<a class="btn sm secondary" href="${s.url}" target="_blank" rel="noreferrer">Open</a>` : `<button class="btn sm secondary" data-copy="${esc(s.phone)}">Copy</button>`}</li>`).join('')}</ul>
+  return `<header class="page-head"><button class="link back" data-back>${I.left}Back</button><h1 class="display">Talk to someone tonight.</h1>
+      <p class="lead">Beyond isn't watched by a person and can't respond in an emergency. A morning letter is never emergency help. These people in Hong Kong can help right now, free and confidential.</p></header>
+    <ul class="help-list">${SUPPORT.map(helpRow).join('')}</ul>
     <p class="fine">Checked on 8 Oct 2026 against Mind HK's “Find help now” page. Outside Hong Kong, call your local emergency number.</p>`;
 }
 
@@ -1283,9 +1509,9 @@ document.addEventListener('click', async (ev) => {
     return drawSheet({ celebrate: progress({ ...L, actions }).complete && !before });
   }
   if (d.todo) return openSheet(d.todo);
-  if (d.go) return go(d.go);
+  if (d.go) { go(d.go); if (d.to) $(`#${d.to}`)?.scrollIntoView({ block: 'start' }); return; }
   if (d.open) { pTip = null; return go('letter', d.open); }
-  if (d.back !== undefined) { if (history.length > 1) history.back(); else go('you'); return; }
+  if (d.back !== undefined) { if (history.length > 1) history.back(); else go('settings'); return; }
   if (d.imode) { if (voice.state === 'rec') stopRecording(); if (voice.state === 'dictate') voice.state = 'idle'; S.inputMode = d.imode; save(); return render(); }
   if (d.memedit) { memEditing = d.memedit; return render(); }
   if (d.memcancel !== undefined) { memEditing = null; return render(); }
@@ -1301,7 +1527,7 @@ document.addEventListener('click', async (ev) => {
     return;
   }
   if (d.lang) { S.lang = d.lang; save(); document.querySelectorAll('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === S.lang))); return; }
-  if (d.voice) { S.voice = d.voice; save(); document.querySelectorAll('[data-voice]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.voice === S.voice))); if (route === 'you') toast(`Your next letter comes from your ${VOICES[S.voice].name}`); return; }
+  if (d.voice) { S.voice = d.voice; save(); document.querySelectorAll('[data-voice]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.voice === S.voice))); if (route === 'settings') toast(`Your next letter comes from your ${VOICES[S.voice].name}`); return; }
   if (d.month !== undefined) { if (!d.month) return; pMonth = d.month; pTheme = null; pTip = null; return render(); }
   if (d.theme) { if (param === 'year') yTheme = yTheme === d.theme ? null : d.theme; else pTheme = pTheme === d.theme ? null : d.theme; pTip = null; return render(); }
   if (d.ptab) { pTip = null; identFocus = null; return go('patterns', d.ptab === 'month' ? null : d.ptab); }
@@ -1337,7 +1563,9 @@ document.addEventListener('click', async (ev) => {
     case 'delete-account-no': confirmAccount = false; return render();
     case 'delete-account-yes': el.disabled = true; return deleteAccount();
     case 'finish-welcome': S.onboarded = true; save(); return go('tonight');
-    case 'own': S.mode = 'own'; save(); toast('Demo mode is off. Turn it back on in You.'); pMonth = null; return render();
+    case 'own': S.mode = 'own'; save(); toast('Demo mode is off. Turn it back on in Settings.'); pMonth = null; return render();
+    case 'arch-gold': arch.gold = !arch.gold; return refreshArchive();
+    case 'arch-clear': Object.assign(arch, { q: '', month: '', theme: '', gold: false }); return render();
     case 'toggle-sample': S.mode = S.mode === 'sample' ? 'own' : 'sample'; pMonth = null; save(); return render();
     case 'seal': el.disabled = true; return seal();
     case 'orb': return orbTap();
@@ -1364,8 +1592,13 @@ document.addEventListener('submit', async (ev) => {
     render();
   }
 });
+document.addEventListener('input', (ev) => {
+  if (ev.target.id === 'arch-q') { arch.q = ev.target.value; refreshArchive(); }
+});
 document.addEventListener('change', async (ev) => {
   const t = ev.target;
+  if (t.id === 'arch-month') { arch.month = t.value; refreshArchive(); }
+  if (t.id === 'arch-theme') { arch.theme = t.value; refreshArchive(); }
   if (t.id === 'dtime') { S.deliverTime = t.value; save(); toast(`New letters will arrive at ${t.value}.`); }
   if (t.id === 'ylang') { S.lang = t.value; save(); }
   if (t.id === 'tdtime' || t.id === 'ltime') {
@@ -1380,7 +1613,7 @@ document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape') { if ($('.sheet-wrap')) closeSheet(); else if (pTip) { pTip = null; drawSky(); } }
 });
 let rz, lastW = window.innerWidth;
-window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (route !== 'patterns') return; if (param === 'identity') { if (Math.abs(window.innerWidth - lastW) > 40) render(); } else drawSky(); lastW = window.innerWidth; }, 150); });
+window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (route === 'identity') { if (Math.abs(window.innerWidth - lastW) > 40) render(); } else if (route === 'patterns') drawSky(); lastW = window.innerWidth; }, 150); });
 
 /* ---------- boot ---------- */
 function start() {
@@ -1457,7 +1690,7 @@ function sendLetterPatch(L, body, before) {
     catch (e) {
       const cur = S.letters.find((l) => l.id === L.id);
       if (cur) Object.assign(cur, { readAt: before.readAt, early: before.early, private: before.private, actions: before.actions, deliverAt: before.deliverAt });
-      toast(e?.code === 'forbidden' ? '“Read it now” is turned off in You.' : 'Couldn’t save that. Check your connection.');
+      toast(e?.code === 'forbidden' ? '“Read it now” is turned off in Settings.' : 'Couldn’t save that. Check your connection.');
       if (!document.querySelector('.ascend, .overnight')) { if (sheetId) drawSheet(); else render(); }
     }
   });
@@ -1511,7 +1744,7 @@ async function refresh() {
       const [letters, memories, notes] = await Promise.all([backend.letters(), backend.memories(), backend.notes()]);
       S.letters = letters.map(toLetter); S.memories = memories.map(toMemory); S.notes = toNotes(notes);
       const changed = before !== JSON.stringify(S.letters.map((l) => [l.id, l.status, l.revision])) || deliveredBefore !== S.letters.filter(delivered).length;
-      const busy = document.querySelector('.ascend, .overnight, .sheet-wrap') || (route === 'tonight' && $('#entry') && document.activeElement === $('#entry')) || memEditing;
+      const busy = document.querySelector('.ascend, .overnight, .sheet-wrap') || (route === 'tonight' && $('#entry') && document.activeElement === $('#entry')) || (document.activeElement?.id === 'arch-q') || memEditing;
       if (changed && !busy) render();
     } catch (e) { /* offline for a moment: keep what's here */ }
     refreshing = null;
@@ -1523,7 +1756,7 @@ setInterval(() => {
   // A sealed letter arrives at its time even if nothing else happens.
   if (!AUTH.user || route !== 'tonight' || document.querySelector('.ascend, .overnight, .sheet-wrap')) return;
   const sealed = S.letters.find((l) => !delivered(l));
-  if (!sealed && $('.skycard.sealed')) render();
+  if (!sealed && $('.sealed')) render();
 }, 30000);
 
 /* Memory */
@@ -1545,7 +1778,7 @@ async function forgetMemory(m) {
 
 /* Account */
 function needFreshSignIn(e, action) {
-  if (e?.code === 'forbidden') { freshFor = action; if (route !== 'you') go('you'); else render(); setTimeout(() => $('#reauth-pw')?.focus(), 50); return; }
+  if (e?.code === 'forbidden') { freshFor = action; if (route !== 'settings') go('settings'); else render(); setTimeout(() => { $('#reauth-pw')?.focus(); $('#data')?.scrollIntoView({ block: 'start' }); }, 50); return; }
   toast(e?.code === 'unauthorized' ? 'Please sign in again.' : 'That didn’t work. Check your connection and try again.');
 }
 async function submitReauth(f) {
