@@ -2,8 +2,9 @@
  * Drives the real journal app (/app) in Chromium against a fake Supabase Auth
  * and a fake product API, so the whole UI flow is checked without a database:
  * sign in, onboarding, sealing a night, a letter arriving, opening it, ticking a
- * to-do, memory, Patterns, export, and signing out. Also checks that nothing
- * the person writes is left in browser storage, and that the site links in.
+ * to-do, Identity, memory, searching all letters, Patterns, Settings, export,
+ * and signing out. Also checks that nothing the person writes is left in
+ * browser storage, and that the site links in.
  *
  *   npm run build:web (with the NEXT_PUBLIC_* values below), then
  *   node tests/frontend/journal-smoke.mjs
@@ -357,6 +358,10 @@ try {
     db.settings.voice === 'mentor' && db.settings.onboarded === true,
     'voice and onboarding are saved to the account',
   );
+  check(
+    await page.getByText('Write 3 more nights to see your first direction').isVisible(),
+    'Tonight shows how far away the first Identity direction is',
+  );
   await shot(page, '03-tonight');
 
   console.log('seal');
@@ -405,19 +410,26 @@ try {
   await shot(page, '07-todos');
   await page.getByRole('button', { name: 'Done', exact: true }).click();
 
-  console.log('letters, patterns, you');
+  console.log('letters, identity, patterns, profile, settings');
   await page.locator('.tab[data-go="letters"]').click();
   await page.getByRole('heading', { name: 'Letters' }).waitFor();
   check(await page.getByText('A calm walk by the harbour').isVisible(), 'the letter is listed');
+  await page.locator('.tab[data-go="identity"]').click();
+  await page.getByRole('heading', { name: 'Who you might become' }).waitFor();
+  check(
+    await page.getByText('more nights to see your first direction').first().isVisible(),
+    'Identity has its own tab and says when a direction will appear',
+  );
   await page.locator('.tab[data-go="patterns"]').click();
   await page.getByText('Your patterns, not their highlight reel.').waitFor();
-  await shot(page, '08-patterns');
-  await page.locator('.tab[data-go="you"]').click();
-  await page.getByRole('heading', { name: 'Memory' }).waitFor();
   check(
-    await page.getByText(USER.email).isVisible(),
-    'You shows which account the journal belongs to',
+    !(await page.locator('[data-ptab="identity"]').count()),
+    'Patterns no longer holds Identity',
   );
+  await shot(page, '08-patterns');
+  await page.locator('.tab[data-go="profile"]').click();
+  await page.getByRole('heading', { name: 'Memory' }).waitFor();
+  check(await page.getByText('1 night written').isVisible(), 'Profile counts the nights written');
   await page.fill('#mem-new', 'Fictional: likes rainy mornings');
   await page.getByRole('button', { name: 'Remember' }).click();
   await page.getByText('Fictional: likes rainy mornings').waitFor();
@@ -428,7 +440,36 @@ try {
   await page.locator('[data-memforget]').first().click();
   await sleep(500);
   check(db.memories.length === 1, 'forgetting a memory deletes it');
-  await shot(page, '09-you');
+
+  console.log('search all letters');
+  await page.fill('#arch-q', 'HARBOUR');
+  await page.locator('#arch-count').getByText('1 letter matches').waitFor();
+  check(
+    (await page.locator('#arch-results mark').count()) > 0,
+    'search is case-insensitive and highlights the words',
+  );
+  await page.fill('#arch-q', 'phone');
+  await page.locator('#arch-count').getByText('1 letter matches').waitFor();
+  check(
+    await page.locator('#arch-results').getByText('To-do').isVisible(),
+    'search finds words in to-dos and says where they were',
+  );
+  await page.fill('#arch-q', 'nothing like this');
+  await page.getByText('Nothing matches').waitFor();
+  await page.fill('#arch-q', '');
+  await page.locator('[data-act="arch-gold"]').click();
+  await page.getByText('Nothing matches').waitFor();
+  check(true, 'the gold seal filter hides letters without one');
+  await page.locator('[data-act="arch-gold"]').click();
+  await shot(page, '09-profile');
+
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
+  check(
+    await page.getByText(USER.email).isVisible(),
+    'Settings shows which account the journal belongs to',
+  );
+  await shot(page, '10-settings');
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download a copy' }).click();
   const file = await download;
@@ -447,7 +488,7 @@ try {
   await page.goto(`${ORIGIN}/#/`);
   await page.locator('a[href="/app"]').first().waitFor();
   check(true, 'the site links to the app');
-  await shot(page, '10-site');
+  await shot(page, '11-site');
   for (const [path, words] of [
     ['/how', 'Say it whenever. Understand it tomorrow.'],
     ['/privacy', 'Safe enough to be honest.'],
