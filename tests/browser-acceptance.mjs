@@ -114,7 +114,7 @@ export async function runBrowserAcceptance({
       check(letter.steps['step.0'] === 'tried', 'Ticking a to-do was not saved.');
     });
     await group('browser memory, export and clearing the journal', async () => {
-      await page.locator('.tab[data-go="you"]').click();
+      await page.locator('.tab[data-go="settings"]').click();
       await page.locator('#mem-new').fill('Fictional browser approved memory');
       await page.getByRole('button', { name: 'Remember', exact: true }).click();
       await page.getByText('Fictional browser approved memory', { exact: true }).waitFor();
