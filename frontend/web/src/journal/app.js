@@ -303,7 +303,7 @@ function sparkle(seed, s) {
 }
 
 /* ---------- render ---------- */
-let after = [];
+let after = []; let lastRoute = null;
 function render() {
   if (route !== 'tonight' && voice.state === 'rec') stopRecording();
   if (route !== 'tonight' && voice.state === 'dictate') voice.state = 'idle';
@@ -315,18 +315,28 @@ function render() {
   const html = (views[route] || vTonight)();
   const unread = allLetters().some((l) => delivered(l) && !l.readAt);
   setAmbient(route === 'login' ? 'full' : undefined);
-  const here = (r) => route === r || (r === 'letters' && route === 'letter') || (r === 'profile' && route === 'settings');
+  const here = (r) => route === r || (r === 'letters' && route === 'letter');
+  // a new page enters with one short rise; staying on a page re-renders in place
+  const entering = route !== lastRoute; lastRoute = route;
+  if (entering && route === 'identity' && !identVeiled) identRevealAt = performance.now();
   const nav = route === 'welcome' || route === 'login' ? '' : `
     <header class="topbar">
       <button class="brand" data-go="tonight" aria-label="Beyond, Tonight">${I.moon}<span>Beyond</span></button>
       <nav class="tabs" aria-label="Main">
-        ${[['tonight', 'Tonight', I.moon], ['letters', 'Letters', I.mail], ['identity', 'Identity', I.bubbles], ['patterns', 'Patterns', I.sky], ['profile', 'Profile', I.you]].map(([r, l, ic]) =>
+        ${[['tonight', 'Tonight', I.moon], ['letters', 'Letters', I.mail], ['identity', 'Identity', I.bubbles], ['patterns', 'Patterns', I.sky], ['profile', 'Profile', I.you], ['settings', 'Settings', I.gear]].map(([r, l, ic]) =>
           `<button class="tab" data-go="${r}" ${here(r) ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${r === 'letters' && unread ? '<i class="dot" aria-label="Unread letter"></i>' : ''}</button>`).join('')}
       </nav>
     </header>`;
-  $('#app').innerHTML = `${nav}<main id="main" class="v-${route}">${html}</main>`;
+  $('#app').innerHTML = `${nav}<main id="main" class="v-${route}${entering && stateReady ? ' is-entering' : ''}">${html}</main>`;
   after.forEach((f) => f()); after = [];
 }
+let candleRaf = 0;
+window.addEventListener('pointermove', (e) => {
+  if (e.pointerType !== 'mouse' || reduceMotion()) return;
+  cancelAnimationFrame(candleRaf);
+  candleRaf = requestAnimationFrame(() => { const a = document.getElementById('ambient'); if (a) { a.style.setProperty('--mx', `${e.clientX}px`); a.style.setProperty('--my', `${e.clientY}px`); a.classList.add('has-candle'); } });
+}, { passive: true });
+document.addEventListener('pointerleave', () => document.getElementById('ambient')?.classList.remove('has-candle'));
 function setAmbient(mode) {
   if (mode === undefined) return;
   const a = $('#ambient');
@@ -337,6 +347,7 @@ function setAmbient(mode) {
       `<i class="ember" style="left:${(r() * 100).toFixed(1)}%;--z:${(2 + r() * 3).toFixed(1)}px;--t:${(11 + r() * 12).toFixed(1)}s;--dl:${(-r() * 20).toFixed(1)}s;--dx:${((r() - .5) * 120).toFixed(0)}px"></i>`).join('');
     // plus a few pencil stars in the margins
     const spots = [[4, 12, 9], [93, 8, 7], [88, 46, 5], [6, 64, 6], [96, 82, 8], [14, 90, 5], [72, 20, 4]];
+    a.innerHTML += '<i class="candle" aria-hidden="true"></i>';
     a.innerHTML += spots.map(([x, y, s], i) => `<svg class="pencil-star" style="left:${x}%;top:${y}%;width:${s * 3}px;height:${s * 3}px" viewBox="-10 -10 20 20"><path d="${sparkle(`amb${i}`, 8)}"/></svg>`).join('');
   }
   a.hidden = false;
@@ -1148,7 +1159,7 @@ function drawSky() {
 }
 
 /* --- Identity: who you might become --- */
-let identVeiled = true; let identFocus = null; let identRaf = 0;
+let identVeiled = true; let identFocus = null; let identRaf = 0; let identRevealAt = 0; let identHover = null;
 function directions() {
   const list = keptLetters();
   return DIRECTIONS.map((def) => {
@@ -1159,38 +1170,62 @@ function directions() {
     return { ...def, id: def.key, evidence: ev, days, status, sufficient: days >= 3, count: Math.max(1, ev.length), explanation };
   });
 }
-function bubbleLayout(items, W, H) {
+function bubbleLayout(items, W, H, cx0 = W * .5, cy0 = H * .5) {
   const out = {}; if (!W || !H) return out;
-  const maxCount = Math.max(1, ...items.map((d) => d.count)); const placed = []; let lastSize = Infinity;
-  const short = Math.min(W, H); const minD = Math.max(88, short * .2); const maxD = Math.max(minD + 40, Math.min(short * .46, 250));
+  const maxCount = Math.max(1, ...items.map((d) => d.count)); let lastSize = Infinity;
+  // "you" sits at the centre; directions are placed around it, never on it
+  const placed = [{ x: cx0, y: cy0, r: Math.min(56, Math.min(W, H) * .1) }];
+  const short = Math.min(W, H); const minD = Math.max(80, short * .17); const maxD = Math.max(minD + 36, Math.min(short * .36, 220));
   [...items].sort((a, b) => b.count - a.count || a.key.localeCompare(b.key)).forEach((d, i) => {
     let size = maxCount <= 1 ? (minD + maxD) / 2 : minD + (maxD - minD) * Math.sqrt((d.count - 1) / (maxCount - 1));
     size = Math.min(size, lastSize); // never larger than a direction with more letters
-    const rnd = seeded(d.key); const cx0 = W * .46, cy0 = H * .5; let best = null;
+    const rnd = seeded(d.key); let best = null;
     for (let attempt = 0; attempt < 8 && !best; attempt++) {
-      const r = size / 2; const gap = attempt < 3 ? 22 : 12; // small screens: shrink until every direction fits
-      for (let k = 0; k < 1200; k++) {
-        const a = k * 2.399963 + rnd() * .6 + i; const dist = k === 0 && i === 0 ? 0 : 8 + Math.sqrt(k) * 9.5;
-        const x = cx0 + Math.cos(a) * dist * 1.35, y = cy0 + Math.sin(a) * dist * .85;
-        if (x - r < 12 || x + r > W - 12 || y - r < 12 || y + r > H - 12) continue;
+      const r = size / 2; const gap = attempt < 3 ? Math.min(46, short * .07) : 14; // small screens: shrink until every direction fits
+      for (let k = 0; k < 1400; k++) {
+        const a = k * 2.399963 + rnd() * .6 + i * 1.7; const dist = short * .16 + Math.sqrt(k) * 9.5;
+        const x = cx0 + Math.cos(a) * dist * 1.45, y = cy0 + Math.sin(a) * dist * .82;
+        if (x - r < 14 || x + r > W - 14 || y - r < 44 || y + r > H - 14) continue;
         if (placed.every((p) => Math.hypot(p.x - x, p.y - y) > p.r + r + gap)) { best = { x, y }; break; }
       }
       if (!best) size *= .82;
     }
     const r = size / 2;
-    if (!best) best = { x: Math.min(W - r - 12, Math.max(r + 12, cx0 + (rnd() - .5) * W * .6)), y: Math.min(H - r - 12, Math.max(r + 12, cy0 + (rnd() - .5) * H * .6)) };
+    if (!best) best = { x: Math.min(W - r - 14, Math.max(r + 14, cx0 + (rnd() - .5) * W * .6)), y: Math.min(H - r - 14, Math.max(r + 44, cy0 + (rnd() - .5) * H * .6)) };
     placed.push({ ...best, r }); lastSize = size;
-    out[d.id] = { ...best, size, amp: 6 + rnd() * 10, ampY: 8 + rnd() * 12, period: 9000 + rnd() * 7000, phase: rnd() * Math.PI * 2 };
+    out[d.id] = { ...best, size, amp: 5 + rnd() * 8, ampY: 6 + rnd() * 9, period: 9000 + rnd() * 7000, phase: rnd() * Math.PI * 2 };
   });
+  // centre the whole constellation (you included) in the stage
+  const box = placed.reduce((b, p) => ({ x0: Math.min(b.x0, p.x - p.r), x1: Math.max(b.x1, p.x + p.r), y0: Math.min(b.y0, p.y - p.r), y1: Math.max(b.y1, p.y + p.r) }), { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity });
+  const dx = Math.max(14 - box.x0, Math.min(W - 14 - box.x1, W / 2 - (box.x0 + box.x1) / 2));
+  const dy = Math.max(44 - box.y0, Math.min(H - 14 - box.y1, (H + 30) / 2 - (box.y0 + box.y1) / 2));
+  for (const id of Object.keys(out)) { out[id].x += dx; out[id].y += dy; }
+  out.__core = { x: cx0 + dx, y: cy0 + dy };
   return out;
 }
+/* When a direction showed up: one row of the months it spans, a star per letter. */
+function directionTimeline(f) {
+  const all = keptLetters(); if (!all.length || !f.evidence.length) return '';
+  const dates = all.map((l) => l.date).sort(); const from = `${dates[0].slice(0, 7)}-01`; const to = lastDayOf(dates[dates.length - 1].slice(0, 7));
+  const span = Math.max(1, dayDiff(to, from)); const W = 600, H = 64, pad = 14; const x = (d) => pad + (dayDiff(d, from) / span) * (W - 2 * pad);
+  const months = []; let k = from.slice(0, 7); while (`${k}-01` <= to) { months.push(k); const [yy, mm] = k.split('-').map(Number); k = mm === 12 ? `${yy + 1}-01` : `${yy}-${pad2(mm + 1)}`; }
+  const ev = new Set(f.evidence.map((l) => l.id));
+  return `<svg class="tl" viewBox="0 0 ${W} ${H}" role="img" aria-label="${plural(f.evidence.length, 'letter')} about ${esc(f.name)}, from ${MON[+from.slice(5, 7) - 1]} to ${MON[+to.slice(5, 7) - 1]}">
+    <path class="tl-line" d="M${pad} 30 C ${W * .3} 27, ${W * .6} 33, ${W - pad} 29"/>
+    ${months.map((m) => `<text class="tl-m" x="${x(`${m}-01`).toFixed(1)}" y="${H - 4}">${MON[+m.slice(5) - 1]}</text>`).join('')}
+    ${all.filter((l) => !ev.has(l.id)).map((l) => `<circle class="tl-dot" cx="${x(l.date).toFixed(1)}" cy="30" r="2"/>`).join('')}
+    ${f.evidence.map((l, i) => `<path class="tl-star" style="--i:${i}" d="${sparkle(l.id, 7)}" transform="translate(${x(l.date).toFixed(1)} 30)"/>`).join('')}
+  </svg>`;
+}
+const pad2 = (n) => String(n).padStart(2, '0');
 function vIdentity() {
   const all = directions();
   const visible = all.filter((d) => (d.status === 'confirmed' && d.evidence.length) || (d.status === 'suggested' && d.sufficient));
   const hidden = all.filter((d) => d.status === 'dismissed' || d.status === 'removed');
   const f = visible.find((d) => d.id === identFocus) || null;
   if (!f) identFocus = null;
-  const n = nightsToFirst(all);
+  const n = nightsToFirst(all); const kept = keptLetters().length;
+  const max = Math.max(1, ...visible.map((d) => d.days));
   after.push(() => startBubbles(visible));
   return `<header class="page-head">
       <h1 class="display">Who you might become</h1>
@@ -1199,10 +1234,12 @@ function vIdentity() {
     ${sampleBanner()}
     <section class="ident" aria-label="Your directions">
       ${visible.length ? `<div class="stage ${identVeiled ? 'is-veiled' : ''} ${f ? 'has-focus' : ''}" id="stage">
-        <div class="stage-layer"><svg class="stage-links" aria-hidden="true"></svg></div>
+        <canvas class="stage-sky" aria-hidden="true"></canvas>
+        <div class="parallax"><div class="stage-layer"><svg class="stage-links" aria-hidden="true"></svg></div></div>
+        <p class="stage-cap">${plural(visible.length, 'direction')}, drawn from ${plural(kept, 'kept night')}</p>
         <div class="veil"><h2>Bring it into focus.</h2><p>Directions gathered from your kept letters. The more often something appears, the larger it grows.</p><button class="btn amber" data-act="reveal">Open the map</button></div>
       </div>
-      <p class="fine legend">Larger circles have more letters behind them. A line joins two directions that share a letter.</p>`
+      <p class="fine legend">You are at the centre. Larger circles have more nights behind them, and brighter threads mean a stronger pull. Select a direction to see its letters circle it.</p>`
       : `<div class="empty"><span class="empty-mark" aria-hidden="true">${miniMap([])}</span><p class="lead">Write ${plural(n, 'more night')} to see your first direction.</p><p class="fine">A direction appears once kept letters from at least three different nights point to it.</p><button class="btn amber" data-go="tonight">Write tonight</button></div>`}
     </section>
     <div class="spread ${f ? 'is-focus' : ''}">
@@ -1210,55 +1247,118 @@ function vIdentity() {
         <div class="focus-top"><p class="focus-st ${f.status === 'confirmed' ? 'is-confirmed' : ''}">${f.status === 'confirmed' ? 'Confirmed by you' : 'A possibility'}</p><button class="x-btn" data-bubble="" aria-label="Close">${I.x}</button></div>
         <h2 class="focus-name">${esc(f.name)}</h2>
         <p class="focus-expl">${esc(f.explanation)}</p>
-        <h3 class="qh">Evidence: ${plural(f.evidence.length, 'letter')} over ${plural(f.days, 'night')}</h3>
+        <div class="strength"><p><b>${f.days}</b> of your ${plural(kept, 'kept night')}</p><span class="meter" aria-hidden="true"><i style="--w:${Math.max(4, (f.days / Math.max(1, kept)) * 100).toFixed(1)}%"></i></span></div>
+        <h3 class="qh">When it showed up</h3>
+        ${directionTimeline(f)}
+        <h3 class="qh">Evidence: ${plural(f.evidence.length, 'letter')}</h3>
         <ul class="ev-list">${f.evidence.slice(0, 6).map((l) => `<li><span class="k">${fmtDay(l.date)}${l.sample ? ', sample' : ''}</span><button class="link" data-open="${l.id}">${esc(l.content.headline)}</button></li>`).join('')}</ul>
         <div class="row">${f.status === 'suggested' ? `<button class="btn sm amber" data-dir="${f.key}" data-st="confirmed">This fits me</button><button class="link" data-dir="${f.key}" data-st="dismissed">Not for me</button>` : `<button class="link" data-dir="${f.key}" data-st="removed">Remove from my map</button>`}</div>
       </section>` : `<h2 class="sec">All directions</h2>`}
       <section class="dirs">${f ? '<h3 class="qh">All directions</h3>' : ''}
-        ${visible.length ? `<ul class="dir-list">${visible.map((d) => `<li><button class="link" data-bubble="${d.id}">${esc(d.name)}</button><span class="fine">${d.status === 'confirmed' ? '<b class="is-confirmed">Confirmed</b>' : 'Suggested'}, ${plural(d.days, 'night')}</span></li>`).join('')}</ul>` : '<p class="fine">Nothing yet.</p>'}
+        ${visible.length ? `<ul class="dir-list">${visible.map((d) => `<li class="${d.id === identFocus ? 'is-current' : ''}"><button class="link" data-bubble="${d.id}">${esc(d.name)}</button><span class="fine">${d.status === 'confirmed' ? '<b class="is-confirmed">Confirmed</b>' : 'Suggested'}, ${plural(d.days, 'night')}</span><span class="dir-bar" aria-hidden="true"><i style="--w:${((d.days / max) * 100).toFixed(1)}%"></i></span></li>`).join('')}</ul>` : '<p class="fine">Nothing yet.</p>'}
         ${hidden.length ? `<details class="words-d"><summary>Dismissed or removed (${hidden.length})</summary><ul class="dir-list">${hidden.map((d) => `<li><span>${esc(d.name)}</span><button class="link" data-dir="${d.key}" data-st="suggested">Restore</button></li>`).join('')}</ul></details>` : ''}
         <p class="fine">Suggested only when kept letters from at least three different nights point to it. Private letters are never used.</p>
       </section>
     </div>`;
 }
+/* The constellation: you in the middle, each direction on its own orbit, joined
+   to you by a thread of light. Stars drift behind it at a different depth. */
 function startBubbles(visible) {
   cancelAnimationFrame(identRaf);
   const stage = $('#stage'); if (!stage || !visible.length) return;
-  const W = stage.clientWidth, H = stage.clientHeight; const geo = bubbleLayout(visible, W, H);
-  const layer = stage.querySelector('.stage-layer'); const svg = stage.querySelector('.stage-links');
+  const W = stage.clientWidth, H = stage.clientHeight;
+  const geo = bubbleLayout(visible, W, H, W * .5, H * .54); const cx = geo.__core.x, cy = geo.__core.y;
+  const par = stage.querySelector('.parallax'); const layer = stage.querySelector('.stage-layer'); const svg = stage.querySelector('.stage-links');
+  const still = reduceMotion(); const fine = window.matchMedia('(pointer: fine)').matches;
+  const max = Math.max(1, ...visible.map((d) => d.days));
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   const edges = [];
   for (let i = 0; i < visible.length; i++) for (let j = i + 1; j < visible.length; j++) {
     const ids = new Set(visible[i].evidence.map((l) => l.id));
     if (visible[j].evidence.some((l) => ids.has(l.id))) edges.push([visible[i].id, visible[j].id]);
   }
-  svg.innerHTML = edges.map(([a, b]) => `<line data-e="${a}|${b}" class="${identFocus ? (a === identFocus || b === identFocus ? 'is-active' : 'is-dim') : ''}"/>`).join('');
+  svg.innerHTML = `<defs><radialGradient id="corehalo"><stop offset="0" stop-color="#ffe9c4" stop-opacity=".55"/><stop offset="1" stop-color="#e3955a" stop-opacity="0"/></radialGradient></defs>`
+    + visible.map((d) => { const g = geo[d.id]; return `<path class="orbit" d="${wobble(`orbit-${d.key}`, cx, cy, Math.hypot(g.x - cx, g.y - cy), .012, 18)}"/>`; }).join('')
+    + edges.map(([a, b]) => `<line class="share" data-e="${a}|${b}"/>`).join('')
+    + visible.map((d) => `<line class="spoke" data-s="${d.id}" style="--w:${(.9 + 2.4 * d.days / max).toFixed(2)}"/>`).join('');
+  const core = document.createElement('div'); core.className = 'core'; core.setAttribute('aria-hidden', 'true');
+  core.style.left = `${cx}px`; core.style.top = `${cy}px`;
+  core.innerHTML = '<span class="core-light"></span><span class="core-label">you</span>';
+  layer.appendChild(core);
   for (const d of visible) {
     const g = geo[d.id]; const fs = Math.max(13, Math.min(26, g.size / 7.6));
     const b = document.createElement('button'); b.type = 'button';
     b.className = `bubble is-${d.status} ${identFocus === d.id ? 'is-focused' : ''}`; b.dataset.bubble = d.id;
     b.style.width = b.style.height = `${g.size}px`; b.tabIndex = identVeiled ? -1 : 0;
     b.setAttribute('aria-label', `${d.name}, ${d.status === 'confirmed' ? 'confirmed' : 'suggested'}, ${plural(d.days, 'night')}`);
-    b.innerHTML = `<span class="orb"><svg class="orb-line" viewBox="0 0 100 100" aria-hidden="true"><path d="${wobble(d.key, 50, 50, 46, .045, 11)}"/></svg><span class="orb-st">${d.status === 'confirmed' ? 'confirmed' : 'suggested'}</span><span class="orb-name" style="font-size:${fs}px">${esc(d.name)}</span><span class="orb-n">${plural(d.days, 'night')}</span></span>`;
+    b.innerHTML = `<span class="orb"><svg class="orb-line" viewBox="0 0 100 100" aria-hidden="true"><path d="${wobble(d.key, 50, 50, 46, .045, 11)}"/><path class="orb-line2" d="${wobble(`${d.key}2`, 50, 50, 44, .05, 9)}"/></svg><span class="orb-st">${d.status === 'confirmed' ? 'confirmed' : 'suggested'}</span><span class="orb-name" style="font-size:${fs}px">${esc(d.name)}</span><span class="orb-n">${plural(d.days, 'night')}</span></span>`;
     layer.appendChild(b); d.el = b;
+    b.addEventListener('pointerenter', () => hover(d.id)); b.addEventListener('pointerleave', () => hover(null));
+    b.addEventListener('focus', () => hover(d.id)); b.addEventListener('blur', () => hover(null));
   }
-  const still = reduceMotion();
+  // the selected direction's letters circle it as small stars you can open
+  const f = visible.find((d) => d.id === identFocus);
+  const sats = f ? f.evidence.slice(0, 9).map((l, i, arr) => {
+    const s = document.createElement('button'); s.type = 'button'; s.className = 'sat'; s.dataset.open = l.id; s.dataset.tip = `${fmtDay(l.date)}: ${l.content.headline}`;
+    s.setAttribute('aria-label', `Open the letter from ${fmtDay(l.date)}: ${l.content.headline}`); s.style.setProperty('--i', i);
+    s.innerHTML = `<svg viewBox="-10 -10 20 20" aria-hidden="true"><path d="${sparkle(l.id, 7)}"/></svg>`;
+    layer.appendChild(s); return { el: s, a0: (i / arr.length) * Math.PI * 2 };
+  }) : [];
+  // other ways in: hovering a row in the list lights its circle on the map
+  document.querySelectorAll('.dir-list [data-bubble]').forEach((el) => {
+    el.addEventListener('pointerenter', () => hover(el.dataset.bubble)); el.addEventListener('pointerleave', () => hover(null));
+  });
+  const spokes = [...svg.querySelectorAll('.spoke')]; const shares = [...svg.querySelectorAll('.share')];
+  function hover(id) {
+    identHover = id;
+    stage.classList.toggle('has-hover', !!id);
+    for (const d of visible) d.el.classList.toggle('is-hover', d.id === id);
+    spokes.forEach((ln) => ln.classList.toggle('is-active', ln.dataset.s === id || ln.dataset.s === identFocus));
+    shares.forEach((ln) => { const [a, b] = ln.dataset.e.split('|'); ln.classList.toggle('is-active', [a, b].includes(id) || [a, b].includes(identFocus)); });
+  }
+  hover(null);
+  // starfield behind, on its own canvas
+  const sky = stage.querySelector('.stage-sky'); const dpr = Math.min(2, window.devicePixelRatio || 1);
+  sky.width = W * dpr; sky.height = H * dpr; const g2 = sky.getContext('2d'); g2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const rs = seeded('ident-sky'); const stars = Array.from({ length: Math.round((W * H) / 3800) }, () => ({ x: rs() * W, y: rs() * H, r: .4 + rs() * 1.3, a: .25 + rs() * .6, p: 1800 + rs() * 4200, ph: rs() * 6.3 }));
+  // parallax: the sky moves less than the map, so the map floats above it
+  let tx = 0, ty = 0, px = 0, py = 0;
+  stage.onpointermove = fine && !still ? (e) => { const r = stage.getBoundingClientRect(); tx = (e.clientX - r.left) / r.width - .5; ty = (e.clientY - r.top) / r.height - .5; } : null;
+  stage.onpointerleave = () => { tx = 0; ty = 0; };
+  const ease = (k) => 1 - (1 - k) ** 3; const clamp = (k) => Math.max(0, Math.min(1, k));
   const pos = (id, t) => { const g = geo[id]; if (still) return g; const w = (t / g.period) * Math.PI * 2 + g.phase; return { x: g.x + Math.sin(w) * g.amp, y: g.y + Math.cos(w * .8) * g.ampY }; };
-  const lines = [...svg.querySelectorAll('line')];
   const frame = (t) => {
     if (!document.body.contains(stage)) return;
-    for (const d of visible) { const p = pos(d.id, t); d.el.style.transform = `translate3d(${p.x - geo[d.id].size / 2}px, ${p.y - geo[d.id].size / 2}px, 0)`; }
-    lines.forEach((ln, i) => {
-      const [a, b] = edges[i]; const pa = pos(a, t), pb = pos(b, t); const dx = pb.x - pa.x, dy = pb.y - pa.y, len = Math.hypot(dx, dy) || 1;
-      const ra = geo[a].size / 2 + 4, rb = geo[b].size / 2 + 4;
-      ln.style.visibility = len > ra + rb ? 'visible' : 'hidden';
-      ln.setAttribute('x1', pa.x + (dx / len) * ra); ln.setAttribute('y1', pa.y + (dy / len) * ra); ln.setAttribute('x2', pb.x - (dx / len) * rb); ln.setAttribute('y2', pb.y - (dy / len) * rb);
+    px += (tx - px) * .06; py += (ty - py) * .06;
+    par.style.transform = `translate3d(${(-px * 22).toFixed(2)}px, ${(-py * 16).toFixed(2)}px, 0)`;
+    sky.style.transform = `translate3d(${(-px * 8).toFixed(2)}px, ${(-py * 6).toFixed(2)}px, 0) scale(1.04)`;
+    g2.clearRect(0, 0, W, H);
+    for (const s of stars) { g2.globalAlpha = still ? s.a : s.a * (.55 + .45 * Math.sin(t / s.p + s.ph)); g2.fillStyle = '#fbe9d2'; g2.beginPath(); g2.arc(s.x, s.y, s.r, 0, 6.283); g2.fill(); }
+    g2.globalAlpha = 1;
+    const since = identRevealAt && !still ? performance.now() - identRevealAt : Infinity;
+    const cur = {};
+    visible.forEach((d, i) => {
+      const k = ease(clamp((since - 200 - i * 150) / 950)); const p = pos(d.id, t); const g = geo[d.id];
+      const x = cx + (p.x - cx) * k, y = cy + (p.y - cy) * k; const s = .25 + .75 * k;
+      cur[d.id] = { x, y, r: (g.size / 2) * s, k };
+      d.el.style.transform = `translate3d(${(x - g.size / 2).toFixed(1)}px, ${(y - g.size / 2).toFixed(1)}px, 0) scale(${s.toFixed(3)})`;
+      d.el.style.opacity = k.toFixed(3);
     });
+    spokes.forEach((ln) => {
+      const c = cur[ln.dataset.s]; const dx = c.x - cx, dy = c.y - cy, len = Math.hypot(dx, dy) || 1; const r0 = 30, r1 = c.r + 4;
+      ln.style.visibility = len > r0 + r1 ? 'visible' : 'hidden'; ln.style.opacity = c.k.toFixed(3);
+      ln.setAttribute('x1', cx + (dx / len) * r0); ln.setAttribute('y1', cy + (dy / len) * r0); ln.setAttribute('x2', c.x - (dx / len) * r1); ln.setAttribute('y2', c.y - (dy / len) * r1);
+    });
+    shares.forEach((ln) => {
+      const [a, b] = ln.dataset.e.split('|'); const pa = cur[a], pb = cur[b]; const dx = pb.x - pa.x, dy = pb.y - pa.y, len = Math.hypot(dx, dy) || 1;
+      ln.style.visibility = len > pa.r + pb.r + 8 ? 'visible' : 'hidden'; ln.style.opacity = Math.min(pa.k, pb.k).toFixed(3);
+      ln.setAttribute('x1', pa.x + (dx / len) * (pa.r + 4)); ln.setAttribute('y1', pa.y + (dy / len) * (pa.r + 4)); ln.setAttribute('x2', pb.x - (dx / len) * (pb.r + 4)); ln.setAttribute('y2', pb.y - (dy / len) * (pb.r + 4));
+    });
+    if (f) { const c = cur[f.id]; const R = c.r + 24; sats.forEach((s, i) => { const a = s.a0 + (still ? 0 : t / 14000 * Math.PI * 2); s.el.style.transform = `translate3d(${(c.x + Math.cos(a) * R - 11).toFixed(1)}px, ${(c.y + Math.sin(a) * R * .92 - 11).toFixed(1)}px, 0)`; }); }
     if (!still) identRaf = requestAnimationFrame(frame);
   };
   identRaf = requestAnimationFrame(frame);
 }
-
 /* ----- profile: only about you ----- */
 let confirmDelete = false; let memEditing = null; let confirmAccount = false; let freshFor = null;
 const fmtLong = (s) => { const d = parse(s); return `${d.getDate()} ${MONTH[d.getMonth()]} ${d.getFullYear()}`; };
@@ -1275,16 +1375,23 @@ function identitySummary() {
   return `<div class="id-sum">${miniMap(vis, 150, 96)}<ol class="id-list">${vis.slice(0, 3).map((d) => `<li><b>${esc(d.name)}</b><span>${plural(d.days, 'night')}${d.status === 'confirmed' ? ', confirmed by you' : ''}</span></li>`).join('')}</ol></div>
     <p><button class="link" data-go="identity">Open your Identity map</button></p>`;
 }
+let countedUp = false;
+function countUp(el) {
+  if (!el || reduceMotion()) return;
+  const n = +el.dataset.n; const t0 = performance.now(); const dur = 1100;
+  const tick = (t) => { const k = Math.min(1, (t - t0) / dur); el.textContent = String(Math.round(n * (1 - (1 - k) ** 3))); if (k < 1 && document.body.contains(el)) requestAnimationFrame(tick); };
+  el.textContent = '0'; requestAnimationFrame(tick);
+}
 function vProfile() {
   const ls = allLetters(); const ready = ls.filter(delivered);
   const nights = new Set(ls.map((l) => l.date)).size;
   const first = ls.length ? ls.reduce((m, l) => (l.date < m.date ? l : m)) : null;
   const seals = ready.filter((l) => progress(l).complete).length;
   const mems = allMemories();
-  return `<header class="page-head profile-head">
-      <div><h1 class="display">${nights ? `${plural(nights, 'night')} written` : 'Your first night is tonight'}</h1>
-      <p class="lead">${first ? `Since ${fmtLong(first.date)}. ${plural(ready.length, 'letter')} arrived, ${seals} with a gold seal.` : 'Write tonight and your first letter arrives in the morning.'}</p></div>
-      <button class="gear" data-go="settings" aria-label="Settings" title="Settings">${I.gear}</button>
+  if (nights >= 5 && !countedUp) { countedUp = true; after.push(() => countUp($('.count-up'))); }
+  return `<header class="page-head">
+      <h1 class="display">${nights ? `<span class="count-up" data-n="${nights}">${nights}</span> ${nights === 1 ? 'night' : 'nights'} written` : 'Your first night is tonight'}</h1>
+      <p class="lead">${first ? `Since ${fmtLong(first.date)}. ${plural(ready.length, 'letter')} arrived, ${seals} with a gold seal.` : 'Write tonight and your first letter arrives in the morning.'}</p>
     </header>
     ${sampleBanner()}
     <section class="spread" id="identity-summary"><h2 class="sec">Identity</h2><div>${identitySummary()}</div></section>
@@ -1384,6 +1491,7 @@ function archive() {
 function refreshArchive() {
   const r = $('#arch-results'); const c = $('#arch-count'); if (!r || !c) return;
   r.innerHTML = archiveResults(); c.innerHTML = archiveCount();
+  r.classList.remove('is-fresh'); void r.offsetWidth; r.classList.add('is-fresh');
   const g = $('[data-act="arch-gold"]'); if (g) g.setAttribute('aria-pressed', String(arch.gold));
 }
 
@@ -1391,8 +1499,8 @@ function refreshArchive() {
 function vSettings() {
   const own = S.letters.length;
   return `<header class="page-head">
-      <button class="link back" data-go="profile">${I.left}Profile</button>
       <h1 class="display">Settings</h1>
+      <p class="lead">How your letters are written, what Beyond remembers, your data, and where to find help.</p>
     </header>
     <section class="spread" id="letters-settings"><h2 class="sec">Letters</h2><div class="stack">
       <h3 class="qh">Who writes your letters</h3>
@@ -1571,7 +1679,7 @@ document.addEventListener('click', async (ev) => {
     case 'orb': return orbTap();
     case 'readnow': { const L = S.letters.find((l) => !delivered(l)); if (L) { el.disabled = true; return overnight(L, { now: true }); } return; }
     case 'skip': { const L = S.letters.find((l) => !delivered(l)); if (L) { el.disabled = true; return overnight(L); } return; }
-    case 'reveal': identVeiled = false; return render();
+    case 'reveal': identVeiled = false; identRevealAt = performance.now(); return render();
     case 'delete': confirmDelete = true; return render();
     case 'delete-no': confirmDelete = false; return render();
     case 'delete-yes': el.disabled = true; return clearJournal();
