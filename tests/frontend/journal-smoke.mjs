@@ -2,8 +2,8 @@
  * Drives the real journal app (/app) in Chromium against a fake Supabase Auth
  * and a fake product API, so the whole UI flow is checked without a database:
  * sign in, onboarding, sealing a night, a letter arriving, opening it, ticking a
- * to-do, Identity, memory, searching all letters, Patterns, Settings, export,
- * and signing out. Also checks that nothing the person writes is left in
+ * to-do, Letters with search, Identity, Patterns, Settings with memory,
+ * export, and signing out. Also checks that nothing the person writes is left in
  * browser storage, and that the site links in.
  *
  *   npm run build:web (with the NEXT_PUBLIC_* values below), then
@@ -410,36 +410,21 @@ try {
   await shot(page, '07-todos');
   await page.getByRole('button', { name: 'Done', exact: true }).click();
 
-  console.log('letters, identity, patterns, profile, settings');
+  console.log('letters');
   await page.locator('.tab[data-go="letters"]').click();
   await page.getByRole('heading', { name: 'Letters' }).waitFor();
-  check(await page.getByText('A calm walk by the harbour').isVisible(), 'the letter is listed');
-  await page.locator('.tab[data-go="identity"]').click();
-  await page.getByRole('heading', { name: 'Who you might become' }).waitFor();
   check(
-    await page.getByText('more nights to see your first direction').first().isVisible(),
-    'Identity has its own tab and says when a direction will appear',
+    await page.locator('.cover').getByText('A calm walk by the harbour').isVisible(),
+    'the newest letter is the cover of Letters',
   );
-  await page.locator('.tab[data-go="patterns"]').click();
-  await page.getByText('Your patterns, not their highlight reel.').waitFor();
   check(
-    !(await page.locator('[data-ptab="identity"]').count()),
-    'Patterns no longer holds Identity',
+    await page.locator('#arch-results').getByText('A calm walk by the harbour').isVisible(),
+    'the letter is also in All letters',
   );
-  await shot(page, '08-patterns');
-  await page.locator('.tab[data-go="profile"]').click();
-  await page.getByRole('heading', { name: 'Memory' }).waitFor();
-  check(await page.getByText('1 night written').isVisible(), 'Profile counts the nights written');
-  await page.fill('#mem-new', 'Fictional: likes rainy mornings');
-  await page.getByRole('button', { name: 'Remember' }).click();
-  await page.getByText('Fictional: likes rainy mornings').waitFor();
   check(
-    db.memories.some((x) => x.kind === 'told'),
-    'a told memory is saved',
+    await page.getByText('1 night written since').isVisible(),
+    'Letters counts the nights written',
   );
-  await page.locator('[data-memforget]').first().click();
-  await sleep(500);
-  check(db.memories.length === 1, 'forgetting a memory deletes it');
 
   console.log('search all letters');
   await page.fill('#arch-q', 'HARBOUR');
@@ -461,10 +446,44 @@ try {
   await page.getByText('Nothing matches').waitFor();
   check(true, 'the gold seal filter hides letters without one');
   await page.locator('[data-act="arch-gold"]').click();
-  await shot(page, '09-profile');
+  await shot(page, '08-letters');
 
+  console.log('identity, patterns');
+  await page.locator('.tab[data-go="identity"]').click();
+  await page.getByRole('heading', { name: 'Who you might become' }).waitFor();
+  check(
+    await page.getByText('more nights to see your first direction').first().isVisible(),
+    'Identity has its own tab and says when a direction will appear',
+  );
+  await page.locator('.tab[data-go="patterns"]').click();
+  await page.getByText('Your patterns, not their highlight reel.').waitFor();
+  check(
+    !(await page.locator('[data-ptab="identity"]').count()),
+    'Patterns no longer holds Identity',
+  );
+  check(
+    !(await page.locator('.tab[data-go="profile"]').count()),
+    'there is no separate Profile tab',
+  );
+  await shot(page, '09-patterns');
+
+  console.log('settings and memory');
   await page.locator('.tab[data-go="settings"]').click();
   await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
+  check(
+    await page.getByText('Walks by the harbour to feel calm').isVisible(),
+    'Settings lists what Beyond remembers',
+  );
+  await page.fill('#mem-new', 'Fictional: likes rainy mornings');
+  await page.getByRole('button', { name: 'Remember' }).click();
+  await page.getByText('Fictional: likes rainy mornings').waitFor();
+  check(
+    db.memories.some((x) => x.kind === 'told'),
+    'a told memory is saved',
+  );
+  await page.locator('[data-memforget]').first().click();
+  await sleep(500);
+  check(db.memories.length === 1, 'forgetting a memory deletes it');
   check(
     await page.getByText(USER.email).isVisible(),
     'Settings shows which account the journal belongs to',
