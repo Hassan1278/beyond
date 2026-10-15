@@ -118,7 +118,7 @@ export async function runBrowserAcceptance({
       await page.locator('#mem-new').fill('Fictional browser approved memory');
       await page.getByRole('button', { name: 'Remember', exact: true }).click();
       await page.getByText('Fictional browser approved memory', { exact: true }).waitFor();
-      await page.getByRole('button', { name: 'Settings', exact: true }).click();
+      await page.locator('.tab[data-go="settings"]').click();
       const download = page.waitForEvent('download');
       await page.getByRole('button', { name: 'Download a copy', exact: true }).click();
       const file = await download;

@@ -463,7 +463,7 @@ try {
   await page.locator('[data-act="arch-gold"]').click();
   await shot(page, '09-profile');
 
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.locator('.tab[data-go="settings"]').click();
   await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
   check(
     await page.getByText(USER.email).isVisible(),
