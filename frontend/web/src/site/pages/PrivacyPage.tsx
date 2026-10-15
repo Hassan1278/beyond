@@ -11,7 +11,7 @@ import { CRISIS, SAFEGUARDS } from '../../data/site';
 const SENT = [
   'The night you seal, word for word',
   'The voice and language you chose for letters',
-  'Memories you can see in You, unless memory is paused',
+  'Memories you can see in Settings, unless memory is paused',
   'Headlines, themes and skipped to-dos of up to four earlier letters you kept',
 ];
 
