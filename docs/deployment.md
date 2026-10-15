@@ -2,12 +2,12 @@
 
 ## Hosted resources
 
-| Piece             | Where                                                                                             | Status                                                |
-| ----------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| Database + Auth   | Supabase org **Beyond**, project `beyond` (ref `wrjlpfnotylrdewvgsgn`, Singapore, Postgres 17)    | All 11 migrations applied; readiness gate passes      |
-| Product API       | Vercel team `smigmi1278-9965`, project `beyond-api`, Root Directory `backend/api`, region `sin1`  | `https://beyond-api-three.vercel.app`                 |
-| Website + journal | Vercel team `smigmi1278-9965`, project `beyond-web`, Root Directory `frontend/web`, region `sin1` | `https://beyond-web-wheat.vercel.app` (app at `/app`) |
-| AI letter service | Vercel team `smigmi1278-9965`, project `beyond-ai`, Root Directory `ai`, region `sin1`            | Deployed; provider keys empty until added             |
+| Piece             | Where                                                                                             | Status                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Database + Auth   | Supabase org **Beyond**, project `beyond` (ref `wrjlpfnotylrdewvgsgn`, Singapore, Postgres 17)    | All 11 migrations applied; readiness gate passes                                |
+| Product API       | Vercel team `smigmi1278-9965`, project `beyond-api`, Root Directory `backend/api`, region `sin1`  | `https://beyond-api-three.vercel.app`                                           |
+| Website + journal | Vercel team `smigmi1278-9965`, project `beyond-web`, Root Directory `frontend/web`, region `sin1` | `https://beyond-web-wheat.vercel.app` (app at `/app`)                           |
+| AI letter service | Vercel team `smigmi1278-9965`, project `beyond-ai`, Root Directory `ai`, region `sin1`            | `https://beyond-ai-smigmi1278-9965.vercel.app`; provider keys empty until added |
 
 Supabase URL: `https://wrjlpfnotylrdewvgsgn.supabase.co`. Only the publishable key (`sb_publishable_…`) ever goes to the API's normal routes or to clients.
 
@@ -38,16 +38,16 @@ Pushes to `main` deploy to production; pull requests get previews. Previews shar
 | `beyond-web` | `NEXT_PUBLIC_SUPABASE_URL`             | same Supabase URL                                                                           |
 |              | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | same publishable key                                                                        |
 |              | `NEXT_PUBLIC_API_URL`                  | the API production origin, `https://beyond-api-three.vercel.app`                            |
+| `beyond-api` | `AI_SERVICE_URL`                       | the AI service origin, `https://beyond-ai-smigmi1278-9965.vercel.app`                       |
+|              | `AI_SERVICE_TOKEN`                     | random, sensitive; same value as on `beyond-ai`                                             |
+|              | `LETTER_JOB_TRIGGER_SECRET`            | random, sensitive; same value as the Vault secret `beyond_letter_job_trigger`               |
+| `beyond-ai`  | `AI_SERVICE_TOKEN`                     | same as on `beyond-api`                                                                     |
+|              | `AI_PROVIDER`                          | `auto` (uses whichever key is set; Anthropic first)                                         |
+|              | `ANTHROPIC_API_KEY`                    | **empty until you add it** (sensitive). Letters wait in the queue until then                |
+|              | `ANTHROPIC_MODEL`                      | `claude-sonnet-5-5`                                                                         |
+|              | `OPENAI_API_KEY`, `TRANSCRIBE_MODEL`   | optional: voice transcription (and letters, if no Anthropic key); model `whisper-1`         |
 
-`NEXT_PUBLIC_*` values are baked in at build time, so redeploy the web project after changing them.
-
-| `beyond-api` | `AI_SERVICE_URL` | the AI service origin, `https://beyond-ai-….vercel.app` |
-| | `AI_SERVICE_TOKEN` | random, sensitive; same value as on `beyond-ai` |
-| | `LETTER_JOB_TRIGGER_SECRET` | random, sensitive; same value as the Vault secret `beyond_letter_job_trigger` |
-| `beyond-ai` | `AI_SERVICE_TOKEN` | same as on `beyond-api` |
-| | `ANTHROPIC_API_KEY` | **empty until you add it** (sensitive). Letters wait in the queue until then |
-| | `ANTHROPIC_MODEL` | `claude-sonnet-5-5` |
-| | `OPENAI_API_KEY`, `TRANSCRIBE_MODEL` | optional: voice transcription (and letters, if no Anthropic key) |
+`NEXT_PUBLIC_*` values are baked in at build time, so redeploy the web project after changing them. Server variables (API and AI) take effect on the next deployment too: after adding a key, redeploy `beyond-ai`.
 
 The AI project has no Supabase variables at all.
 

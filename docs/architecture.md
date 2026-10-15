@@ -22,15 +22,15 @@
 
 ## Frontend (`frontend/web`)
 
-| Path                | What it is                                                                                     |
-| ------------------- | ---------------------------------------------------------------------------------------------- |
-| `src/app/(site)`    | Root layout and page for the marketing site                                                    |
-| `src/site`, `data`  | Site pages and copy; `#/how`, `#/privacy`, `#/beta` … (hash routes)                            |
-| `src/demo`          | Fictional demo pieces used on the site (Try one night, Patterns); memory-only                  |
-| `src/app/(journal)` | Root layout for `/app` and `/auth/callback`                                                    |
-| `src/journal`       | The journal app: `app.js` + `journal.css` (the prototype, verbatim), `backend.ts` (Auth + API) |
+| Path                | What it is                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------- |
+| `src/app/(site)`    | Root layout and page for the marketing site                                               |
+| `src/site`, `data`  | Site pages and copy; `#/how`, `#/privacy`, `#/beta` … (hash routes)                       |
+| `src/demo`          | Fictional demo pieces used on the site (Try one night, Patterns); memory-only             |
+| `src/app/(journal)` | Root layout for `/app` and `/auth/callback`                                               |
+| `src/journal`       | The journal app: `app.js` + `journal.css` (the app's own code), `backend.ts` (Auth + API) |
 
-The journal app is the prototype's single-page app, ported with its views, wording, motion and styles unchanged. Its storage and AI calls were replaced:
+The journal app is the prototype's single-page app, ported with its wording and motion, and since PR #12 laid out as **Tonight · Letters · Identity · Patterns · Settings** (screenshots in [`docs/screenshots/pc-redesign`](screenshots/pc-redesign)). Old links still work (`#profile` → Letters, `#you` → Settings). Its storage and AI calls were replaced:
 
 - Settings, nights, letters, to-dos, memory, notes, voice, export and deletion go through `backend.ts`, which wraps Supabase Auth and the shared API client.
 - Journal text is held in memory only.

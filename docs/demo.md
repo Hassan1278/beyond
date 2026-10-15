@@ -8,7 +8,7 @@
 **Journal with Kit's sample.**
 
 1. Sign in at `/app`.
-2. Choose **See an example first (demo)** on the welcome screen, or turn on **Demo mode** in You.
+2. Choose **See an example first (demo)** on the welcome screen, or turn on **Demo mode** in Settings.
 
 Kit's fictional letters (a few months of them) appear next to your own, labelled "sample", with pre-written month and year notes.
 

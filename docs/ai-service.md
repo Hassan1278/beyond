@@ -73,6 +73,16 @@ Returns `{ letters, notes, transcribe, provider, model }`. Every route requires 
 
 ## Turning it on
 
+**On the hosted project, everything below except the provider key is already done.** To switch letters on:
+
+1. Vercel → `beyond-ai` → Settings → Environment Variables → `ANTHROPIC_API_KEY` → paste the key (Production).
+2. Optional, for recorded voice: fill `OPENAI_API_KEY` the same way. Without it, Speak uses the browser's or keyboard's dictation.
+3. Deployments → latest production deployment → **Redeploy**.
+
+Within a minute, `GET /api/v1/ai` reports `letters: true` and the scheduled writer starts clearing the queue, including nights sealed before the key was added.
+
+The full setup, for a new environment:
+
 1. **AI project:** on the Vercel project `beyond-ai` (Root Directory `ai`), set `AI_SERVICE_TOKEN` to a random value of 32+ URL-safe characters.
    - For letters and notes, set `ANTHROPIC_API_KEY`, and optionally `ANTHROPIC_MODEL` (default `claude-sonnet-5-5`).
    - Or use `OPENAI_API_KEY`, `OPENAI_MODEL` and `OPENAI_BASE_URL` for any OpenAI-compatible endpoint. `AI_PROVIDER=auto|anthropic|openai` picks between them.
