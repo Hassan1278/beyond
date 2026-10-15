@@ -5,7 +5,7 @@
    writing go through Beyond's backend. Journal text is kept in memory only,
    never in browser storage.
    PC redesign: ink on night, letters on paper, hand-drawn marks instead of
-   boxes. Identity has its own tab; Profile is about you, Settings is separate.
+   boxes. Tabs: Tonight, Letters, Identity, Patterns, Settings; Letters holds every letter, Settings holds memories.
    ====================================================================== */
 /* eslint-disable */
 import SAMPLE_DATA from './sample.json';
@@ -243,8 +243,9 @@ function readHash() {
   const m = h.match(/^(letter|patterns)-(.+)$/);
   if (h === 'patterns-identity') { route = 'identity'; param = null; } // old links
   else if (m) { route = m[1]; param = m[2]; }
-  else if (h === 'you') { route = 'profile'; param = null; } // old links
-  else if (['tonight', 'letters', 'identity', 'patterns', 'profile', 'settings', 'support', 'welcome'].includes(h)) { route = h; param = null; }
+  else if (h === 'you') { route = 'settings'; param = null; } // old links
+  else if (h === 'profile') { route = 'letters'; param = null; } // old links
+  else if (['tonight', 'letters', 'identity', 'patterns', 'settings', 'support', 'welcome'].includes(h)) { route = h; param = null; }
 }
 window.addEventListener('popstate', () => { closeSheet(false); readHash(); render(); });
 
@@ -310,8 +311,9 @@ function render() {
   if (!S.onboarded && !['support', 'login'].includes(route)) route = 'welcome';
   document.body.classList.add('night');
   setAmbient(route === 'tonight' || route === 'welcome' ? 'full' : 'soft');
-  if (route === 'you') route = 'profile';
-  const views = { welcome: vWelcome, login: vLogin, tonight: vTonight, letters: vLetters, letter: vLetter, identity: vIdentity, patterns: vPatterns, profile: vProfile, settings: vSettings, support: vSupport };
+  if (route === 'you') route = 'settings';
+  if (route === 'profile') route = 'letters';
+  const views = { welcome: vWelcome, login: vLogin, tonight: vTonight, letters: vLetters, letter: vLetter, identity: vIdentity, patterns: vPatterns, settings: vSettings, support: vSupport };
   const html = (views[route] || vTonight)();
   const unread = allLetters().some((l) => delivered(l) && !l.readAt);
   setAmbient(route === 'login' ? 'full' : undefined);
@@ -323,7 +325,7 @@ function render() {
     <header class="topbar">
       <button class="brand" data-go="tonight" aria-label="Beyond, Tonight">${I.moon}<span>Beyond</span></button>
       <nav class="tabs" aria-label="Main">
-        ${[['tonight', 'Tonight', I.moon], ['letters', 'Letters', I.mail], ['identity', 'Identity', I.bubbles], ['patterns', 'Patterns', I.sky], ['profile', 'Profile', I.you], ['settings', 'Settings', I.gear]].map(([r, l, ic]) =>
+        ${[['tonight', 'Tonight', I.moon], ['letters', 'Letters', I.mail], ['identity', 'Identity', I.bubbles], ['patterns', 'Patterns', I.sky], ['settings', 'Settings', I.gear]].map(([r, l, ic]) =>
           `<button class="tab" data-go="${r}" ${here(r) ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${r === 'letters' && unread ? '<i class="dot" aria-label="Unread letter"></i>' : ''}</button>`).join('')}
       </nav>
     </header>`;
@@ -487,14 +489,83 @@ function miniMap(list, W = 112, H = 72) {
 }
 function identityGlance() {
   const all = directions(); const vis = visibleDirections(all);
+  const most = Math.max(0, ...all.map((d) => d.days));
+  after.push(() => startOrrery($('.orrery canvas'), vis, most));
   if (vis.length) {
     const top = vis[0];
     return `<button class="glance" data-go="identity" aria-label="Identity: your strongest direction is ${esc(top.name)}, across ${plural(top.days, 'night')}. Open Identity">
-      ${miniMap(vis)}<span class="glance-t"><span class="glance-k">Strongest direction</span><b>${esc(top.name)}</b><span>${plural(top.days, 'night')}${vis.length > 1 ? `, and ${plural(vis.length - 1, 'other direction')}` : ''}</span></span></button>`;
+      <span class="orrery" aria-hidden="true"><canvas></canvas></span>
+      <span class="glance-t"><span class="glance-k">Strongest direction</span><b>${esc(top.name)}</b><span>${plural(top.days, 'night')}${vis.length > 1 ? `, and ${plural(vis.length - 1, 'other direction')}` : ''}</span><span class="glance-go">See your map</span></span></button>`;
   }
-  const n = nightsToFirst(all);
+  const n = nightsToFirst(all); const lit = Math.min(2, most);
   return `<button class="glance is-empty" data-go="identity" aria-label="Identity: write ${plural(n, 'more night')} to see your first direction. Open Identity">
-    ${miniMap([])}<span class="glance-t"><b>Write ${plural(n, 'more night')} to see your first direction</b><span>A direction appears when letters from three nights point the same way.</span></span></button>`;
+    <span class="orrery" aria-hidden="true"><canvas></canvas></span>
+    <span class="glance-t"><span class="glance-k">${lit ? `${lit} of 3 nights point the same way` : 'Your first direction'}</span><b>Write ${plural(n, 'more night')} to see your first direction</b><span>A direction appears when letters from three nights point the same way.</span><span class="glance-go">How Identity works</span></span></button>`;
+}
+/* A small orrery: you in the middle, each direction circling on a tilted orbit,
+   passing behind and in front of you, joined by a thread of light. New
+   journals show three seeds of light, lit one by one as nights point the same way. */
+function startOrrery(canvas, vis, most) {
+  if (!canvas) return;
+  const box = canvas.parentElement; const W = box.clientWidth, H = box.clientHeight; if (!W || !H) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1); canvas.width = W * dpr; canvas.height = H * dpr;
+  const g = canvas.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const still = reduceMotion(); const cx = W / 2, cy = H / 2; const tilt = -.2;
+  const empty = !vis.length; const max = Math.max(1, ...vis.map((d) => d.days));
+  const bodies = empty
+    ? [0, 1, 2].map((i) => ({ key: `seed${i}`, orbit: 0, phase: (i / 3) * Math.PI * 2, size: 3.2, lit: i < Math.min(2, most), confirmed: false }))
+    : vis.slice(0, 4).map((d, i) => ({ key: d.key, orbit: i, phase: seeded(d.key)() * Math.PI * 2, size: 3 + 4.6 * Math.sqrt(d.days / max), lit: true, confirmed: d.status === 'confirmed' }));
+  const orbits = empty ? [{ rx: W * .3, ry: W * .3 * .34 }] : [0, 1, 2, 3].slice(0, Math.max(1, bodies.length)).map((i) => { const rx = W * (.21 + i * .075); return { rx, ry: rx * .36 }; });
+  const rs = seeded('orrery-sky'); const stars = Array.from({ length: 26 }, () => ({ x: rs() * W, y: rs() * H, r: .3 + rs() * .9, a: .2 + rs() * .5, p: 1500 + rs() * 3000, ph: rs() * 6.3 }));
+  let hot = 0, hotT = 0; const glance = canvas.closest('.glance');
+  glance?.addEventListener('pointerenter', () => { hotT = 1; }); glance?.addEventListener('pointerleave', () => { hotT = 0; });
+  glance?.addEventListener('focus', () => { hotT = 1; }); glance?.addEventListener('blur', () => { hotT = 0; });
+  const t0 = performance.now(); let angle = 0; let last = t0;
+  const at = (o, a) => { const x = Math.cos(a) * o.rx, y = Math.sin(a) * o.ry; return { x: cx + x * Math.cos(tilt) - y * Math.sin(tilt), y: cy + x * Math.sin(tilt) + y * Math.cos(tilt), depth: Math.sin(a) }; };
+  const ease = (k) => 1 - (1 - k) ** 3;
+  function orb(b, p, k) {
+    const s = (.7 + .42 * (p.depth + 1) / 2) * (empty ? 1 : k) * (1 + hot * .12); const r = b.size * s; const a = (.55 + .45 * (p.depth + 1) / 2) * (b.lit ? 1 : .35);
+    g.save(); g.globalAlpha = a;
+    if (b.lit) { g.shadowColor = b.confirmed ? 'rgba(243,198,142,.95)' : 'rgba(243,190,130,.75)'; g.shadowBlur = 10 + hot * 10; }
+    const grd = g.createRadialGradient(p.x - r * .35, p.y - r * .4, r * .1, p.x, p.y, r);
+    grd.addColorStop(0, b.lit ? '#fff3dc' : '#c9b8a4'); grd.addColorStop(.55, b.lit ? (b.confirmed ? '#f3c68e' : '#e8b07a') : '#7d6a58'); grd.addColorStop(1, b.lit ? 'rgba(227,149,90,.35)' : 'rgba(125,106,88,.2)');
+    g.fillStyle = grd; g.beginPath(); g.arc(p.x, p.y, r, 0, Math.PI * 2); g.fill(); g.restore();
+  }
+  const frame = (now) => {
+    if (!document.body.contains(canvas)) return;
+    const dt = Math.min(50, now - last); last = now;
+    hot += (hotT - hot) * .08; angle += dt * (0.00018 + hot * 0.0006);
+    const since = now - t0;
+    g.clearRect(0, 0, W, H);
+    for (const st of stars) { g.globalAlpha = still ? st.a : st.a * (.5 + .5 * Math.sin(now / st.p + st.ph)); g.fillStyle = '#fbe9d2'; g.beginPath(); g.arc(st.x, st.y, st.r, 0, 6.283); g.fill(); }
+    g.globalAlpha = 1;
+    // orbits, drawn as tilted rings
+    orbits.forEach((o, i) => { g.save(); g.translate(cx, cy); g.rotate(tilt); g.beginPath(); g.ellipse(0, 0, o.rx, o.ry, 0, 0, Math.PI * 2); g.strokeStyle = `rgba(243,230,211,${(.1 + hot * .08).toFixed(3)})`; g.lineWidth = 1; g.stroke(); g.restore(); });
+    const placed = bodies.map((b, i) => { const k = still ? 1 : ease(Math.min(1, Math.max(0, (since - 150 - i * 160) / 1100))); const o = orbits[b.orbit]; const sp = 1 / (1 + b.orbit * .45); const a = b.phase + angle * sp * 6 + (1 - k) * -2.2; const p = at({ rx: o.rx * (empty ? 1 : k), ry: o.ry * (empty ? 1 : k) }, a); return { b, p, k, a, o }; });
+    // comet tails along the orbit behind each lit body
+    for (const { b, k, a, o } of placed) {
+      if (!b.lit || still) continue;
+      for (let j = 1; j <= 14; j++) { const q = at({ rx: o.rx * (empty ? 1 : k), ry: o.ry * (empty ? 1 : k) }, a - j * .045); g.globalAlpha = (1 - j / 14) * .28 * (.6 + .4 * (q.depth + 1) / 2) * (1 + hot); g.fillStyle = '#f3c68e'; g.beginPath(); g.arc(q.x, q.y, Math.max(.4, b.size * .32 * (1 - j / 14)), 0, 6.283); g.fill(); }
+    }
+    g.globalAlpha = 1;
+    // threads of light from you to each direction
+    if (!empty) for (const { p, k } of placed) {
+      g.save(); g.globalAlpha = (.28 + hot * .5) * k; g.strokeStyle = '#f3c68e'; g.lineWidth = 1; g.setLineDash([2, 5]); g.lineDashOffset = still ? 0 : -now / 60;
+      g.beginPath(); g.moveTo(cx, cy); g.lineTo(p.x, p.y); g.stroke(); g.restore();
+    }
+    // behind you, then you, then in front of you
+    placed.filter((x) => x.p.depth < 0).forEach(({ b, p, k }) => orb(b, p, k));
+    const pulse = still ? 0 : (Math.sin(now / 700) + 1) / 2; const flare = still ? 0 : Math.max(0, 1 - since / 900);
+    const R = (empty ? 8 : 11) + pulse * 1.3 + hot * 2 + flare * 6;
+    const halo = g.createRadialGradient(cx, cy, 0, cx, cy, R * 4.2); halo.addColorStop(0, `rgba(255,224,170,${(.42 + hot * .2 + flare * .3).toFixed(3)})`); halo.addColorStop(1, 'rgba(227,149,90,0)');
+    g.fillStyle = halo; g.beginPath(); g.arc(cx, cy, R * 4.2, 0, 6.283); g.fill();
+    const core = g.createRadialGradient(cx - R * .25, cy - R * .3, 0, cx, cy, R); core.addColorStop(0, '#fff8ec'); core.addColorStop(.45, '#ffd9a0'); core.addColorStop(1, '#e8945a');
+    g.fillStyle = core; g.beginPath(); g.arc(cx, cy, R, 0, 6.283); g.fill();
+    if (!still) { const ph = (now % 3200) / 3200; g.globalAlpha = (1 - ph) * .5; g.strokeStyle = '#f3c68e'; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, R + ph * 26, 0, 6.283); g.stroke(); g.globalAlpha = 1; }
+    placed.filter((x) => x.p.depth >= 0).forEach(({ b, p, k }) => orb(b, p, k));
+    if (!still) requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
 }
 function claudeNote() {
   if (claudeState !== 'off') return '';
@@ -871,7 +942,7 @@ function vLetter() {
       <details class="words-d" style="--i:8"><summary>Your words from that night</summary>
         <ul class="words">${L.entries.map((e) => `<li><span class="k">${esc(e.t || '')}</span><p>${highlight(e)}</p></li>`).join('')}</ul>
       </details>
-      ${(() => { const learned = (S.memories || []).filter((m) => m.letterIds.includes(L.id)); return learned.length ? `<div class="remembers" style="--i:9"><span class="k">Beyond will remember</span><ul>${learned.map((m) => `<li>${esc(m.text)}</li>`).join('')}</ul><button class="link" data-go="profile" data-to="memory">See, edit or forget</button></div>` : ''; })()}
+      ${(() => { const learned = (S.memories || []).filter((m) => m.letterIds.includes(L.id)); return learned.length ? `<div class="remembers" style="--i:9"><span class="k">Beyond will remember</span><ul>${learned.map((m) => `<li>${esc(m.text)}</li>`).join('')}</ul><button class="link" data-go="settings" data-to="memory">See, edit or forget</button></div>` : ''; })()}
       <div class="provenance" style="--i:9"><span>${by}</span>
         <button class="toggle" role="switch" aria-checked="${!!L.private}" data-private="${L.id}"><span class="track"></span><span>Keep this night out of Patterns</span></button>
       </div>
@@ -913,8 +984,7 @@ function drawSheet({ first = false, burst = null, celebrate = false } = {}) {
   if (first) w.querySelector('.check')?.focus({ preventScroll: true });
 }
 
-/* ----- letters: what arrived lately. The full archive, with search, is in Profile. ----- */
-const RECENT = 8;
+/* ----- letters: the latest one as a cover, then every letter, searchable ----- */
 function letterRow(l, extra = '') {
   const d = parse(l.date); const p = progress(l);
   return `<li class="lrow">
@@ -927,27 +997,50 @@ function vLetters() {
   const list = allLetters();
   const ready = list.filter(delivered);
   const pending = S.letters.filter((l) => !delivered(l));
-  const sealedCount = ready.filter((l) => progress(l).complete).length;
-  const recent = ready.slice(0, RECENT);
-  const [first, ...rest] = recent;
+  const nights = new Set(list.map((l) => l.date)).size;
+  const firstNight = list.length ? list.reduce((m, l) => (l.date < m.date ? l : m)) : null;
+  const seals = ready.filter((l) => progress(l).complete).length;
+  const cover = ready[0];
+  if (nights >= 5 && !countedUp) { countedUp = true; after.push(() => countUp($('.count-up'))); }
+  after.push(() => { tiltCover($('.cover')); riseOnScroll('.month-group'); });
   return `<header class="page-head">
       <h1 class="display">Letters</h1>
-      <p class="lead">${ready.length ? `${plural(ready.length, 'letter')} so far, ${sealedCount} with a gold seal. Tap a letter to read it, or its circle for that day's to-dos.` : 'Your morning letters collect here.'}</p>
+      <p class="lead">${nights ? `<span class="count-up" data-n="${nights}">${nights}</span> ${nights === 1 ? 'night' : 'nights'} written since ${fmtLong(firstNight.date)}. ${plural(ready.length, 'letter')} arrived, ${seals} with a gold seal.` : 'Your morning letters collect here.'}</p>
     </header>
     ${sampleBanner()}
     ${pending.length ? `<p class="arrived">${I.mail}<span>Your letter for ${fmtDay(pending[0].date)} arrives at ${atTime(pending[0])}.</span> <button class="link" data-go="tonight">See tonight</button></p>` : ''}
-    ${!ready.length ? `<section class="empty"><span class="empty-mark" aria-hidden="true">${I.moon}${I.star}</span><p class="lead">No letters yet. Write tonight and the first one arrives tomorrow morning.</p><button class="btn amber" data-go="tonight">Write tonight</button></section>` : `
-    <section class="spread latest">
-      <div class="feature">
-        <p class="tn-date">${!first.readAt ? 'New, ' : 'Latest, '}${fmtDay(first.date)}${first.sample ? ', sample' : ''}</p>
-        <button class="feature-h" data-open="${first.id}">${esc(first.content.headline)}</button>
-        <p class="feature-r">${esc(clip(first.content.recap, 220))}</p>
-        <div class="row"><button class="link" data-open="${first.id}">Read the letter</button><button class="ring-btn" data-todo="${first.id}" aria-label="To-dos for ${fmtDay(first.date)}">${ring(first, 40)}</button></div>
-      </div>
-      <div>${rest.length ? `<ul class="lrows">${rest.map((l) => letterRow(l)).join('')}</ul>` : ''}
-        <p class="more">${ready.length > RECENT ? `${plural(ready.length - RECENT, 'older letter')} in` : 'Every letter, by month and with search, is in'} <button class="link" data-go="profile" data-to="archive">your Profile</button>.</p>
-      </div>
-    </section>`}`;
+    ${!cover ? `<section class="empty"><span class="empty-mark" aria-hidden="true">${I.moon}${I.star}</span><p class="lead">No letters yet. Write tonight and the first one arrives tomorrow morning.</p><button class="btn amber" data-go="tonight">Write tonight</button></section>` : `
+    <section class="cover-wrap" aria-label="Latest letter">
+      <article class="cover paper">
+        <span class="paper-moon" aria-hidden="true">${I.moon}${I.star}</span>
+        <p class="cover-k">${!cover.readAt ? 'New letter' : 'Latest letter'}, ${fmtDay(cover.date)}${cover.sample ? ', sample' : ''}</p>
+        <button class="cover-h" data-open="${cover.id}">${esc(cover.content.headline)}</button>
+        <p class="cover-r">${esc(clip(cover.content.recap, 240))}</p>
+        <div class="row"><button class="btn sm" data-open="${cover.id}">Read the letter</button><button class="todo-cta cover-todo" data-todo="${cover.id}">${ring(cover, 40)}<span class="t"><b>Today's 3 to-dos</b><span>${progress(cover).complete ? 'Gold seal earned.' : `${progress(cover).done} of ${progress(cover).need} done`}</span></span></button></div>
+      </article>
+    </section>
+    <section class="spread" id="archive"><div class="sec-col"><h2 class="sec">All letters</h2><p class="fine">Search titles, summaries, the words you wrote and your to-dos, in any language.</p></div><div>${archive()}</div></section>`}`;
+}
+/* The cover letter leans toward the pointer, like paper picked up off a desk. */
+function tiltCover(el) {
+  if (!el || reduceMotion() || !window.matchMedia('(pointer: fine)').matches) return;
+  let raf = 0;
+  el.addEventListener('pointermove', (e) => {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => { const r = el.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+      el.style.setProperty('--ry', `${((x - .5) * 7).toFixed(2)}deg`); el.style.setProperty('--rx', `${((.5 - y) * 6).toFixed(2)}deg`);
+      el.style.setProperty('--sx', `${(x * 100).toFixed(1)}%`); el.style.setProperty('--sy', `${(y * 100).toFixed(1)}%`); el.classList.add('is-tilting'); });
+  });
+  el.addEventListener('pointerleave', () => { cancelAnimationFrame(raf); el.classList.remove('is-tilting'); el.style.setProperty('--rx', '0deg'); el.style.setProperty('--ry', '0deg'); });
+}
+/* Below-the-fold groups rise in as they scroll into view; anything on screen is shown at once. */
+function riseOnScroll(selector) {
+  if (reduceMotion() || !('IntersectionObserver' in window)) return;
+  const els = [...document.querySelectorAll(selector)].filter((el) => el.getBoundingClientRect().top > window.innerHeight);
+  if (!els.length) return;
+  const io = new IntersectionObserver((entries) => { for (const en of entries) if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target); } }, { rootMargin: '0px 0px -8% 0px' });
+  els.forEach((el) => { el.classList.add('rise-wait'); io.observe(el); });
+  setTimeout(() => els.forEach((el) => el.classList.add('is-in')), 6000); // never leave anything hidden
 }
 
 /* ----- patterns: Month · Year · Identity ----- */
@@ -1088,9 +1181,9 @@ function pYear() {
     <section class="film-wrap" aria-labelledby="film-h">
       <div class="film-head"><h2 id="film-h" class="h2">Your Life Film</h2><p class="fine">One frame per month, with a line you wrote that month. Nobody else is in it to compare against.</p></div>
       <div class="film" tabindex="0" aria-label="Life Film frames">
-        ${frames.map((f) => { const [a, b] = FRAME[f.top] || ['#4a3328', '#1c1411']; return f.n
-          ? `<button class="frame" data-film="${f.ym}" style="--g:${b};--a:${a}" aria-label="${MONTH[+f.ym.slice(5) - 1]}: open this month"><span class="k">${MON[+f.ym.slice(5) - 1]} ${f.ym.slice(0, 4)}${f.sample ? ' · sample' : ''}</span><p>${f.q ? `“${esc(f.q)}”` : esc(cap(THEMES[f.top] || 'an ordinary month'))}</p><span class="k">${f.finished ? plural(f.n, 'night') : `In progress · ${plural(f.n, 'night')}`}${f.top ? ` · ${esc(THEMES[f.top])}` : ''}</span></button>`
-          : `<div class="frame is-blank"><span class="k">${MON[+f.ym.slice(5) - 1]} ${f.ym.slice(0, 4)}</span><p>No letters.</p><span></span></div>`; }).join('')}
+        ${frames.map((f, i) => { const [a, b] = FRAME[f.top] || ['#4a3328', '#1c1411']; return f.n
+          ? `<button class="frame" data-film="${f.ym}" style="--g:${b};--a:${a};--i:${i}" aria-label="${MONTH[+f.ym.slice(5) - 1]}: open this month"><span class="k">${MON[+f.ym.slice(5) - 1]} ${f.ym.slice(0, 4)}${f.sample ? ' · sample' : ''}</span><p>${f.q ? `“${esc(f.q)}”` : esc(cap(THEMES[f.top] || 'an ordinary month'))}</p><span class="k">${f.finished ? plural(f.n, 'night') : `In progress · ${plural(f.n, 'night')}`}${f.top ? ` · ${esc(THEMES[f.top])}` : ''}</span></button>`
+          : `<div class="frame is-blank" style="--i:${i}"><span class="k">${MON[+f.ym.slice(5) - 1]} ${f.ym.slice(0, 4)}</span><p>No letters.</p><span></span></div>`; }).join('')}
         <div class="frame is-blank"><span class="k">${MON[+next.slice(5) - 1]} ${next.slice(0, 4)}</span><p>Not written yet.</p><span></span></div>
       </div>
     </section>
@@ -1123,9 +1216,12 @@ async function writeNote(key) {
 }
 
 /* --- the sky (shared by Month and Year) --- */
+let lastSkyKey = '';
 function drawSky() {
   const el = $('#sky'); if (!el || !skyState) return;
   const { list, from, to, ticks } = skyState; const theme = skyState.theme();
+  // a new month or year: stars come out one by one; clicks on the same sky don't replay it
+  const skyKey = `${from}|${to}|${list.length}`; const fresh = skyKey !== lastSkyKey; lastSkyKey = skyKey;
   const W = el.clientWidth, H = el.clientHeight; const padX = Math.max(22, W * .05);
   const span = Math.max(1, dayDiff(to, from));
   const scale = W > 600 ? 1.4 : 1; const per = {};
@@ -1145,7 +1241,7 @@ function drawSky() {
     <defs><radialGradient id="glow"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".35" stop-color="#fbe9d2" stop-opacity=".35"/><stop offset="1" stop-color="#fbe9d2" stop-opacity="0"/></radialGradient></defs>
     ${tickList.map((t) => `<g class="ns-tick"><line x1="${t.x}" x2="${t.x}" y1="${H - 26}" y2="${H - 20}"/><text x="${t.x}" y="${H - 8}" text-anchor="middle">${t.label}</text></g>`).join('')}
     ${chosen.length > 1 ? `<path d="${path}" class="ns-line" pathLength="1"/>` : ''}
-    ${stars.map((s) => { const on = !theme || realThemes(s.l).includes(theme); return `<g class="ns-star tone-${s.l.content.tone} ${on ? '' : 'is-off'} ${pTip === s.l.id ? 'is-sel' : ''}" transform="translate(${s.x.toFixed(1)} ${s.y.toFixed(1)})" style="--tw:${s.tw}s;--dl:${s.dl}s" tabindex="0" role="button" aria-label="${esc(fmtDay(s.l.date))}: ${esc(s.l.content.headline)}" data-star="${s.l.id}"><circle r="${(s.size * 4.2).toFixed(1)}" class="halo" fill="url(#glow)"/><path d="${sparkle(s.l.id, s.size * 1.7)}" class="core"/><circle r="16" fill="transparent"/></g>`; }).join('')}
+    ${stars.map((s, i) => { const on = !theme || realThemes(s.l).includes(theme); return `<g class="ns-star tone-${s.l.content.tone} ${on ? '' : 'is-off'} ${pTip === s.l.id ? 'is-sel' : ''} ${fresh ? 'ns-new' : ''}" transform="translate(${s.x.toFixed(1)} ${s.y.toFixed(1)})" style="--tw:${s.tw}s;--dl:${s.dl}s;--d:${Math.min(i * 45, 1600)}ms" tabindex="0" role="button" aria-label="${esc(fmtDay(s.l.date))}: ${esc(s.l.content.headline)}" data-star="${s.l.id}"><circle r="${(s.size * 4.2).toFixed(1)}" class="halo" fill="url(#glow)"/><path d="${sparkle(s.l.id, s.size * 1.7)}" class="core"/><circle r="16" fill="transparent"/></g>`; }).join('')}
     ${theme && chosen[0] ? `<text x="${Math.min(Math.max(chosen[0].x, 60), W - 60)}" y="${chosen[0].y - 18}" class="ns-label" text-anchor="middle">${esc(cap(THEMES[theme]))}</text>` : ''}
   </svg>${!stars.length ? '<p class="ns-empty">No kept letters here yet. Each night you write becomes a star.</p>' : ''}`;
   const tip = pTip && stars.find((s) => s.l.id === pTip);
@@ -1359,7 +1455,7 @@ function startBubbles(visible) {
   };
   identRaf = requestAnimationFrame(frame);
 }
-/* ----- profile: only about you ----- */
+/* ----- memories and shared helpers ----- */
 let confirmDelete = false; let memEditing = null; let confirmAccount = false; let freshFor = null;
 const fmtLong = (s) => { const d = parse(s); return `${d.getDate()} ${MONTH[d.getMonth()]} ${d.getFullYear()}`; };
 function memRow(m) {
@@ -1369,12 +1465,6 @@ function memRow(m) {
     <span class="fine">${m.kind === 'told' ? src : `Learned from ${src}`}${m.sample ? ', sample' : ''}${!memoryInUse(m) ? '. Not used: its letter is kept out of Patterns' : ''}</span>
     <span class="mem-acts">${m.sample ? '' : `<button class="link" data-memedit="${m.id}">Edit</button>`}<button class="link" data-memforget="${m.id}">Forget</button></span></li>`;
 }
-function identitySummary() {
-  const all = directions(); const vis = visibleDirections(all);
-  if (!vis.length) return `<p class="lead">Write ${plural(nightsToFirst(all), 'more night')} to see your first direction.</p><p class="fine">Identity grows only from letters you keep. <button class="link" data-go="identity">How it works</button></p>`;
-  return `<div class="id-sum">${miniMap(vis, 150, 96)}<ol class="id-list">${vis.slice(0, 3).map((d) => `<li><b>${esc(d.name)}</b><span>${plural(d.days, 'night')}${d.status === 'confirmed' ? ', confirmed by you' : ''}</span></li>`).join('')}</ol></div>
-    <p><button class="link" data-go="identity">Open your Identity map</button></p>`;
-}
 let countedUp = false;
 function countUp(el) {
   if (!el || reduceMotion()) return;
@@ -1382,28 +1472,6 @@ function countUp(el) {
   const tick = (t) => { const k = Math.min(1, (t - t0) / dur); el.textContent = String(Math.round(n * (1 - (1 - k) ** 3))); if (k < 1 && document.body.contains(el)) requestAnimationFrame(tick); };
   el.textContent = '0'; requestAnimationFrame(tick);
 }
-function vProfile() {
-  const ls = allLetters(); const ready = ls.filter(delivered);
-  const nights = new Set(ls.map((l) => l.date)).size;
-  const first = ls.length ? ls.reduce((m, l) => (l.date < m.date ? l : m)) : null;
-  const seals = ready.filter((l) => progress(l).complete).length;
-  const mems = allMemories();
-  if (nights >= 5 && !countedUp) { countedUp = true; after.push(() => countUp($('.count-up'))); }
-  return `<header class="page-head">
-      <h1 class="display">${nights ? `<span class="count-up" data-n="${nights}">${nights}</span> ${nights === 1 ? 'night' : 'nights'} written` : 'Your first night is tonight'}</h1>
-      <p class="lead">${first ? `Since ${fmtLong(first.date)}. ${plural(ready.length, 'letter')} arrived, ${seals} with a gold seal.` : 'Write tonight and your first letter arrives in the morning.'}</p>
-    </header>
-    ${sampleBanner()}
-    <section class="spread" id="identity-summary"><h2 class="sec">Identity</h2><div>${identitySummary()}</div></section>
-    <section class="spread" id="memory"><h2 class="sec">Memory</h2><div class="stack">
-      <p class="fine">What your letters may remember about you. Each one shows where it came from. Forget anything, any time.</p>
-      ${S.memoryPaused ? '<p class="notice">Memory is paused, so letters won’t use it. <button class="link" data-go="settings" data-to="privacy">Turn it back on in Settings</button></p>' : ''}
-      ${mems.length ? `<ul class="mem-list">${mems.map(memRow).join('')}</ul>` : '<p class="fine">Nothing yet. Beyond learns at most two small things from a letter, and only things you wrote.</p>'}
-      <form class="mem-add" id="mem-add"><label class="sr-only" for="mem-new">Tell Beyond something to remember</label><input id="mem-new" class="login-in" placeholder="Tell Beyond something to remember…" maxlength="140"><button class="btn sm amber" type="submit">Remember</button></form>
-    </div></section>
-    <section class="spread" id="archive"><h2 class="sec">All letters</h2><div>${archive()}</div></section>`;
-}
-
 /* ----- all letters: by month, searchable, filterable ----- */
 const arch = { q: '', month: '', theme: '', gold: false };
 const escRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1497,7 +1565,7 @@ function refreshArchive() {
 
 /* ----- settings ----- */
 function vSettings() {
-  const own = S.letters.length;
+  const own = S.letters.length; const mems = allMemories();
   return `<header class="page-head">
       <h1 class="display">Settings</h1>
       <p class="lead">How your letters are written, what Beyond remembers, your data, and where to find help.</p>
@@ -1517,9 +1585,13 @@ function vSettings() {
       <button class="toggle" role="switch" aria-checked="${demoOn()}" data-act="toggle-sample"><span class="track"></span><span>Show Kit's sample journal and the Skip to morning button</span></button>
       <p class="fine">For showing Beyond to others. Kit is fictional; the sample letters show what months of Beyond look like. Leave it off for your own journal.</p>
     </div></section>
-    <section class="spread" id="privacy"><h2 class="sec">Privacy and memory</h2><div class="stack">
+    <section class="spread" id="memory"><h2 class="sec">Memory and privacy</h2><div class="stack">
+      <h3 class="qh">What Beyond remembers</h3>
+      <p class="fine">What your letters may remember about you. Each one shows where it came from. Edit or forget anything, any time.</p>
+      ${mems.length ? `<ul class="mem-list">${mems.map(memRow).join('')}</ul>` : '<p class="fine">Nothing yet. Beyond learns at most two small things from a letter, and only things you wrote.</p>'}
+      <form class="mem-add" id="mem-add"><label class="sr-only" for="mem-new">Tell Beyond something to remember</label><input id="mem-new" class="login-in" placeholder="Tell Beyond something to remember…" maxlength="140"><button class="btn sm amber" type="submit">Remember</button></form>
       <button class="toggle" role="switch" aria-checked="${!!S.memoryPaused}" data-act="mem-pause"><span class="track"></span><span>Pause memory (letters won’t use it)</span></button>
-      <p class="fine">Your memories are listed in <button class="link" data-go="profile" data-to="memory">Profile</button>, where you can edit or forget each one.</p>
+      <h3 class="qh">What the AI sees</h3>
       <p>${claudeState === 'checking' ? 'Connecting…' : claudeState === 'ready' ? `Letters are written by ${esc(aiLabel)} through Beyond’s letter service, after you seal a night.` : 'Beyond’s letter writer isn’t switched on yet. Sealed nights wait safely and are written as soon as it is.'}</p>
       <p class="fine">The AI sees only the entry it writes about, the headlines of a few earlier letters, and your memories (unless paused). It never sees letters you keep out of Patterns.</p>
     </div></section>
