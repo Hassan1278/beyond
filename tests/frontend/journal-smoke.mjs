@@ -412,7 +412,7 @@ try {
 
   console.log('letters');
   await page.locator('.tab[data-go="letters"]').click();
-  await page.getByRole('heading', { name: 'Letters' }).waitFor();
+  await page.getByRole('heading', { name: 'Letters', exact: true }).waitFor();
   check(
     await page.locator('.cover').getByText('A calm walk by the harbour').isVisible(),
     'the newest letter is the cover of Letters',
