@@ -17,6 +17,11 @@ const settings = {
   voice: 'friend',
   memory_paused: false,
   reflection_enabled: false,
+  letter_language: 'auto',
+  delivery_time: '08:00',
+  allow_early: true,
+  onboarded: false,
+  directions: {},
   revision: 1,
   updated_at: timestamp,
 };

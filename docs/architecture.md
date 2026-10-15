@@ -1,53 +1,66 @@
 # Architecture
 
 ```
-               ┌──────────── frontend/ ────────────┐
-               │ web (Next)    mobile (Expo)       │  both render the same screens from frontend/ui
-               └──────┬───────────────┬────────────┘
-     Supabase Auth ◄──┤  bearer token │
-     (sign-in, refresh)               ▼
-               ┌──────────── backend/api ──────────┐
-               │ routes: src/app/api/**/route.ts   │  verify token → active profile → live session
-               │ logic:  src/server/*.ts           │
-               └──────┬───────────────────┬────────┘
-                      │ user-scoped RPCs  │ (optional, server-only)
-                      ▼                   ▼
-               supabase/ (Postgres)     ai/ letter service  ← not built yet
+            ┌───────────── frontend/web (Next.js, one Vercel project) ─────────────┐
+            │  /            marketing site (hash pages, fictional demo pieces)     │
+            │  /app         the journal app (prototype design, real accounts)      │
+            │  /auth/callback  email links and Google sign-in land here            │
+            └──────┬──────────────────────────────┬────────────────────────────────┘
+  Supabase Auth ◄──┤ sign-in, refresh             │ bearer token (shared API client)
+                   ▼                              ▼
+            ┌───────────── backend/api ─────────────────────────────┐
+            │ routes: src/app/api/**/route.ts → logic: src/server   │  verify token → active profile → live session
+            └──────┬──────────────────────────────┬─────────────────┘
+                   │ user-scoped RPCs             │ bearer AI_SERVICE_TOKEN, one prepared input
+                   ▼                              ▼
+            supabase/ (Postgres + RLS)        ai/ letter service ──► model provider
+                   ▲                              (no DB access, stores nothing)
+   pg_cron ────────┘ calls the API's worker routes every minute (letters) / 5 min (account cleanup)
 ```
 
-`shared/` holds the request/response schemas and the typed API client used by the frontend, the backend and (later) the AI service.
+`shared/` holds the request/response schemas and the typed API client used by the web app and the backend. The AI service is independent and has its own copy of its input checks.
 
-## Frontend
+## Frontend (`frontend/web`)
 
-| Folder            | What it is                                                                                          |
-| ----------------- | --------------------------------------------------------------------------------------------------- |
-| `frontend/ui`     | All app screens, styles, themes and the app state/controller (`src/state/store.tsx`)                |
-| `frontend/web`    | Next.js site: marketing pages (`src/site`), presenter (`src/presenter`), hash router, auth callback |
-| `frontend/mobile` | Expo app that embeds `frontend/ui` through Expo DOM, with native sign-in, SecureStore and sharing   |
+| Path                | What it is                                                                                     |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| `src/app/(site)`    | Root layout and page for the marketing site                                                    |
+| `src/site`, `data`  | Site pages and copy; `#/how`, `#/privacy`, `#/beta` … (hash routes)                            |
+| `src/demo`          | Fictional demo pieces used on the site (Try one night, Patterns); memory-only                  |
+| `src/app/(journal)` | Root layout for `/app` and `/auth/callback`                                                    |
+| `src/journal`       | The journal app: `app.js` + `journal.css` (the prototype, verbatim), `backend.ts` (Auth + API) |
 
-Web routes are hash-based (`src/router.tsx`): `#/` marketing, `#/how`, `#/privacy`, `#/beta` …, `#/app` the real app, and `?demo=1#/app` the fictional presenter demo. Production journal text is never stored in the browser; web keeps only the Auth session in sessionStorage, mobile keeps it in encrypted SecureStore chunks.
+The journal app is the prototype's single-page app, ported with its views, wording, motion and styles unchanged. Its storage and AI calls were replaced:
+
+- Settings, nights, letters, to-dos, memory, notes, voice, export and deletion go through `backend.ts`, which wraps Supabase Auth and the shared API client.
+- Journal text is held in memory only.
+- The Supabase session lives in sessionStorage.
+- Display choices (write or speak, speech language, demo mode) live in localStorage.
 
 ## Backend routes
 
-Each URL is a folder under `backend/api/src/app/api/` containing a `route.ts` that delegates to `src/server/`.
+| Route                                                                    | Handler (`src/server/`) |
+| ------------------------------------------------------------------------ | ----------------------- |
+| `GET /api/health/live`, `/api/health/ready`                              | `health-check.ts`       |
+| `/api/v1/entries`, `/entries/:id`                                        | `writing-runtime.ts`    |
+| `/api/v1/settings`, `/memories`, `/memories/:id`, `/todos`, `/todos/:id` | `product-runtime.ts`    |
+| `/api/v1/account`, `/account/data`                                       | `account-runtime.ts`    |
+| `/api/v1/account/export`                                                 | `export-runtime.ts`     |
+| `/api/v1/letters`, `/letters/:id`, `/letters/:id/retry`                  | `letter-runtime.ts`     |
+| `/api/v1/notes`, `/api/v1/ai`, `/api/v1/transcribe`                      | `letter-runtime.ts`     |
+| `POST /api/v1/internal/letters/process` (scheduler only)                 | `letter-runtime.ts`     |
+| `POST /api/v1/internal/accounts/process` (scheduler only)                | `account-runtime.ts`    |
 
-| Route                                         | Handler (`src/server/`)                  |
-| --------------------------------------------- | ---------------------------------------- |
-| `GET /api/health/live`, `/api/health/ready`   | `health-check.ts`, `health.ts`           |
-| `/api/v1/entries`, `/entries/:id`             | `writing-runtime.ts`                     |
-| `/api/v1/settings`                            | `product-runtime.ts`                     |
-| `/api/v1/memories`, `/memories/:id`           | `product-runtime.ts`                     |
-| `/api/v1/todos`, `/todos/:id`                 | `product-runtime.ts`                     |
-| `/api/v1/account`, `/account/data`            | `account-runtime.ts`                     |
-| `/api/v1/account/export`                      | `export-runtime.ts`                      |
-| `/api/v1/entries/:id/reflection`              | `reflection-runtime.ts`                  |
-| `/api/v1/reflections`, `/:id`, `/:id/actions` | `reflection-runtime.ts`                  |
-| `POST /api/v1/internal/reflections/process`   | `reflection-runtime.ts` (scheduler only) |
-| `POST /api/v1/internal/accounts/process`      | `account-runtime.ts` (scheduler only)    |
+Shared plumbing:
 
-Shared plumbing: `http.ts` (responses, CORS, request IDs, no-store), `transport.ts` (bounded body reading), `budget.ts` (rate limits), `config.ts` (environment). Full contracts are in [API reference](api.md).
+- `http.ts`: responses, request IDs, no-store
+- `transport.ts`: bounded bodies, CORS, RPC calls
+- `budget.ts`: rate limits
+- `config.ts`: environment
 
-Every product request freshly verifies the Supabase bearer, requires an active profile and a live owned Auth session, and derives ownership server-side. CORS allows exact configured origins only; it is not authentication. Normal routes use only the public Supabase key; admin credentials are used only by the optional scheduler workers.
+Full contracts are in the [API reference](api.md).
+
+Every product request freshly verifies the Supabase bearer, requires an active profile and a live owned Auth session, and derives ownership server-side. CORS allows exact configured origins only; it is not authentication. Normal routes use only the public Supabase key. The secret key is used only by the scheduled workers.
 
 ## Database
 
@@ -55,8 +68,14 @@ See [database](database.md). RLS and validated `security definer` RPCs enforce o
 
 ## AI
 
-See [AI service](ai-service.md). The backend already handles consent, next-morning scheduling, leases, retries, validation, storage and privacy cleanup. The service only turns one entry into one letter.
+See [AI service](ai-service.md). The backend and database own consent (sealing), the queue, leases, retries, daily limits, storage and privacy cascades. The service only turns one prepared input into one checked letter or note.
 
 ## Data rules
 
-Writes are revisioned; retries replay the original payload and return the current resource; deleted content cannot be resurrected. Editing or deleting an entry cancels its letter work and removes derived letters/tasks. Pausing or changing memory cancels queued context. AI never approves memories or creates to-dos on its own. More detail: [privacy](privacy.md).
+- Writes are revisioned; retries replay the original payload and return the current resource; deleted content cannot be resurrected.
+- Editing or deleting a night removes its letter.
+- Changing, forgetting or pausing memory cancels a letter being written with the old context.
+- Keeping a letter private removes notes built on it and stops its learned memories being used.
+- Forgotten memories are never learned again.
+
+More detail: [privacy](privacy.md).

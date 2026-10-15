@@ -7,7 +7,7 @@
  * the thing they care about is the thing they write about most.
  */
 import type { CSSProperties, ReactElement } from 'react';
-import { WRAPPED } from '@beyond/app-ui/data/content';
+import { WRAPPED } from '../demo/content';
 
 export function WrappedStrip({ compact = false }: { compact?: boolean }): ReactElement {
   return (

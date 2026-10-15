@@ -4,8 +4,8 @@ export const accountSchema = z.strictObject({
   status: z.literal('active'),
   capabilities: z.strictObject({
     account_deletion: z.boolean(),
-    reflections: z.boolean(),
-    voice_transcription: z.literal(false),
+    letters: z.boolean(),
+    voice_transcription: z.boolean(),
   }),
 });
 export const clearedAccountDataSchema = z.strictObject({ status: z.literal('cleared') });

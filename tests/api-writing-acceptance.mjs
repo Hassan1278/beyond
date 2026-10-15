@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { runBrowserAcceptance } from './browser-acceptance.mjs';
 import { runProductAcceptance } from './product-acceptance.mjs';
+import { runLettersAcceptance } from './letters-acceptance.mjs';
+import { startAiService, startModelStub } from './letter-stack.mjs';
 import { execFileSync, spawn } from 'node:child_process';
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
@@ -21,6 +23,9 @@ const container = 'supabase_db_beyond';
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
 const accountTriggerSecret = randomBytes(32).toString('hex');
+const letterTriggerSecret = randomBytes(32).toString('hex');
+let aiStack;
+let modelStub;
 const capturedUsers = new Map();
 const removedUserIds = new Set();
 const capturedEntries = new Map();
@@ -389,7 +394,9 @@ function startServer() {
     SUPABASE_URL: supabaseUrl,
     SUPABASE_PUBLISHABLE_KEY: publishableKey,
     CORS_ALLOWED_ORIGINS: allowedOrigin,
-    AI_SERVICE_URL: 'http://127.0.0.1:59999',
+    AI_SERVICE_URL: aiStack.url,
+    AI_SERVICE_TOKEN: aiStack.token,
+    LETTER_JOB_TRIGGER_SECRET: letterTriggerSecret,
     ACCOUNT_DELETION_ENABLED: 'true',
     SUPABASE_SECRET_KEY: adminKey,
     ACCOUNT_JOB_TRIGGER_SECRET: accountTriggerSecret,
@@ -517,9 +524,12 @@ async function main() {
   process.on('SIGTERM', onInterrupt);
   try {
     const status = loadLocalStatus();
+    stage = 'AI service and stub model startup';
+    modelStub = await startModelStub();
+    aiStack = await startAiService(root);
     stage = 'production API startup';
     await startServer();
-    await group('real readiness with an unreachable AI service', async () => {
+    await group('real readiness with the local AI service', async () => {
       const ready = await api('/api/health/ready');
       same(
         statusIs(ready, 200),
@@ -1117,6 +1127,7 @@ async function main() {
         rest,
         json,
         statusIs,
+        letterTriggerSecret,
       });
 
     await runProductAcceptance({
@@ -1133,6 +1144,18 @@ async function main() {
       createUser,
       randomUUID,
       triggerSecret: accountTriggerSecret,
+    });
+
+    await runLettersAcceptance({
+      api,
+      json,
+      statusIs,
+      check,
+      group,
+      createUser,
+      randomUUID,
+      letterTriggerSecret,
+      modelRequests: modelStub.requests,
     });
 
     await group(
@@ -1204,8 +1227,10 @@ async function main() {
             (SELECT count(*) FROM public.approved_memories WHERE owner_id IN (${ids})) +
             (SELECT count(*) FROM public.todos WHERE owner_id IN (${ids})) +
             (SELECT count(*) FROM private.account_deletions WHERE user_id IN (${ids})) +
-            (SELECT count(*) FROM private.reflection_jobs WHERE owner_id IN (${ids})) +
-            (SELECT count(*) FROM public.reflections WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM private.letter_jobs WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM public.letters WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM public.letter_notes WHERE owner_id IN (${ids})) +
+            (SELECT count(*) FROM private.ai_daily_usage WHERE owner_id IN (${ids})) +
             (SELECT count(*) FROM private.api_request_budgets WHERE owner_id IN (${ids}));`),
             '0',
             'Captured fictional users and their rows must be removed.',
@@ -1233,6 +1258,8 @@ async function main() {
       } catch {
         cleanupFailure = true;
       }
+      aiStack?.stop();
+      modelStub?.close();
       process.off('SIGINT', onInterrupt);
       process.off('SIGTERM', onInterrupt);
     }

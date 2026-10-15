@@ -1,0 +1,1646 @@
+/* ======================================================================
+   Beyond — the journal app.
+   Write tonight, nothing replies, a letter arrives in the morning.
+   Ported from the prototype (client/web/app.src.html). The views, wording and
+   motion are unchanged; storage and letter writing now go through Beyond's
+   backend. Journal text is kept in memory only, never in browser storage.
+   ====================================================================== */
+/* eslint-disable */
+import SAMPLE_DATA from './sample.json';
+
+let started = false;
+export function startJournal(backend) {
+if (started) return;
+started = true;
+const SAMPLE = SAMPLE_DATA;
+
+/* ---------- vocab ---------- */
+const THEMES = {
+  study: 'study pressure', career: 'internships & jobs', business: 'your business idea', technology: 'building things',
+  creativity: 'making art', learning: 'curiosity', friendship: 'friends', family: 'family', community: 'helping others',
+  rest: 'rest', health: 'your body', uncertainty: "not knowing what's next", comparison: 'comparing yourself', loneliness: 'feeling alone',
+  achievement: 'getting things done', money: 'money', nature: 'being outdoors', travel: 'travel', ordinary: 'an ordinary day',
+};
+const THEME_KEYS = Object.keys(THEMES);
+const ACTION_KINDS = ['rest', 'connection', 'exploration', 'practical', 'reflection'];
+const LENSES = ['pattern', 'feeling', 'strength', 'need', 'context'];
+const SECTIONS = {
+  recap: ['Recap', '總結', 'var(--mist)', '总结'], insight: ['Insight', '分析', 'var(--dusk)', '分析'], challenge: ['Challenge', '問題', 'var(--rose)', '问题'],
+  improve: ['Try this', '改善', 'var(--ember)', '改善'], encourage: ['Encourage', '鼓勵', 'var(--gold)', '鼓励'],
+};
+const VOICES = {
+  friend: { name: 'Friend', desc: 'Warm, direct, a little funny.', example: 'Hey, so about last night…',
+    prompt: 'Write as a warm, direct friend who is a little funny. Plain words, short sentences, no lecturing. Greeting like "Hey," and a short casual sign-off such as "Talk tonight,\\nB."',
+    en: ['Hey,', 'Talk tonight,\nB.'], zh: ['Hi，', '今晚再傾，\nB.'], hans: ['嗨，', '今晚再聊，\nB.'] },
+  mentor: { name: 'Mentor', desc: 'Clear, structured, honest.', example: 'Good morning. Three things stood out.',
+    prompt: 'Write as a clear, honest mentor. Structured and calm, kind but not soft, no jargon. Greeting like "Good morning." and a brief sign-off such as "Until tonight."',
+    en: ['Good morning.', 'Until tonight.'], zh: ['早晨。', '今晚見。'], hans: ['早上好。', '今晚见。'] },
+  future: { name: 'Future you', desc: 'Writes back from a few years ahead.', example: 'Hi. It’s you, a few years from now.',
+    prompt: "Write as the person themselves, a few years from now, looking back on this day with kindness. Never predict specific outcomes, never claim to know what happened next, and never promise that things worked out — speak about what they can notice now. Greeting like \"Hi. It's you, a few years from now.\" and sign-off \"See you down the road,\\nYou\".",
+    en: ['Hi. It’s you, a few years from now.', 'See you down the road,\nYou'], zh: ['你好，我係幾年後嘅你。', '路上見，\n你'], hans: ['你好，我是几年后的你。', '路上见，\n你'] },
+  diary: { name: 'Plain diary', desc: 'Just the summary. No voice.', example: 'Sat 10 Oct, summary',
+    prompt: 'No persona. Write plainly and briefly, like a neutral diary summary: short factual sentences, no warmth flourishes, no jokes. The greeting is just the date and the word "summary" (e.g. "Thu 8 Oct, summary"). Leave the sign-off empty.',
+    en: ['', ''], zh: ['', ''], hans: ['', ''] },
+};
+const PROMPTS = ["What's on your mind tonight?", 'What took most of your energy today?', 'Who did you feel close to today, even for a minute?', '今日有咩想講？', 'What felt heavier than it should have?', 'What are you unsure about right now?', 'What made you smile, even a little?'];
+const SUPPORT = [
+  { name: 'Emergency services · 緊急服務', phone: '999', note: 'If you or someone else is in immediate danger.' },
+  { name: 'Mental Health Support Hotline · 精神健康支援熱線', phone: '18111', note: '24 hours · Cantonese, English' },
+  { name: 'The Samaritans Hong Kong · 撒瑪利亞會', phone: '2896 0000', note: '24 hours · multilingual' },
+  { name: 'Suicide Prevention Services · 生命熱線', phone: '2382 0000', note: '24 hours · Cantonese' },
+  { name: 'Open Up · Open 噏 (online text support)', url: 'https://www.openup.hk', note: '24 hours · for young people' },
+];
+const CRISIS = [/\bkill(ing)? myself\b/i, /\bsuicid(e|al)\b/i, /\bend (my life|it all)\b/i, /\bwant(ed)? to die\b/i, /\bself[- ]?harm\b/i, /\bhurt(ing)? myself\b/i, /\bcut(ting)? myself\b/i, /\bno reason to live\b/i, /\bbetter off dead\b/i, /\bdon'?t want to (be alive|live)\b/i, /自殺/, /想死/, /輕生/, /唔想(再)?活/, /不想(再)?活/, /傷害自己/, /割手/, /了結(自己|生命)/, /死咗算/, /死了算/];
+const hasCrisis = (t) => CRISIS.some((re) => re.test(t || ''));
+
+/* ---------- helpers ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = (n) => String(n).padStart(2, '0');
+const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parse = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const journalDate = (d = new Date()) => { const x = new Date(d); if (x.getHours() < 4) x.setDate(x.getDate() - 1); return ymd(x); };
+const addDays = (s, n) => { const x = parse(s); x.setDate(x.getDate() + n); return ymd(x); };
+const utc = (s) => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+const dayDiff = (a, b) => Math.round((utc(a) - utc(b)) / 864e5);
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTH = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const fmtDay = (s) => { const d = parse(s); return `${WD[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`; };
+const hhmm = (d = new Date()) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const deliverAtFor = (date) => { const [h, m] = ((typeof S !== 'undefined' && S.deliverTime) || '08:00').split(':').map(Number); const d = parse(date); d.setDate(d.getDate() + 1); d.setHours(h, m, 0, 0); return d.toISOString(); };
+const deliverTime = () => S.deliverTime || '08:00';
+const atTime = (L) => (L?.deliverAt ? hhmm(new Date(L.deliverAt)) : deliverTime());
+const uid = (p) => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+const plural = (n, a, b = `${a}s`) => `${n} ${n === 1 ? a : b}`;
+const cap = (s) => s ? s[0].toUpperCase() + s.slice(1) : s;
+const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+function seeded(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 10000) / 10000; }; }
+const LANGS = [['auto', 'Auto · match my writing'], ['en', 'English'], ['zh-hant', '繁體中文'], ['zh-hans', '简体中文']];
+const scriptOf = (t) => { const hans = (t.match(/[这们说时国过还见么没东车门问会对开关让给发长现实学习觉经]/g) || []).length; const hant = (t.match(/[這們說時國過還見麼沒東車門問會對開關讓給發長現實學習覺經嘅咗唔]/g) || []).length; return hans > hant ? 'hans' : 'hant'; };
+const detectLang = (t) => { const zh = /[㐀-鿿]/.test(t); const en = /[a-z]{3,}/i.test(t.replace(/[㐀-鿿]/g, '')); return zh && en ? 'mixed' : zh ? 'zh' : 'en'; };
+const countWords = (t) => { const s = (t || '').trim(); if (!s) return 0; return (s.match(/[㐀-鿿]/g) || []).length + (s.replace(/[㐀-鿿]/g, ' ').match(/\S+/g) || []).length; };
+
+/* ---------- state ----------
+   Your journal lives in your Beyond account. This page holds it in memory
+   only. A few display choices (write or speak, speech language, demo mode)
+   are remembered on this device; nothing you write is. */
+const OFFLINE = false;
+let AUTH = { auth: true, user: null };
+const isGuest = () => false;
+let storageOk = true;
+function fresh() { return { v: 2, onboarded: false, mode: 'own', voice: 'friend', lang: 'auto', inputMode: 'type', deliverTime: '08:00', allowEarly: true, draft: '', letters: [], sampleMeta: {}, notes: {}, dirs: {}, memories: [], memoryPaused: false, forgotten: [], hiddenSampleMem: [], savedAt: 0 }; }
+/* Demo mode = Kit's sample journal is shown and "Skip to morning" is available. */
+const demoOn = () => S.mode === 'sample';
+const canSkip = () => demoOn() || isGuest() || OFFLINE || S.allowEarly !== false;
+const isDemoSkip = () => demoOn() || isGuest() || OFFLINE;
+const TIMES = ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '12:00'];
+const timeOptions = (cur) => [...new Set([...TIMES, cur])].sort().map((t) => `<option ${cur === t ? 'selected' : ''}>${t}</option>`).join('');
+const PREFS = 'beyond.prefs.v1';
+function loadPrefs() {
+  try { const p = JSON.parse(localStorage.getItem(PREFS) || '{}'); return { inputMode: p.inputMode === 'speak' ? 'speak' : 'type', speechLang: typeof p.speechLang === 'string' ? p.speechLang : undefined, mode: p.mode === 'sample' ? 'sample' : 'own' }; } catch (e) { return { inputMode: 'type', mode: 'own' }; }
+}
+function savePrefs() {
+  try { localStorage.setItem(PREFS, JSON.stringify({ inputMode: S.inputMode, speechLang: S.speechLang || null, mode: S.mode })); } catch (e) { /* private window: fine */ }
+}
+let S = { ...fresh(), ...loadPrefs() };
+let syncTimer = null;
+/* Settings changes are sent to your account a moment later; display choices stay here. */
+function save() {
+  savePrefs();
+  if (!synced) return;
+  clearTimeout(syncTimer); syncTimer = setTimeout(syncSettings, 300);
+}
+
+/* Kit's story keeps its own spacing and weekdays; it is moved forward in whole
+   weeks so the newest sample letter is always from the last few days. */
+let sampleShift = null;
+function sampleDate(s) {
+  if (s.rel !== undefined) return addDays(journalDate(), s.rel);
+  if (sampleShift === null) {
+    const last = SAMPLE.reduce((m, x) => (x.date > m ? x.date : m), '');
+    const diff = dayDiff(addDays(journalDate(), -1), last);
+    sampleShift = diff - (((diff % 7) + 7) % 7);
+  }
+  return addDays(s.date, sampleShift);
+}
+function sampleLetters() {
+  return SAMPLE.map((s) => {
+    const meta = S.sampleMeta[s.id] || {};
+    const date = sampleDate(s);
+    return {
+      id: s.id, sample: true, by: 'sample', date, entries: s.entries, content: s.content, status: 'ready',
+      deliverAt: deliverAtFor(date), early: true, readAt: meta.readAt !== undefined ? meta.readAt : (s.unread ? null : 'earlier'),
+      actions: meta.actions || { ...s.actions }, private: meta.private !== undefined ? meta.private : s.private,
+    };
+  });
+}
+function allLetters() {
+  const list = S.mode === 'sample' ? [...S.letters, ...sampleLetters()] : [...S.letters];
+  return list.sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''));
+}
+const findLetter = (id) => allLetters().find((l) => l.id === id);
+const delivered = (l) => l.status === 'ready' && (l.early || Date.now() >= Date.parse(l.deliverAt));
+function patchLetter(id, patch) {
+  const own = S.letters.find((l) => l.id === id);
+  if (!own) { Object.assign((S.sampleMeta[id] = S.sampleMeta[id] || {}), patch); return; }
+  const before = { ...own, actions: { ...(own.actions || {}) } };
+  Object.assign(own, patch);
+  const body = {};
+  if (patch.readAt && !before.readAt) body.read = true;
+  if (patch.early && !before.early) body.early = true;
+  if ('private' in patch && !!patch.private !== !!before.private) body.private = !!patch.private;
+  if (patch.actions) body.steps = { ...patch.actions };
+  if (patch.deliverAt && patch.deliverAt !== before.deliverAt) body.deliver_at = patch.deliverAt;
+  if (Object.keys(body).length) sendLetterPatch(own, body, before);
+}
+/* to-do progress: steps marked done out of steps not skipped */
+function progress(L) {
+  const steps = L.content?.steps || []; const a = L.actions || {};
+  const done = steps.filter((_, i) => a[`step.${i}`] === 'tried').length;
+  const skipped = steps.filter((_, i) => a[`step.${i}`] === 'skipped').length;
+  const need = steps.length - skipped;
+  return { done, need, total: steps.length, complete: need > 0 && done === need };
+}
+
+/* ---------- memory: what Beyond may remember about you ----------
+   Learned from letters (0–2 each, checked) or told by you. You can see, edit,
+   forget or pause it in You. A learned memory is only used while a letter it
+   came from is kept in Patterns. */
+const SAMPLE_MEMORIES = [
+  { id: 'dm1', text: 'First-year university student in Hong Kong', kind: 'told', letterIds: [] },
+  { id: 'dm2', text: 'Just started university; school friends went to other unis', kind: 'learned', letterIds: ['l_d09'] },
+  { id: 'dm3', text: 'Feels calmer after time outdoors', kind: 'learned', letterIds: ['l_d02'] },
+  { id: 'dm4', text: 'Big loud crowds are hard; small groups doing something together are easier', kind: 'learned', letterIds: ['l_d07', 'l_d10'] },
+  { id: 'dm5', text: 'Helping kids learn is the part of the week they look forward to most', kind: 'learned', letterIds: ['l_d18'] },
+];
+const normText = (t) => String(t || '').toLowerCase().replace(/[\s.。,，!！?？]+/g, ' ').trim();
+function allMemories() {
+  const sample = demoOn() ? SAMPLE_MEMORIES.filter((m) => !(S.hiddenSampleMem || []).includes(m.id)).map((m) => ({ ...m, sample: true })) : [];
+  return [...(S.memories || []), ...sample];
+}
+function memoryInUse(m) {
+  if (m.kind === 'told') return true;
+  const ls = allLetters(); return m.letterIds.some((id) => { const l = ls.find((x) => x.id === id); return l && !l.private; });
+}
+const usableMemories = () => (S.memoryPaused ? [] : allMemories().filter(memoryInUse)).slice(0, 20);
+/* Learning happens on the server when a letter is stored (at most two small,
+   checked things, never something you told Beyond to forget). */
+
+/* ---------- letter writer ----------
+   Letters are written by Beyond's letter service after you seal a night, with
+   the same rules and checks as before. Nothing is written in this page; it
+   only asks Beyond what's ready. */
+const LOCAL = true;
+let SERVER_STT = false; let SERVER_SYNC = true;
+let aiLabel = 'Claude';
+let claudeState = 'checking'; // checking | ready | off
+const inflight = new Map();
+let route = 'tonight'; let param = null;
+let claudeReady = Promise.resolve();
+function checkAI() { return (claudeReady = (async () => {
+  try { const j = await backend.aiStatus(); claudeState = j.letters ? 'ready' : 'off'; SERVER_STT = !!j.transcribe; } catch (e) { claudeState = 'off'; SERVER_STT = false; }
+  if (route === 'login' || !AUTH.user) return;
+  if (route !== 'tonight') render(); else refreshTonightNote();
+  watchLetters();
+})()); }
+let stateReady = false;
+
+const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+const clip = (s, n) => { const t = norm(s); return t.length > n ? `${t.slice(0, n - 1)}…` : t; };
+
+const ERR = {
+  unavailable: 'Beyond’s letter writer couldn’t be reached. Your words are safe. Try again.',
+  invalid_output: 'The letter didn’t pass Beyond’s checks (quotes must be your exact words, and there must be three to-dos). Try again.',
+  refused: 'The letter writer declined to write about this night. Your words are safe, and you can try again.',
+  rate_limited: 'Today’s letters are used up. Try again tomorrow.',
+};
+/* Try again on a letter that couldn't be written. */
+function writeLetter(id) {
+  const L = S.letters.find((l) => l.id === id);
+  if (!L) return Promise.resolve();
+  L.status = 'writing'; L.error = null;
+  return (async () => {
+    try { mergeLetter(await backend.retryLetter(id)); }
+    catch (e) { L.status = 'failed'; L.error = e?.code === 'rate_limited' ? ERR.rate_limited : 'Couldn’t reach Beyond. Check your connection and try again.'; }
+    if (!document.querySelector('.ascend, .overnight')) render();
+    watchLetters();
+  })();
+}
+
+/* ---------- routing ---------- */
+function go(r, p = null, opts = {}) {
+  route = r; param = p;
+  const token = p ? `${route}-${p}` : route;
+  if (!opts.replace && location.hash.slice(1) !== token) { try { history.pushState(null, '', `#${token}`); } catch (e) { /* frame may refuse */ } }
+  render(); if (!opts.keepScroll) window.scrollTo(0, 0);
+}
+function readHash() {
+  const h = decodeURIComponent(location.hash.slice(1));
+  const m = h.match(/^(letter|patterns)-(.+)$/);
+  if (m) { route = m[1]; param = m[2]; } else if (['tonight', 'letters', 'patterns', 'you', 'support', 'welcome'].includes(h)) { route = h; param = null; }
+}
+window.addEventListener('popstate', () => { closeSheet(false); readHash(); render(); });
+
+/* ---------- icons ---------- */
+const I = {
+  moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></svg>',
+  sky: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="16" r="1.4"/><circle cx="11" cy="9" r="1.4"/><circle cx="18" cy="13" r="1.4"/><circle cx="20" cy="5" r="1"/><path d="m6.2 15 3.7-5M12.3 9.7l4.4 2.6"/></svg>',
+  you: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c1-4 4-5.5 7-5.5s6 1.5 7 5.5"/></svg>',
+  left: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m14 6-6 6 6 6"/></svg>',
+  right: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m10 6 6 6-6 6"/></svg>',
+  x: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  crescent: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 3.2a9 9 0 1 0 5.3 13.7A7.4 7.4 0 0 1 15.5 3.2Z"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+  pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>',
+  stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2.5"/></svg>',
+  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>',
+};
+function ring(L, size = 46) {
+  const p = progress(L); const C = 2 * Math.PI * 20; const frac = p.need ? p.done / p.need : 0;
+  return `<span class="ring ${p.complete ? 'is-done' : ''}" style="width:${size}px;height:${size}px">
+    <svg viewBox="0 0 46 46" aria-hidden="true"><circle cx="23" cy="23" r="20" class="rt"/><circle cx="23" cy="23" r="20" class="rp" style="stroke-dasharray:${(frac * C).toFixed(1)} ${C.toFixed(1)}"/></svg>
+    <span class="n">${p.complete ? I.check : `${p.done}/${p.need}`}</span></span>`;
+}
+
+/* ---------- render ---------- */
+let after = [];
+function render() {
+  if (route !== 'tonight' && voice.state === 'rec') stopRecording();
+  if (route !== 'tonight' && voice.state === 'dictate') voice.state = 'idle';
+  if (!S.onboarded && !['support', 'login'].includes(route)) route = 'welcome';
+  document.body.classList.add('night');
+  setAmbient(route === 'tonight' || route === 'welcome' ? 'full' : 'soft');
+  const views = { welcome: vWelcome, login: vLogin, tonight: vTonight, letters: vLetters, letter: vLetter, patterns: vPatterns, you: vYou, support: vSupport };
+  const html = (views[route] || vTonight)();
+  const unread = allLetters().some((l) => delivered(l) && !l.readAt);
+  setAmbient(route === 'login' ? 'full' : undefined);
+  const nav = route === 'welcome' || route === 'login' ? '' : `
+    <header class="topbar">
+      <button class="brand" data-go="tonight" aria-label="Beyond, Tonight">${I.crescent}Beyond</button>
+      <nav class="tabs" aria-label="Main">
+        ${[['tonight', 'Tonight', I.moon], ['letters', 'Letters', I.mail], ['patterns', 'Patterns', I.sky], ['you', 'You', I.you]].map(([r, l, ic]) =>
+          `<button class="tab" data-go="${r}" ${route === r || (r === 'letters' && route === 'letter') ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${r === 'letters' && unread ? '<i class="dot" aria-label="Unread letter"></i>' : ''}</button>`).join('')}
+      </nav>
+    </header>`;
+  $('#app').innerHTML = `${nav}<main id="main">${html}</main>`;
+  after.forEach((f) => f()); after = [];
+}
+function setAmbient(mode) {
+  if (mode === undefined) return;
+  const a = $('#ambient');
+  a.classList.toggle('soft', mode === 'soft');
+  if (!a.childElementCount) {
+    const r = seeded('embers');
+    a.innerHTML = '<i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i>' + Array.from({ length: 16 }, () =>
+      `<i class="ember" style="left:${(r() * 100).toFixed(1)}%;--z:${(2 + r() * 3).toFixed(1)}px;--t:${(11 + r() * 12).toFixed(1)}s;--dl:${(-r() * 20).toFixed(1)}s;--dx:${((r() - .5) * 120).toFixed(0)}px"></i>`).join('');
+  }
+  a.hidden = false;
+}
+
+function sampleBanner() {
+  if (!demoOn()) return '';
+  return `<div class="sample-banner"><span><b>Demo mode</b> · Kit's sample letters (fictional) are shown with yours.</span><button class="link" data-act="own">Turn off demo mode</button></div>`;
+}
+
+/* ----- welcome ----- */
+let welcomeStep = 0;
+const NOISE = ["what's next", 'everyone else', 'lunch alone?', 'group chat', '將來', 'GPA', 'which major?', '唔知', 'should I', 'behind', 'notifications', '比較', 'new campus', 'seen 11:47pm', 'internship?', '一個人'];
+function vWelcome() {
+  if (welcomeStep === 0) {
+    const r = seeded('beyond-noise');
+    const words = NOISE.map((w) => `<span style="left:${(r() * 86).toFixed(1)}%;top:${(r() * 62).toFixed(1)}%;--s:${(18 + r() * 34).toFixed(0)}px;--r:${((r() - .5) * 14).toFixed(1)}deg;--t:${(6 + r() * 6).toFixed(1)}s;--dl:${(-r() * 6).toFixed(1)}s;--dx:${((r() - .5) * 40).toFixed(0)}px;--dy:${((r() - .5) * 30).toFixed(0)}px">${esc(w)}</span>`).join('');
+    after.push(() => setTimeout(() => $('.welcome')?.classList.add('is-quiet'), 1800));
+    return `<section class="welcome">
+      <div class="noise" aria-hidden="true">${words}</div>
+      <span class="k" style="color:var(--amber)">Beyond · a journal that writes back in the morning</span>
+      <h1 class="title">Write tonight. Nothing replies. A letter arrives in the morning.</h1>
+      <ol class="how">
+        <li><b>Tonight</b>Write or just talk about whatever is on your mind. No feed, no likes, no reply.</li>
+        <li><b>Overnight</b>It's sealed. Claude reads it next to your earlier nights.</li>
+        <li><b>Morning</b>A short letter, and three small to-dos you can tick off.</li>
+      </ol>
+      <div class="row">${isGuest() || OFFLINE
+        ? `<button class="btn amber" data-act="start-sample">Try it with Kit's sample journal</button><button class="btn secondary" data-act="start-own">Start an empty journal</button>`
+        : `<button class="btn amber" data-act="start-own">Start my journal</button><button class="btn secondary" data-act="start-sample">See an example first (demo)</button>`}</div>
+      <p class="fine">${OFFLINE ? 'Offline trial: letters here are simple templates. The online version writes them with Claude.' : LOCAL ? (isGuest() ? 'Judge preview: you have your own empty journal, and Claude writes your letters.' : 'Letters are written by Claude. Your journal is saved to your Beyond account, private to you.') : 'Letters are written by Claude on your own claude.ai account. Your journal stays in this browser.'}</p>
+    </section>`;
+  }
+  return `<section class="welcome" style="align-content:center">
+    <span class="k" style="color:var(--amber)">One choice before tonight</span>
+    <h1 class="title" style="max-width:18ch">Who should write your morning letters?</h1>
+    <div class="voices" role="group" aria-label="Letter voice">${voiceCards()}</div>
+    <p class="fine">The voice changes the tone only. Every letter quotes your exact words and never invents anything. You can change this later.</p>
+    <div class="row"><button class="btn amber" data-act="finish-welcome">Start writing</button></div>
+  </section>`;
+}
+function voiceCards() {
+  return Object.entries(VOICES).map(([k, v]) => `<button class="voice" data-voice="${k}" aria-pressed="${S.voice === k}"><b>${v.name}</b><span>${v.desc}</span><i>“${esc(v.example)}”</i></button>`).join('');
+}
+
+/* ----- tonight: open and write ----- */
+let promptTimer = null; let lastWords = 0;
+const SPEAK_PROMPTS = ['Just say it. Nothing replies.', 'Start with how today felt.', '今日發生咗咩？慢慢講。', 'What’s still on your mind?', 'Say it the way you’d say it to yourself.', '今天怎么样？想到哪说到哪。'];
+function lanternVars(words) { const t = Math.min(1, words / 120); return `--k:${(0.55 + 0.5 * t).toFixed(3)};--b:${(0.75 + 0.5 * t).toFixed(3)}`; }
+const countLine = (n, speak) => (n ? `${plural(n, 'word')} · ${speak ? 'keep going, or seal it when you’re done' : 'the light grows as you write'}` : speak ? 'Your words will appear below as you talk' : 'The light grows as you write');
+function vTonight() {
+  clearInterval(promptTimer); cancelAnimationFrame(voice.raf);
+  const sealed = S.letters.find((l) => !delivered(l));
+  if (sealed) return vSealed(sealed);
+  const unread = allLetters().find((l) => delivered(l) && !l.readAt);
+  const speak = S.inputMode === 'speak';
+  const words = countWords(S.draft); lastWords = words;
+  after.push(() => {
+    const ta = $('#entry'); if (!ta) return;
+    // Speak: a fixed window that follows the newest words, so they stay in view under the light.
+    const grow = () => { ta.style.height = 'auto'; const h = Math.max(ta.scrollHeight, window.innerHeight * (speak ? 0.16 : 0.34)); ta.style.height = `${speak ? Math.min(h, window.innerHeight * 0.22) : h}px`; if (speak) ta.scrollTop = ta.scrollHeight; };
+    grow();
+    if (!speak && window.matchMedia('(pointer: fine)').matches) ta.focus({ preventScroll: true });
+    let lastLen = ta.value.length;
+    ta.addEventListener('input', () => {
+      S.draft = ta.value; save(); grow();
+      const added = ta.value.length - lastLen; lastLen = ta.value.length;
+      if (added > 0) voice.impulse = Math.min(1, voice.impulse + 0.25 + added * 0.03);
+      const n = countWords(ta.value);
+      const lw = $('#lantern-wrap'); if (lw) lw.setAttribute('style', lanternVars(n));
+      if (n > lastWords && lw && !reduceMotion()) { const r = document.createElement('i'); r.className = 'ripple'; lw.appendChild(r); setTimeout(() => r.remove(), 1400); }
+      lastWords = n;
+      $('#wc').textContent = countLine(n, speak);
+      $('#b-seal').disabled = !ta.value.trim();
+      if (hasCrisis(ta.value) && !$('#crisis').childElementCount) $('#crisis').innerHTML = supportInline();
+    });
+    if (hasCrisis(ta.value)) $('#crisis').innerHTML = supportInline();
+    $('#lang')?.addEventListener('change', (e) => { S.lang = e.target.value; save(); toast(`Your letter will be written in ${S.lang === 'auto' ? 'the language you use' : LANGS.find(([k]) => k === S.lang)[1]}.`); });
+    if (speak) { startVoice(); paintVoice(); }
+    const list = speak ? SPEAK_PROMPTS : PROMPTS; let i = 0;
+    promptTimer = setInterval(() => {
+      const p = $('#prompt'); if (!p || route !== 'tonight') return clearInterval(promptTimer);
+      if (ta.value.trim() || voice.state === 'rec') return;
+      i = (i + 1) % list.length; p.innerHTML = `<span>${esc(list[i])}</span>`;
+    }, 5200);
+  });
+  return `<section class="tn ${speak ? 'is-speak' : ''}">
+      ${unread ? `<button class="pill" data-open="${unread.id}">${I.mail}<span><b>A letter arrived</b> · ${fmtDay(unread.date)}${unread.sample ? ' (sample)' : ''}</span><span class="go">Open</span></button>` : ''}
+      <div class="seg mode-seg" role="group" aria-label="How do you want to say it tonight?">
+        <button data-imode="type" aria-pressed="${!speak}">${I.pen}<span>Write</span></button>
+        <button data-imode="speak" aria-pressed="${speak}">${I.mic}<span>Speak</span></button>
+      </div>
+      ${speak ? `<div class="voice-stage" id="vstage">
+          <canvas id="vcanvas" aria-hidden="true"></canvas>
+          <button class="voice-orb" id="orb" data-act="orb" type="button" aria-label="${RECORDS ? 'Start talking' : 'Start talking with your device’s dictation'}"><span class="lantern"></span><span class="glyph" id="glyph">${I.mic}</span></button>
+        </div>`
+        : `<div class="lantern-wrap" id="lantern-wrap" style="${lanternVars(words)}" aria-hidden="true"><div class="lantern"></div></div>`}
+      <span class="k tn-date">${fmtDay(journalDate())} · Tonight</span>
+      <h1 class="tn-prompt" id="prompt"><span>${esc((speak ? SPEAK_PROMPTS : PROMPTS)[0])}</span></h1>
+      ${speak ? `<div class="chips slang-chips" id="slang-chips" role="group" aria-label="I'm speaking"></div>
+        <p class="voice-hint" id="vhint" aria-live="polite"></p>` : ''}
+      <label for="entry" class="sr-only">Tonight's entry</label>
+      <textarea id="entry" class="paper-in ${speak ? 'spoken' : ''}" placeholder="${speak ? 'Your words appear here as you talk. You can fix anything before sealing.' : 'Start anywhere. English, 中文, 廣東話, any mix.'}">${esc(S.draft)}</textarea>
+      <p class="fine tn-count" id="wc">${countLine(words, speak)}</p>
+      <div id="crisis" style="width:100%"></div>
+      <div class="tn-bar">
+        <div class="tn-tools">
+          <label class="pick" for="lang"><span>Letter in</span><select id="lang">${LANGS.map(([k, l]) => `<option value="${k}" ${(S.lang || 'auto') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+          <label class="pick" for="tdtime"><span>Arrives</span><select id="tdtime">${timeOptions(deliverTime())}</select></label>
+        </div>
+        <button class="btn amber" data-act="seal" id="b-seal" ${S.draft.trim() ? '' : 'disabled'}>Seal tonight</button>
+      </div>
+      <p class="tn-foot">Nothing replies tonight. Your letter comes from your <button class="link" data-go="you">${esc((VOICES[S.voice] || VOICES.friend).name)}</button>.</p>
+      ${isGuest() ? `<p class="fine">Judge preview · ${AUTH.user.left ?? 0} AI letters left today</p>` : ''}
+      ${OFFLINE ? '<p class="fine">Offline trial · letters are simple templates. See START HERE for the online version with Claude.</p>' : ''}
+      ${speak ? `<p class="fine voice-privacy">${mixedOK() ? '粵 + 普 + EN: Beyond records, turns it into text, then deletes the audio. Single languages use your browser’s speech service (Chrome: Google, Safari: Apple) and show words live; you can switch mid-sentence.' : SR ? 'Your browser turns your voice into text (Chrome uses Google’s speech service, Safari uses Apple’s), one language at a time; tap a language to switch, even mid-sentence. Beyond keeps only the words.' : RECORDS && SERVER_STT ? 'Your recording is turned into text, then deleted. Only the words are kept.' : 'Your device turns your voice into text. Beyond never hears the audio.'}</p>` : ''}
+      <p class="fine" id="claude-note">${claudeNote()}</p>
+    </section>`;
+}
+function claudeNote() {
+  if (claudeState !== 'off') return '';
+  return 'Beyond’s letter writer isn’t switched on yet. Seal tonight anyway: your letter is kept safe and written as soon as it is.';
+}
+function refreshTonightNote() { const n = $('#claude-note'); if (n) n.textContent = claudeNote(); }
+function supportInline() {
+  return `<div class="support-inline" role="note"><b>You don't have to wait for the morning.</b><span class="fine" style="color:var(--mist)">Beyond isn't watched by a person and can't help in an emergency. If you're struggling or in danger, people can help right now, free and confidential.</span><div class="row"><button class="btn sm amber" data-go="support">See who to talk to</button></div></div>`;
+}
+
+/* ----- speak ------------------------------------------------------------
+   One tap on the light starts listening; your words appear live; tap again
+   to stop. Uses the browser's own speech recognition (Chrome, Edge, Safari)
+   wherever the page may use the microphone: the local app, the online app,
+   the double-clicked file. If that isn't available, the local app records and
+   its server transcribes. claude.ai doesn't let pages use the microphone at
+   all, so there the light falls back to the device's own dictation. */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const IN_CLAUDE = !LOCAL && !OFFLINE && !!window.claude?.use;
+const MIC = LOCAL && !!(navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
+const RECORDS = MIC && window.isSecureContext;
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Mac/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+const voice = { state: 'idle', raf: 0, lvl: 0, impulse: 0, an: null, buf: null, freq: null, ac: null, rec: null, sr: null, stream: null, t0: 0, tick: 0, blocked: false };
+const SPEECH_LANGS = [['mixed', '粵 + 普 + EN'], ['yue-Hant-HK', '廣東話'], ['zh-CN', '普通话'], ['en-US', 'English']];
+const mixedOK = () => RECORDS && SERVER_STT;
+function speechLang() {
+  const pick = S.speechLang;
+  if (pick === 'mixed') return mixedOK() ? 'mixed' : 'yue-Hant-HK';
+  if (pick && pick !== 'auto') return pick;
+  if (mixedOK()) return 'mixed';
+  if (S.lang === 'zh-hans') return 'zh-CN'; if (S.lang === 'zh-hant') return 'yue-Hant-HK'; if (S.lang === 'en') return 'en-US';
+  const prefs = (navigator.languages || [navigator.language || '']).join(',');
+  return /zh-(HK|TW|MO)|yue/i.test(prefs) ? 'yue-Hant-HK' : /zh/i.test(prefs) ? 'zh-CN' : 'yue-Hant-HK';
+}
+const canListen = () => !!SR && !voice.blocked && speechLang() !== 'mixed';
+function langChips() {
+  const cur = speechLang();
+  return SPEECH_LANGS.filter(([k]) => k !== 'mixed' || mixedOK()).map(([k, l]) => `<button class="chip lang-chip" data-slang="${k}" aria-pressed="${cur === k}">${l}</button>`).join('');
+}
+function dictationHint() {
+  const ua = navigator.userAgent; const touch = window.matchMedia('(pointer: coarse)').matches;
+  if (/iPhone|iPad|iPod|Android/.test(ua) || (touch && /Mac/.test(ua))) return 'tap the <b>🎤 on your keyboard</b> and just talk.';
+  if (/Mac/.test(ua)) return 'press <b>Fn (🌐) twice</b> and just talk.';
+  if (/Windows/.test(ua)) return 'press <b>Windows + H</b> and just talk.';
+  return 'start your device’s <b>dictation</b> and just talk.';
+}
+function paintVoice() {
+  const hint = $('#vhint'), orb = $('#orb'), glyph = $('#glyph'); if (!hint || !orb) return;
+  orb.classList.toggle('is-rec', voice.state === 'rec'); orb.classList.toggle('is-busy', voice.state === 'busy');
+  glyph.innerHTML = voice.state === 'rec' ? I.stop : voice.state === 'busy' ? '<i class="dots"><i></i><i></i><i></i></i>' : I.mic;
+  orb.setAttribute('aria-label', voice.state === 'rec' ? 'Stop' : 'Start talking');
+  if (voice.state === 'rec') { const sec = Math.floor((Date.now() - voice.t0) / 1000); hint.innerHTML = `<span class="rec-dot"></span>Listening · ${Math.floor(sec / 60)}:${pad(sec % 60)} · tap the light when you’re done${voice.rec ? ', then your words appear' : ''}`; }
+  else if (voice.state === 'busy') hint.textContent = 'Turning your voice into words…';
+  else if (voice.state === 'dictate') hint.innerHTML = voice.blocked && IN_CLAUDE
+    ? `claude.ai doesn’t let pages use the microphone, so here: ${dictationHint()} One-tap recording works in Beyond’s own app (on your computer or the online link).`
+    : `Your device’s dictation: ${dictationHint()}`;
+  else if (voice.blocked && !IN_CLAUDE) hint.innerHTML = `The microphone is blocked for this page. Allow it from the icon in the address bar, or ${dictationHint()}`;
+  else if (speechLang() === 'mixed') hint.innerHTML = 'Tap the light and just talk, in any mix of 粵語, 普通话 and English. Your words appear when you tap again.';
+  else hint.innerHTML = canListen() || (RECORDS && SERVER_STT) ? 'Tap the light and just talk. Your words appear as you speak.' : `Tap the light, then ${dictationHint()}`;
+  const chips = $('#slang-chips'); if (chips) { chips.hidden = !(SR || mixedOK()) || (voice.blocked && IN_CLAUDE); chips.innerHTML = langChips(); }
+}
+function setEntry(text) {
+  const ta = $('#entry'); S.draft = text;
+  if (ta) { ta.value = text; ta.dispatchEvent(new Event('input')); ta.scrollTop = ta.scrollHeight; } else save();
+}
+function appendSpoken(text) {
+  setEntry((S.draft.trim() ? `${S.draft.trimEnd()}\n\n` : '') + text);
+  const ta = $('#entry'); if (ta) { ta.classList.remove('arrive'); void ta.offsetWidth; ta.classList.add('arrive'); }
+}
+function useDictation() { const ta = $('#entry'); voice.state = 'dictate'; paintVoice(); voice.impulse = 0.6; if (ta) { ta.focus(); const end = ta.value.length; ta.setSelectionRange(end, end); } }
+async function meter() {
+  // Real levels for the light while listening (skipped on iPhone, where it can steal the mic).
+  if (IOS || !navigator.mediaDevices?.getUserMedia) return;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if (voice.state !== 'rec') { stream.getTracks().forEach((t) => t.stop()); return; }
+    voice.stream = stream; voice.ac = new (window.AudioContext || window.webkitAudioContext)();
+    const src = voice.ac.createMediaStreamSource(stream); voice.an = voice.ac.createAnalyser(); voice.an.fftSize = 512; voice.an.smoothingTimeConstant = 0.75; src.connect(voice.an);
+    voice.buf = new Uint8Array(voice.an.fftSize); voice.freq = new Uint8Array(voice.an.frequencyBinCount);
+  } catch (e) { voice.an = null; }
+}
+function releaseMeter() { voice.stream?.getTracks().forEach((t) => t.stop()); try { voice.ac?.close(); } catch (e) { /* closed */ } voice.an = null; voice.stream = null; voice.ac = null; }
+function startListening(sameBreath = false) {
+  const r = new SR(); const lang = speechLang();
+  r.lang = lang; r.continuous = true; r.interimResults = true;
+  // A language switch mid-sentence carries on the same paragraph.
+  const prev = S.draft.trimEnd();
+  const base = !prev ? '' : !sameBreath ? `${prev}\n\n` : /[\u3400-\u9fff，。！？、]$/.test(prev) ? prev : `${prev} `;
+  const spaced = !/^(zh|yue|ja|ko)/i.test(lang);
+  let finals = '';
+  r.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) finals += (spaced && finals && !/\s$/.test(finals) && !/^\s/.test(t) ? ' ' : '') + t;
+      else interim += t;
+    }
+    setEntry(base + finals + (interim ? (spaced && finals && !/\s$/.test(finals) ? ' ' : '') + interim : ''));
+    voice.impulse = Math.min(1, voice.impulse + 0.45);
+  };
+  r.onerror = (e) => {
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed' || e.error === 'audio-capture') { voice.blocked = true; voice.stopping = true; }
+    else if (e.error === 'network') { voice.stopping = true; toast('Speech recognition needs an internet connection. You can type instead.'); }
+  };
+  r.onend = () => {
+    // Browsers stop after a pause; keep listening until you tap again.
+    if (voice.state === 'rec' && !voice.stopping) { try { r.start(); return; } catch (e) { /* fall through */ } }
+    clearInterval(voice.tick); releaseMeter(); voice.sr = null;
+    setEntry(base + finals);
+    if (voice.relisten) { voice.relisten = false; voice.state = 'idle'; voice.stopping = false; return canListen() ? startListening(true) : orbTap(); }
+    if (voice.blocked) { if (IN_CLAUDE) useDictation(); else { voice.state = 'idle'; paintVoice(); } return; }
+    voice.state = 'idle'; voice.stopping = false; paintVoice();
+    if (finals.trim()) { const ta = $('#entry'); if (ta) { ta.classList.remove('arrive'); void ta.offsetWidth; ta.classList.add('arrive'); } }
+  };
+  voice.sr = r; voice.state = 'rec'; voice.stopping = false; voice.t0 = Date.now();
+  let heard = false; r.onstart = r.onaudiostart = () => { heard = true; };
+  try { r.start(); } catch (e) { voice.state = 'idle'; voice.blocked = true; return IN_CLAUDE ? useDictation() : paintVoice(); }
+  // If the microphone never opens (a page that isn't allowed to use it can stay silent), fall back.
+  setTimeout(() => { if (voice.sr === r && !heard && !finals) { voice.blocked = true; voice.stopping = true; try { r.abort ? r.abort() : r.stop(); } catch (e) { /* gone */ } if (voice.sr === r) r.onend?.(); } }, 4000);
+  paintVoice(); voice.tick = setInterval(paintVoice, 500); meter();
+}
+async function orbTap() {
+  if (voice.state === 'rec') return stopRecording();
+  if (voice.state === 'busy') return;
+  if (canListen()) return startListening();
+  if (!RECORDS || !SERVER_STT || (SR && speechLang() !== 'mixed' && voice.blocked && IN_CLAUDE)) return useDictation();
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch (e) {
+    toast(e.name === 'NotAllowedError' ? 'The microphone is blocked. Allow it in your browser settings, or use your keyboard’s dictation.' : 'No microphone was found. You can type instead.'); return;
+  }
+  try { voice.ac = new (window.AudioContext || window.webkitAudioContext)(); const src = voice.ac.createMediaStreamSource(stream); voice.an = voice.ac.createAnalyser(); voice.an.fftSize = 512; voice.an.smoothingTimeConstant = 0.75; src.connect(voice.an); voice.buf = new Uint8Array(voice.an.fftSize); voice.freq = new Uint8Array(voice.an.frequencyBinCount); } catch (e) { voice.an = null; }
+  const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find((m) => MediaRecorder.isTypeSupported?.(m)) || '';
+  const chunks = [];
+  voice.stream = stream; voice.rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); voice.t0 = Date.now(); voice.state = 'rec';
+  voice.rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  voice.rec.onstop = async () => {
+    clearInterval(voice.tick); releaseMeter(); voice.rec = null;
+    if (voice.cancel) { voice.cancel = false; voice.state = 'idle'; paintVoice(); return; }
+    voice.state = 'busy'; paintVoice();
+    try {
+      const blob = new Blob(chunks, { type: mime || 'audio/webm' });
+      // One request: the recording goes in, the words come back, nothing is kept.
+      const tr = await backend.transcribe(blob, speechLang());
+      if (tr.text) appendSpoken(tr.text);
+      toast(tr.text ? 'Your words are below. Read them over, then seal.' : 'No speech was heard. Try again, or type.');
+    } catch (e) { toast('Couldn’t turn the recording into words. Try again, or type.'); }
+    voice.state = 'idle'; paintVoice();
+  };
+  voice.rec.start(); paintVoice();
+  voice.tick = setInterval(paintVoice, 500);
+}
+function stopRecording(cancel = false) {
+  if (voice.sr) { voice.stopping = true; try { voice.sr.stop(); } catch (e) { /* already stopped */ } return; }
+  if (voice.rec && voice.rec.state !== 'inactive') { voice.cancel = cancel; voice.rec.stop(); }
+}
+function startVoice() {
+  const c = $('#vcanvas'); if (!c) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1); const W = c.clientWidth;
+  c.width = W * dpr; c.height = W * dpr; const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const orb = $('#orb'); const still = reduceMotion();
+  const frame = (ts) => {
+    if (!document.body.contains(c)) { voice.raf = 0; return; }
+    let target = voice.impulse; voice.impulse *= 0.95; let bins = null;
+    if (voice.an) {
+      voice.an.getByteTimeDomainData(voice.buf); let s = 0; for (const v of voice.buf) { const x = (v - 128) / 128; s += x * x; }
+      target = Math.min(1, Math.sqrt(s / voice.buf.length) * 5); voice.an.getByteFrequencyData(voice.freq); bins = voice.freq;
+    }
+    voice.lvl += (target - voice.lvl) * 0.16;
+    const L = Math.max(0.14 + 0.05 * Math.sin(ts / 900), voice.lvl, voice.state === 'rec' ? 0.2 : 0);
+    drawVoice(g, W, ts, L, bins);
+    orb?.style.setProperty('--lv', L.toFixed(3));
+    if (!still) voice.raf = requestAnimationFrame(frame);
+  };
+  cancelAnimationFrame(voice.raf); voice.raf = requestAnimationFrame(frame);
+}
+function drawVoice(g, W, ts, L, bins) {
+  const cx = W / 2, cy = W / 2, r0 = W * 0.2;
+  g.clearRect(0, 0, W, W);
+  const h = g.createRadialGradient(cx, cy, r0 * 0.5, cx, cy, W / 2);
+  h.addColorStop(0, `rgba(243,198,142,${(0.14 + 0.3 * L).toFixed(3)})`); h.addColorStop(0.55, `rgba(227,149,90,${(0.05 + 0.12 * L).toFixed(3)})`); h.addColorStop(1, 'rgba(227,149,90,0)');
+  g.fillStyle = h; g.fillRect(0, 0, W, W);
+  for (let k = 0; k < 3; k++) {
+    const ph = ((ts / 3400) + k / 3) % 1; const rr = r0 * (1.08 + ph * (0.85 + L * 0.9));
+    g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI * 2); g.strokeStyle = `rgba(243,198,142,${((1 - ph) * (0.14 + 0.36 * L)).toFixed(3)})`; g.lineWidth = 1; g.stroke();
+  }
+  const N = 72; g.lineCap = 'round'; g.lineWidth = Math.max(1.6, W / 190);
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * Math.PI * 2 - Math.PI / 2; let amp;
+    if (bins) { const j = i < N / 2 ? i : N - i; amp = Math.min(1, (bins[2 + Math.floor(j * (bins.length * 0.45) / (N / 2))] / 255) * 1.15); }
+    else amp = (0.3 + 0.7 * Math.abs(Math.sin(i * 1.7 + ts / 430) * Math.cos(i * 0.55 - ts / 690))) * L;
+    const r1 = r0 + 12, r2 = r1 + 3 + amp * W * 0.16;
+    g.strokeStyle = `rgba(${243 - Math.round(amp * 18)},${198 - Math.round(amp * 55)},${142 - Math.round(amp * 60)},${(0.28 + 0.62 * amp).toFixed(3)})`;
+    g.beginPath(); g.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); g.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2); g.stroke();
+  }
+}
+
+/* ----- seal: words go into the lantern, the lantern rises ----- */
+async function seal() {
+  if (voice.state === 'rec') stopRecording(true);
+  voice.state = 'idle';
+  const ta = $('#entry'); const text = (ta?.value || '').trim();
+  if (!text) return;
+  const date = journalDate();
+  window.scrollTo(0, 0); // the light must be on screen for the words to float into it
+  const rect = ta.getBoundingClientRect(); const lrect = $('.lantern').getBoundingClientRect();
+  let L;
+  try { L = await sealNight(text, date); }
+  catch (e) {
+    const b = $('#b-seal'); if (b) b.disabled = false;
+    toast(e?.code === 'rate_limited' ? 'Today’s letters are used up. Your words are still here.' : e?.code === 'unauthorized' ? 'Please sign in again. Your words are still here.' : 'Couldn’t seal tonight. Your words are still here; check your connection and try again.');
+    return;
+  }
+  S.draft = ''; save();
+  await ascend(text, L.id, rect, lrect);
+  go('tonight');
+}
+function starPositions(id, n) {
+  const r = seeded(id); const out = [];
+  for (let i = 0; i < n; i++) out.push({ x: 8 + r() * 84, y: 6 + r() * 44, tw: 2.5 + r() * 3, dl: r() * 3 });
+  return out;
+}
+async function ascend(text, id, rect, lrect) {
+  const layer = $('#layer');
+  // English splits into words; Chinese (no spaces) into single characters, so long lines wrap and float up one by one.
+  const CJK = /[\u3000-\u303f\u3400-\u9fff\uff00-\uffef]/;
+  const words = (text.match(/[\u3000-\u303f\u3400-\u9fff\uff00-\uffef]|[^\s\u3000-\u303f\u3400-\u9fff\uff00-\uffef]+/g) || []).slice(0, 140);
+  const ov = document.createElement('div'); ov.className = 'ascend'; ov.setAttribute('role', 'status');
+  const top = Math.min(Math.max(rect.top + 20, 80), window.innerHeight * 0.55);
+  ov.innerHTML = `<span class="stars" aria-hidden="true"></span>
+    <div class="words" style="left:${rect.left + 22}px;top:${top}px;width:${Math.max(120, rect.width - 44)}px">${words.map((w) => `<span class="w">${esc(w)}${CJK.test(w) ? '' : ' '}</span>`).join('')}</div>
+    <div class="lantern" style="left:${lrect.left}px;top:${lrect.top}px;width:${lrect.width}px;height:${lrect.height}px;--k:1;--b:1.05"></div>
+    <p class="cap">Sealed. Nothing replies tonight.</p>`;
+  layer.appendChild(ov);
+  const lantern = ov.querySelector('.lantern');
+  const lx = lrect.left + lrect.width / 2, ly = lrect.top + lrect.height / 2;
+  if (!reduceMotion()) {
+    await sleep(350);
+    const spans = [...ov.querySelectorAll('.w')];
+    const step = Math.min(30, 1300 / Math.max(1, spans.length));
+    const anims = spans.map((s, i) => {
+      const b = s.getBoundingClientRect();
+      const tx = lx - (b.left + b.width / 2), ty = ly - (b.top + b.height / 2);
+      return s.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${tx * .6}px, ${ty * .6}px) scale(.6)`, opacity: .8, offset: .6 }, { transform: `translate(${tx}px, ${ty}px) scale(.1)`, opacity: 0 }],
+        { duration: 1100, delay: i * step, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' }).finished;
+    });
+    lantern.animate([{ filter: 'brightness(1) drop-shadow(0 0 30px rgba(243,170,100,.55))' }, { filter: 'brightness(1.6) drop-shadow(0 0 70px rgba(243,170,100,.9))' }], { duration: 1100 + spans.length * step, fill: 'forwards' });
+    await Promise.all(anims);
+    await lantern.animate([{ transform: 'translate(0,0) scale(1)' }, { transform: `translate(${window.innerWidth * .18}px, ${-(ly - window.innerHeight * .08)}px) scale(.3)` }], { duration: 1800, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished;
+    starPositions(id, 26).forEach((st, i) => { const d = document.createElement('i'); d.className = 's'; d.style.left = `${st.x}%`; d.style.top = `${st.y}%`; ov.appendChild(d); d.animate([{ opacity: 0, transform: 'scale(0)' }, { opacity: 1, transform: 'scale(1.6)' }, { opacity: .9, transform: 'scale(1)' }], { duration: 700, delay: i * 40, fill: 'forwards' }); });
+  }
+  ov.classList.add('is-done');
+  await sleep(reduceMotion() ? 400 : 1700);
+  await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: 'forwards' }).finished;
+  ov.remove();
+}
+
+function vSealed(L) {
+  const n = L.entries.reduce((a, e) => a + countWords(e.text), 0);
+  const stars = starPositions(L.id, 26);
+  const status = L.status === 'writing' ? `<span class="status"><i></i>${claudeState === 'off' ? 'Sealed and waiting for the letter writer' : 'Claude is writing quietly'}</span>`
+    : L.status === 'failed' ? `<span class="status err"><i></i>The letter couldn't be written yet</span>`
+    : `<span class="status ok"><i></i>Written and sealed until ${atTime(L)}</span>`;
+  return `<section class="skycard sealed">
+      ${stars.map((s) => `<i class="s" style="left:${s.x}%;top:${s.y * 0.7}%;--tw:${s.tw}s;--dl:${s.dl}s"></i>`).join('')}
+      <span class="mini-lantern" aria-hidden="true"></span>
+      <div class="env" aria-hidden="true"><div class="env-back"></div><div class="env-paper"><i></i><i style="width:80%"></i><i style="width:60%"></i></div><div class="env-pocket"></div><div class="env-flap"></div><div class="env-seal">${I.crescent}</div></div>
+      <h1 style="font:500 28px/1.2 var(--f-letter)">Sealed for the night.</h1>
+      <p style="color:var(--mist);max-width:40ch">${plural(n, 'word')} written at ${L.sealedAt || '—'}. Sleep well. It will be waiting here.</p>
+      <label class="pick" for="ltime"><span>Arrives at</span><select id="ltime">${timeOptions(atTime(L))}</select></label>
+      ${status}
+      ${L.status === 'failed' ? `<p class="notice warn" style="text-align:left">${esc(L.error)}</p><div class="row" style="justify-content:center"><button class="btn sm" data-retry="${L.id}">Try again</button></div>` : ''}
+      ${!canSkip() ? '' : isDemoSkip() ? `<button class="btn amber" data-act="skip" ${L.status === 'failed' ? 'disabled' : ''}>Skip to morning</button>
+      <p class="fine">Demo: Skip to morning shows the letter now. It doesn't change your device's clock.</p>`
+        : `<button class="btn secondary" data-act="readnow" ${L.status === 'failed' ? 'disabled' : ''}>Read it now</button>
+      <p class="fine">Can’t wait? That’s fine. You can turn this button off in You.</p>`}
+    </section>`;
+}
+
+/* ----- overnight: the night passes while Claude finishes ----- */
+const toMin = (s) => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+const fmtMin = (m) => { m = ((Math.round(m) % 1440) + 1440) % 1440; return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`; };
+async function overnight(L, { now: readNow = false } = {}) {
+  const layer = $('#layer');
+  const ov = document.createElement('div'); ov.className = 'overnight'; ov.setAttribute('role', 'status'); ov.setAttribute('aria-live', 'polite');
+  ov.innerHTML = `<div class="ov-sky ov-night"></div><div class="ov-sky ov-dawn"></div><span class="stars" aria-hidden="true"></span><span class="ov-moon" aria-hidden="true"></span><span class="ov-sun" aria-hidden="true"></span>
+    <div class="ov-body"><p class="ov-clock">${hhmm()}</p><p class="ov-text">The night passes…</p><p class="ov-note">Your device's clock doesn't change.</p></div>`;
+  layer.appendChild(ov);
+  const clock = ov.querySelector('.ov-clock'), txt = ov.querySelector('.ov-text');
+  const roll = (a, b, dur) => new Promise((res) => {
+    if (b <= a) b += 1440;
+    const t0 = performance.now();
+    const tick = (now) => { const k = Math.min(1, (now - t0) / dur); const e = k < .5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2; clock.textContent = fmtMin(a + (b - a) * e); k < 1 ? requestAnimationFrame(tick) : res(); };
+    requestAnimationFrame(tick);
+  });
+  const fast = reduceMotion();
+  if (readNow) {
+    const task = L.status === 'writing' && claudeState === 'ready' ? waitForLetter(L.id) : null;
+    clock.textContent = hhmm(); txt.textContent = task ? 'Claude is finishing your letter…' : 'Opening your letter…'; ov.querySelector('.ov-note').textContent = '';
+    if (task) await task; else await sleep(fast ? 50 : 900);
+    const done = findLetter(L.id);
+    if (!done || done.status !== 'ready') { await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'forwards' }).finished; ov.remove(); render(); if (done?.status === 'writing') toast(claudeState === 'ready' ? 'Still being written. It will be here soon.' : 'Your letter is sealed and waiting for the letter writer.'); return; }
+    patchLetter(L.id, { early: true }); go('letter', L.id);
+    await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: 'forwards' }).finished; ov.remove(); return;
+  }
+  requestAnimationFrame(() => ov.classList.add('is-late'));
+  const at = toMin(atTime(L)); const before = fmtMin(at - 20);
+  await roll(toMin(hhmm()), toMin(before), fast ? 200 : 2600);
+  const task = L.status === 'writing' && claudeState === 'ready' ? waitForLetter(L.id) : null;
+  if (task) {
+    txt.textContent = 'Claude is still writing your letter…';
+    const slow = setTimeout(() => { txt.textContent = 'Still writing. This can take up to a minute.'; }, 9000);
+    await task; clearTimeout(slow);
+  }
+  const now = findLetter(L.id);
+  if (!now || now.status !== 'ready') {
+    await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'forwards' }).finished; ov.remove(); render(); return;
+  }
+  ov.classList.add('is-dawn'); txt.textContent = 'Good morning. Your letter is here.';
+  await roll(toMin(before), at, fast ? 100 : 1500);
+  await sleep(fast ? 100 : 900);
+  patchLetter(L.id, { early: true });
+  go('letter', L.id);
+  await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: 'forwards' }).finished; ov.remove();
+}
+
+/* ----- letter ----- */
+let opening = null;
+let secHans = false;
+const secLabel = (k) => { const [en, zh, c, hans] = SECTIONS[k]; return `<h2 class="ls-label" style="--c:${c}"><b>${en}</b><span lang="${secHans ? 'zh-Hans' : 'zh-Hant-HK'}">${secHans ? hans : zh}</span></h2>`; };
+function vLetter() {
+  const L = findLetter(param);
+  if (!L) return `<p class="lead">This letter isn't here anymore.</p><button class="btn" data-go="letters">All letters</button>`;
+  if (!delivered(L)) return `<p class="lead">This letter arrives at ${atTime(L)}.</p><button class="btn" data-go="tonight">Back to tonight</button>`;
+  const c = L.content; const v = VOICES[c.voice || 'friend'] || VOICES.friend;
+  const lang = c.language === 'en' ? 'en' : c.language === 'zh-hans' ? 'hans' : 'zh';
+  secHans = c.language === 'zh-hans' || (c.language === 'en' && S.lang === 'zh-hans');
+  const greet = c.greeting ?? v[lang][0]; const sign = c.signoff ?? v[lang][1];
+  if (!L.readAt && opening !== L.id) {
+    return `<button class="btn ghost sm" data-go="letters" style="justify-self:start">${I.left} Letters</button>
+      <section class="skycard env-stage night">
+        <span class="stars" aria-hidden="true"></span>
+        <span class="k" style="color:var(--amber);position:relative">${fmtDay(L.date)}${L.sample ? ' · Kit’s sample' : ''}</span>
+        <h1 style="position:relative;font:500 26px/1.2 var(--f-letter)">From your ${esc(v.name)}</h1>
+        <div class="env" id="env"><div class="env-back"></div><div class="env-paper"><i></i><i style="width:80%"></i><i style="width:60%"></i></div><div class="env-pocket"></div><div class="env-flap"></div><div class="env-seal">${I.crescent}</div></div>
+        <button class="btn amber" data-openenv="${L.id}" style="position:relative">Open the letter</button>
+      </section>`;
+  }
+  const highlight = (e) => {
+    let html = esc(e.text);
+    for (const [i, a] of (c.analysis || []).entries()) if (a.quote && a.entryId === e.id) { const q = esc(a.quote); html = html.replace(q, `<mark id="q-${i}">${q}</mark>`); }
+    return html;
+  };
+  const p = progress(L);
+  const by = L.by === 'claude' ? `Written by ${L.model ? esc(L.model) : 'Claude'}. Every quote is checked against your words.`
+    : L.by === 'template' ? 'A plain template letter. No AI was available when it was written.'
+    : 'Kit’s sample letter, pre-written for the demo. Kit isn’t a real person.';
+  const fresh = opening === L.id; if (fresh) opening = null;
+  const insights = (c.analysis || []).slice(0, 2);
+  const enc = c.encouragement || c.closing;
+  return `<button class="btn ghost sm" data-go="letters" style="justify-self:start">${I.left} Letters</button>
+    <article class="letter ${fresh ? 'reveal' : ''}" lang="${{ en: 'en', 'zh-hans': 'zh-Hans' }[c.language] || 'zh-Hant-HK'}">
+      <div class="letter-meta" style="--i:0"><span class="k">${fmtDay(L.date)}${L.sample ? ' · sample' : ''}</span><span class="k">From your ${esc(v.name)}</span></div>
+      ${c.safetyConcern ? `<div class="notice warn" style="--i:0"><b>Please don't carry this alone.</b><span>Beyond isn't watched by a person. If you're struggling, people can help right now.</span><button class="btn sm" data-go="support" style="justify-self:start">See who to talk to</button></div>` : ''}
+      <header style="--i:1">${greet ? `<p class="greet">${esc(greet)}</p>` : ''}<h1 class="headline">${esc(c.headline)}</h1></header>
+      <section class="ls" style="--i:2">${secLabel('recap')}<div class="ls-body"><p>${esc(c.recap)}</p></div></section>
+      <section class="ls" style="--i:3">${secLabel('insight')}<div class="ls-body">
+        ${insights.map((a, i) => `<div class="insight"><b>${esc(a.title)}</b><p>${esc(a.text)}</p>${a.quote ? `<button class="quote" data-q="${i}" title="Show where you wrote this">“${esc(a.quote)}”</button>` : ''}</div>`).join('')}
+      </div></section>
+      ${c.challenge ? `<section class="ls" style="--i:4">${secLabel('challenge')}<div class="ls-body"><p class="issue">${esc(c.challenge.issue)}</p>${c.challenge.cause ? `<p class="cause"><b>Why</b><span>${esc(c.challenge.cause)}</span></p>` : ''}</div></section>` : ''}
+      <section class="ls" style="--i:5">${secLabel('improve')}<div class="ls-body"><p>${esc(c.advice.text)}</p></div></section>
+      ${enc || sign ? `<section class="ls" style="--i:6">${secLabel('encourage')}<div class="ls-body">${enc ? `<p>${esc(enc)}</p>` : ''}${sign ? `<p class="signoff">${esc(sign)}</p>` : ''}</div></section>` : ''}
+      <button class="todo-cta" data-todo="${L.id}" style="--i:7">${ring(L)}<span class="t"><b>Today's 3 to-dos</b><span>${p.complete ? 'All done. Gold seal earned.' : `${p.done} of ${p.need} done · tap to check them off`}</span></span>${I.right}</button>
+      <details class="words-d" style="--i:8"><summary>Your words from that night</summary>
+        <ul class="words">${L.entries.map((e) => `<li><span class="k">${esc(e.t || '')}</span><p>${highlight(e)}</p></li>`).join('')}</ul>
+      </details>
+      ${(() => { const learned = (S.memories || []).filter((m) => m.letterIds.includes(L.id)); return learned.length ? `<div class="remembers" style="--i:9"><span class="k">Beyond will remember</span><ul>${learned.map((m) => `<li>${esc(m.text)}</li>`).join('')}</ul><button class="link" data-go="you">See, edit or forget</button></div>` : ''; })()}
+      <div class="provenance" style="--i:9"><span>${by}</span>
+        <button class="toggle" role="switch" aria-checked="${!!L.private}" data-private="${L.id}"><span class="track"></span><span>Keep this night out of Patterns</span></button>
+      </div>
+    </article>`;
+}
+
+/* ----- to-do sheet ----- */
+let sheetId = null;
+function openSheet(id) { sheetId = id; drawSheet({ first: true }); }
+function closeSheet(rerender = true) { const w = $('.sheet-wrap'); if (w) w.remove(); if (sheetId) { sheetId = null; if (rerender) render(); } }
+function drawSheet({ first = false, burst = null, celebrate = false } = {}) {
+  const L = findLetter(sheetId); if (!L) return;
+  const p = progress(L); const c = L.content;
+  let w = $('.sheet-wrap');
+  if (!w) { w = document.createElement('div'); w.className = 'sheet-wrap'; $('#layer').appendChild(w); }
+  const still = first ? '' : 'style="animation:none"';
+  w.innerHTML = `<div class="sheet-bg" data-close ${still}></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-t" ${still}>
+      <div class="sheet-head">${ring(L, 52)}<div class="t"><span class="k">${fmtDay(L.date)}${L.sample ? ' · sample' : ''}</span><h2 id="sheet-t">Today's 3 to-dos</h2></div><button class="x" data-close aria-label="Close">${I.x}</button></div>
+      ${p.complete ? `<div class="alldone">${celebrate ? `<span class="ring is-done"><span class="n">${I.check}</span></span>` : ''}<b>${celebrate ? 'All done.' : 'Completed'}</b><span class="fine">${celebrate ? 'Small steps, actually taken. This letter now has a gold seal.' : 'This letter has a gold seal.'}</span></div>` : ''}
+      <ul class="todos">${c.steps.map((s, i) => { const st = L.actions?.[`step.${i}`]; return `<li class="todo ${st === 'tried' ? 'is-done' : ''} ${st === 'skipped' ? 'is-skipped' : ''}">
+        <button class="check ${burst === i ? 'pop' : ''}" data-check="${i}" aria-pressed="${st === 'tried'}" aria-label="${st === 'tried' ? 'Mark not done' : 'Mark done'}: ${esc(s.text)}"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></button>
+        <p>${esc(s.text)}</p>
+        <div class="todo-meta"><span>${s.minutes} min · ${esc(s.kind)}</span>${st === 'tried' ? '' : `<button data-skip="${i}">${st === 'skipped' ? 'Bring it back' : 'Not for me'}</button>`}</div>
+      </li>`; }).join('')}</ul>
+      <p class="fine">All optional. “Not for me” tells future letters to suggest something different.</p>
+      <button class="btn" data-close>Done</button>
+    </div>`;
+  if (!reduceMotion()) {
+    if (burst !== null) {
+      const b = w.querySelectorAll('.check')[burst];
+      for (let k = 0; k < 10; k++) { const sp = document.createElement('i'); sp.className = 'spark'; const a = (k / 10) * Math.PI * 2; sp.style.setProperty('--x', `${Math.cos(a) * 30}px`); sp.style.setProperty('--y', `${Math.sin(a) * 30}px`); if (k % 2) sp.style.background = 'var(--ember)'; b.appendChild(sp); }
+    }
+    if (celebrate) {
+      const sheet = w.querySelector('.sheet'); const cols = ['var(--gold)', 'var(--ember)', 'var(--amber)', 'var(--rose)', '#fff3d6'];
+      for (let k = 0; k < 26; k++) { const cf = document.createElement('i'); cf.className = 'confetti'; const a = Math.random() * Math.PI * 2, d = 80 + Math.random() * 120; cf.style.background = cols[k % cols.length]; cf.style.setProperty('--x', `${Math.cos(a) * d}px`); cf.style.setProperty('--y', `${Math.sin(a) * d * .7 + 60}px`); cf.style.setProperty('--r', `${Math.random() * 540 - 270}deg`); sheet.appendChild(cf); setTimeout(() => cf.remove(), 1400); }
+    }
+  }
+  if (first) w.querySelector('.check')?.focus({ preventScroll: true });
+}
+
+/* ----- letters list ----- */
+function vLetters() {
+  const list = allLetters();
+  const ready = list.filter(delivered);
+  const pending = S.letters.filter((l) => !delivered(l));
+  const groups = {};
+  for (const l of ready) (groups[l.date.slice(0, 7)] = groups[l.date.slice(0, 7)] || []).push(l);
+  const sealedCount = ready.filter((l) => progress(l).complete).length;
+  return `<header class="stack" style="gap:6px"><span class="k">${plural(ready.length, 'letter')} · ${sealedCount} gold ${sealedCount === 1 ? 'seal' : 'seals'}</span><h1 class="title">Letters</h1>
+      <p class="fine">Tap a letter to read it. Tap its circle to see that day's 3 to-dos.</p></header>
+    ${sampleBanner()}
+    ${pending.length ? `<button class="todo-cta" data-go="tonight"><span class="t"><b>On its way</b><span>Your letter for ${fmtDay(pending[0].date)} arrives at ${atTime(pending[0])}.</span></span>${I.right}</button>` : ''}
+    ${!ready.length ? `<div class="card stack"><p class="lead">No letters yet. Write tonight and the first one arrives tomorrow morning.</p><button class="btn" data-go="tonight" style="justify-self:start">Write tonight</button></div>` : ''}
+    ${Object.entries(groups).map(([m, ls]) => `<section class="month-group"><h2 class="k"><b>${MONTH[+m.slice(5) - 1]} ${m.slice(0, 4)}</b><span>${plural(ls.length, 'letter')}</span></h2>
+      ${ls.map((l) => { const d = parse(l.date); const p = progress(l); return `<div class="lrow">
+        <button class="lmain" data-open="${l.id}"><time>${d.getDate()}<small>${WD[d.getDay()]}</small></time>
+          <span class="head">${!l.readAt ? '<i class="new" aria-label="New"></i>' : ''}${esc(l.content.headline)}${l.sample ? '<span class="smp">sample</span>' : ''}</span></button>
+        <button class="ring-btn" data-todo="${l.id}" aria-label="To-dos for ${fmtDay(l.date)}: ${p.complete ? 'all done' : `${p.done} of ${p.need} done`}">${ring(l)}</button>
+      </div>`; }).join('')}
+    </section>`).join('')}`;
+}
+
+/* ----- patterns: Month · Year · Identity ----- */
+const PTABS = [['month', 'Month'], ['year', 'Year'], ['identity', 'Identity']];
+const DIRECTIONS = [
+  { key: 'young-entrepreneur', name: 'Young Entrepreneur', themes: ['business'], blurb: 'turning ideas into something people can use or buy' },
+  { key: 'maker-builder', name: 'Maker & Builder', themes: ['technology'], blurb: 'building things like apps, sites and prototypes' },
+  { key: 'creative-explorer', name: 'Creative Explorer', themes: ['creativity'], blurb: 'making things for the joy of making them' },
+  { key: 'curious-learner', name: 'Curious Learner', themes: ['learning'], blurb: 'following questions because they interest you' },
+  { key: 'community-builder', name: 'Community Builder', themes: ['community'], blurb: 'bringing people together and showing up for others' },
+  { key: 'world-explorer', name: 'World Explorer', themes: ['nature', 'travel'], blurb: 'getting outside and seeing new places' },
+];
+const SAMPLE_DIRS = { 'community-builder': 'confirmed', 'curious-learner': 'suggested', 'creative-explorer': 'suggested' };
+/* Pre-written notes for Kit's sample (so Month and Year show a note even offline). */
+const SAMPLE_NOTES = {
+  month: { anchor: ['l_d18', 'l_d19', 'l_d20', 'l_d21', 'l_d22', 'l_d23'], text: 'This month sounds different from the first weeks of term. Feeling alone came up only once, and even then you wrote “I didn’t feel lost after hanging up”. Most of your nights were about Tuesdays with the kids and Saturdays with the photo society, and on one of them you walked over to someone standing alone at the door, “exactly like me in my first week”. The question about your major is still open, but you’ve started answering it with real conversations instead of guesses.' },
+  year: { text: 'Your year so far started with a question about what to want next, and the first weeks at university were the loneliest stretch of it. After that, two threads kept growing: helping kids learn on Tuesdays, and asking questions in class until you forgot to check the time. You don’t have a job title in mind, and you don’t need one yet. What your nights point to is something you wrote yourself: “I like helping people figure things out”.' },
+};
+function sampleNote(key) {
+  if (!demoOn() || !SAMPLE.length) return null;
+  if (key.startsWith('Y')) return key.slice(1) === sampleDate(SAMPLE[SAMPLE.length - 1]).slice(0, 4) ? SAMPLE_NOTES.year.text : null;
+  const count = {}; for (const id of SAMPLE_NOTES.month.anchor) { const s = SAMPLE.find((x) => x.id === id); if (s) { const ym = sampleDate(s).slice(0, 7); count[ym] = (count[ym] || 0) + 1; } }
+  const best = Object.entries(count).sort((a, b) => b[1] - a[1])[0];
+  return best && best[0] === key ? SAMPLE_NOTES.month.text : null;
+}
+const FRAME = {
+  creativity: ['#a0704a', '#3a2519'], community: ['#68683f', '#23231a'], business: ['#86573a', '#2b1d15'], technology: ['#575d68', '#1d1f24'],
+  comparison: ['#5f4a5d', '#211a21'], uncertainty: ['#594d70', '#1e1a26'], loneliness: ['#4f5770', '#1a1d26'], friendship: ['#825465', '#2c1d23'], family: ['#704e5f', '#251a20'],
+  rest: ['#525066', '#1c1b23'], nature: ['#5b6b4d', '#1f251b'], learning: ['#5d5d74', '#202028'], study: ['#554e5d', '#1d1a20'], career: ['#64504d', '#231b1b'],
+};
+let pMonth = null; let pTheme = null; let yTheme = null; let pTip = null; let skyState = null;
+const autoDrawn = {};
+const keptLetters = () => allLetters().filter((l) => delivered(l) && !l.private);
+const realThemes = (l) => (l.content.themes || []).filter((t) => t !== 'ordinary' && t !== 'achievement');
+const lastDayOf = (ym) => { const [y, m] = ym.split('-').map(Number); return `${ym}-${pad(new Date(y, m, 0).getDate())}`; };
+const prevMonthOf = (ym) => { const [y, m] = ym.split('-').map(Number); return m === 1 ? `${y - 1}-12` : `${y}-${pad(m - 1)}`; };
+function monthKeys(list) { return [...new Set(list.map((l) => l.date.slice(0, 7)))].sort(); }
+function countThemes(ls) { const c = new Map(); for (const l of ls) for (const t of new Set(realThemes(l))) c.set(t, (c.get(t) || 0) + 1); return [...c.entries()].sort((a, b) => b[1] - a[1]); }
+
+function vPatterns() {
+  const tab = ['year', 'identity'].includes(param) ? param : 'month';
+  const body = tab === 'year' ? pYear() : tab === 'identity' ? pIdentity() : pMonthView();
+  const sub = { month: 'What took up this month, what changed, and what you did.', year: 'Your year as one sky, and one frame per month in your own words.', identity: 'Who you might be turning into, drawn only from letters you kept.' }[tab];
+  return `<header class="stack" style="gap:6px"><span class="k">Patterns</span><h1 class="title">Your patterns, not their highlight reel.</h1></header>
+    <nav class="seg" aria-label="Patterns views">${PTABS.map(([k, l]) => `<button data-ptab="${k}" ${tab === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
+    <p class="lead" style="margin-top:-12px">${sub}</p>
+    ${sampleBanner()}
+    ${body}`;
+}
+function skyCard(label, chips, selected) {
+  return `<section class="skycard" aria-label="${esc(label)}">
+      <span class="stars" aria-hidden="true"></span>
+      <div class="sky-head"><span class="k">${esc(label)}</span><span class="sky-legend"><span><i class="tone-dot tone-positive"></i>lighter night</span><span><i class="tone-dot tone-difficult"></i>heavier night</span></span></div>
+      <div class="sky" id="sky"></div>
+      ${chips.length ? `<div class="sky-chips" role="group" aria-label="Draw a theme's constellation">${chips.map(([t, c]) => `<button class="chip" data-theme="${t}" aria-pressed="${selected === t}">${esc(cap(THEMES[t]))}<small>${c}</small></button>`).join('')}</div>` : ''}
+    </section>`;
+}
+
+/* --- Month --- */
+function pMonthView() {
+  const list = keptLetters();
+  const months = monthKeys(list);
+  const cur = journalDate().slice(0, 7);
+  if (!pMonth || (!months.includes(pMonth) && pMonth !== cur)) {
+    const counts = Object.fromEntries(months.map((m) => [m, list.filter((l) => l.date.startsWith(m)).length]));
+    pMonth = (counts[cur] || 0) >= 3 ? cur : ([...months].reverse().find((m) => counts[m] >= 3) || months[months.length - 1] || cur);
+  }
+  const inMonth = list.filter((l) => l.date.startsWith(pMonth)).sort((a, b) => a.date.localeCompare(b.date));
+  const [y, m] = pMonth.split('-').map(Number);
+  const idx = months.indexOf(pMonth);
+  const older = idx === -1 ? months[months.length - 1] : months[idx - 1];
+  const newer = idx >= 0 ? months[idx + 1] : null;
+  const themes = countThemes(inMonth);
+  if (pTheme && !themes.some(([t]) => t === pTheme)) pTheme = null;
+  if (!autoDrawn[pMonth] && themes.length) { autoDrawn[pMonth] = true; const first = themes[0][0]; const forMonth = pMonth; setTimeout(() => { if (route === 'patterns' && !param && !pTheme && pMonth === forMonth) { pTheme = first; render(); } }, 1400); }
+  // what changed
+  const pk = prevMonthOf(pMonth); const prev = list.filter((l) => l.date.startsWith(pk));
+  const pc = new Map(countThemes(prev)); const tc = new Map(themes);
+  const changes = [...new Set([...tc.keys(), ...pc.keys()])].map((t) => ({ t, before: pc.get(t) || 0, after: tc.get(t) || 0 }))
+    .filter((c) => Math.abs(c.after - c.before) >= 2).sort((a, b) => Math.abs(b.after - b.before) - Math.abs(a.after - a.before)).slice(0, 3);
+  // what you did
+  let tried = 0, total = 0, seals = 0; const done = [];
+  for (const l of inMonth) { const p = progress(l); tried += p.done; total += p.total; if (p.complete) seals++; l.content.steps.forEach((st, i) => { if (l.actions?.[`step.${i}`] === 'tried') done.push({ text: st.text, id: l.id }); }); }
+  // still on your mind
+  const open = [...inMonth].reverse().flatMap((l) => (l.content.openQuestions || []).map((q) => ({ q, l }))).slice(0, 3);
+  const used = new Set();
+  const quoteFor = (t) => { for (const l of [...inMonth].reverse()) if (realThemes(l).includes(t)) { const a = (l.content.analysis || []).find((x) => x.quote && !used.has(x.quote)); if (a) { used.add(a.quote); return { q: a.quote, l }; } } return null; };
+  after.push(() => { skyState = { list: inMonth, from: `${pMonth}-01`, to: lastDayOf(pMonth), ticks: 'month', theme: () => pTheme }; drawSky(); });
+  const short = (ym) => MON[+ym.slice(5) - 1];
+  return `<div class="month-nav">
+      <button class="iconbtn" data-month="${older || ''}" ${older ? '' : 'disabled'} aria-label="Previous month">${I.left}</button>
+      <h2 class="h2">${MONTH[m - 1]} ${y}</h2>
+      <button class="iconbtn" data-month="${newer || ''}" ${newer ? '' : 'disabled'} aria-label="Next month">${I.right}</button></div>
+    ${skyCard(`${plural(inMonth.length, 'night')} written`, themes.slice(0, 6), pTheme)}
+    ${inMonth.length ? `<div class="qcards">
+      <section class="qcard"><h3 class="k">What took up your month</h3>
+        ${themes.slice(0, 3).map(([t, c]) => { const q = quoteFor(t); return `<div class="theme-line"><div class="tl-top"><b>${esc(cap(THEMES[t]))}</b><span class="fine">${c} of ${plural(inMonth.length, 'night')}</span></div><span class="bar"><i class="tone-positive" style="width:${(c / inMonth.length) * 100}%"></i></span>${q ? `<button class="quote" data-open="${q.l.id}">“${esc(q.q)}”</button>` : ''}</div>`; }).join('') || '<p class="fine">Mostly ordinary days.</p>'}
+      </section>
+      <section class="qcard"><h3 class="k">What changed since ${short(pk)}</h3>
+        ${!prev.length ? `<p class="fine">No kept letters from ${short(pk)} to compare with.</p>` : !changes.length ? `<p class="fine">About the same things came up as in ${short(pk)}.</p>`
+          : `<ul class="changes">${changes.map((c) => `<li><b>${esc(cap(THEMES[c.t]))}</b><span class="dots" aria-label="${c.before} nights in ${short(pk)}, ${c.after} this month"><span class="was">${'<i></i>'.repeat(Math.min(c.before, 10)) || '<em>none</em>'}</span><span class="arrow">→</span><span class="now">${'<i></i>'.repeat(Math.min(c.after, 10)) || '<em>none</em>'}</span></span><span class="fine">${c.after > c.before ? 'more' : 'less'} often</span></li>`).join('')}</ul>`}
+        <p class="fine">Counted in nights. “Less often” doesn't mean it's solved.</p>
+      </section>
+      <section class="qcard"><h3 class="k">What you did</h3>
+        <span class="big">${tried}<small> of ${total} to-dos</small></span>
+        ${seals ? `<p class="fine">${plural(seals, 'letter')} earned a gold seal.</p>` : ''}
+        ${done.length ? `<ul class="done-list">${done.slice(0, 4).map((x) => `<li><span class="tick">${I.check}</span><button class="link" data-open="${x.id}">${esc(x.text)}</button></li>`).join('')}</ul>` : '<p class="fine">Nothing ticked off this month. That’s fine; every to-do is optional.</p>'}
+      </section>
+      <section class="qcard"><h3 class="k">Still on your mind</h3>
+        ${open.length ? `<ul class="open-list">${open.map((o) => `<li><button class="quote" data-open="${o.l.id}">“${esc(o.q)}”</button><span class="fine">${fmtDay(o.l.date)}</span></li>`).join('')}</ul>` : '<p class="fine">No open questions in this month’s letters.</p>'}
+      </section>
+    </div>
+    ${noteCard(pMonth, `A note on ${MONTH[m - 1]}`, inMonth.length)}` : `<p class="lead">No kept letters in this month yet.</p>`}`;
+}
+
+/* --- Year --- */
+function pYear() {
+  const list = keptLetters().sort((a, b) => a.date.localeCompare(b.date));
+  if (!list.length) return `<p class="lead">Your year fills in as letters arrive. Each night you write becomes a star.</p>`;
+  const from = `${list[0].date.slice(0, 7)}-01`; const to = journalDate();
+  const themes = countThemes(list).slice(0, 5);
+  if (yTheme && !themes.some(([t]) => t === yTheme)) yTheme = null;
+  after.push(() => { skyState = { list, from, to, ticks: 'year', theme: () => yTheme }; drawSky(); });
+  const months = []; let k = from.slice(0, 7); const cur = to.slice(0, 7);
+  while (k <= cur) { months.push(k); const [yy, mm] = k.split('-').map(Number); k = mm === 12 ? `${yy + 1}-01` : `${yy}-${pad(mm + 1)}`; }
+  const usedQ = new Set();
+  const frames = months.map((ym) => {
+    const ls = list.filter((l) => l.date.startsWith(ym));
+    const top = countThemes(ls)[0]?.[0];
+    let q = null;
+    for (const l of [...ls].reverse()) { if (top && !realThemes(l).includes(top)) continue; const a = (l.content.analysis || []).find((x) => x.quote && !usedQ.has(x.quote)); if (a) { q = a.quote; usedQ.add(q); break; } }
+    return { ym, n: ls.length, top, q, finished: ym < cur, sample: ls.some((l) => l.sample) };
+  });
+  const [ny, nm] = cur.split('-').map(Number); const next = nm === 12 ? `${ny + 1}-01` : `${ny}-${pad(nm + 1)}`;
+  const year = to.slice(0, 4);
+  return `${skyCard(`${plural(list.length, 'night')} kept since ${MONTH[+from.slice(5, 7) - 1]}`, themes, yTheme)}
+    <section class="film-wrap" aria-labelledby="film-h">
+      <div class="film-head"><h2 id="film-h" class="h2">Your Life Film</h2><p class="fine">One frame per month, with a line you wrote that month. Nobody else is in it to compare against.</p></div>
+      <div class="film" tabindex="0" aria-label="Life Film frames">
+        ${frames.map((f) => { const [a, b] = FRAME[f.top] || ['#4a3328', '#1c1411']; return f.n
+          ? `<button class="frame" data-film="${f.ym}" style="--g:linear-gradient(160deg, ${a}, ${b})" aria-label="${MONTH[+f.ym.slice(5) - 1]}: open this month"><span class="k">${MON[+f.ym.slice(5) - 1]} ${f.ym.slice(0, 4)}${f.sample ? ' · sample' : ''}</span><p>${f.q ? `“${esc(f.q)}”` : esc(cap(THEMES[f.top] || 'an ordinary month'))}</p><span class="k">${f.finished ? plural(f.n, 'night') : `In progress · ${plural(f.n, 'night')}`}${f.top ? ` · ${esc(THEMES[f.top])}` : ''}</span></button>`
+          : `<div class="frame is-blank"><span class="k">${MON[+f.ym.slice(5) - 1]} ${f.ym.slice(0, 4)}</span><p>No letters.</p><span></span></div>`; }).join('')}
+        <div class="frame is-blank"><span class="k">${MON[+next.slice(5) - 1]} ${next.slice(0, 4)}</span><p>Not written yet.</p><span></span></div>
+      </div>
+    </section>
+    ${noteCard(`Y${year}`, `A note on your year so far`, list.filter((l) => l.date.startsWith(year)).length)}`;
+}
+
+/* --- notes written by the AI (month and year) --- */
+function noteCard(key, title, n) {
+  const sn = !S.notes[key] && sampleNote(key);
+  const note = S.notes[key] || (sn ? { text: sn, n, by: 'sample' } : null); const busy = noteInflight === key;
+  return `<section class="qcard note"><h3 class="k">${esc(title)}</h3>
+    ${note ? `<p>${esc(note.text)}</p><span class="fine">${note.by === 'sample' ? 'Kit’s sample note, pre-written for the demo.' : `Written by ${esc(note.by || 'Claude')} from ${plural(note.n, 'letter')}.`}</span>${note.n !== n ? `<button class="btn sm secondary" data-note="${key}" style="justify-self:start">Write it again</button>` : ''}`
+      : busy ? `<p class="writing">Reading your letters…</p>`
+      : claudeState === 'ready' ? `<p class="fine">A short note that quotes only your own words.</p><button class="btn sm amber" data-note="${key}" style="justify-self:start">Write this note</button>`
+      : `<p class="fine">Notes are written by Beyond’s letter writer, which isn’t switched on yet.</p>`}
+    ${noteErr && !busy ? `<p class="fine" style="color:var(--rose)">${esc(noteErr)}</p>` : ''}
+  </section>`;
+}
+let noteInflight = null; let noteErr = '';
+async function writeNote(key) {
+  if (claudeState !== 'ready' || noteInflight) return;
+  noteInflight = key; noteErr = ''; render();
+  try {
+    const n = await backend.writeNote(key);
+    S.notes[key] = { text: n.text, n: n.letter_count, by: n.model || 'Claude', at: n.created_at };
+  } catch (e) {
+    noteErr = e?.code === 'rate_limited' ? 'Today’s notes are used up. Try again tomorrow.' : e?.code === 'conflict' ? 'There are no kept letters here yet.' : 'The note couldn’t be written. Try again.';
+  }
+  noteInflight = null; if (route === 'patterns') render();
+}
+
+/* --- the sky (shared by Month and Year) --- */
+function drawSky() {
+  const el = $('#sky'); if (!el || !skyState) return;
+  const { list, from, to, ticks } = skyState; const theme = skyState.theme();
+  const W = el.clientWidth, H = el.clientHeight; const padX = Math.max(22, W * .05);
+  const span = Math.max(1, dayDiff(to, from));
+  const scale = W > 600 ? 1.4 : 1; const per = {};
+  const stars = list.map((l) => {
+    const r = seeded(l.id); const k = (per[l.date] = (per[l.date] || 0) + 1) - 1;
+    const t = dayDiff(l.date, from) / span; const wave = Math.sin(t * Math.PI * 2.2 + .6) * .18;
+    const yy = Math.max(24, Math.min(H - 44, H * (.44 + wave + (r() - .5) * .3)));
+    const size = ({ positive: 5.2, mixed: 4.4, ordinary: 3.8, difficult: 3.6 }[l.content.tone] || 4) * scale * (ticks === 'year' ? .85 : 1);
+    return { l, x: padX + t * (W - 2 * padX) + k * 12, y: yy, size, tw: 2.5 + r() * 3.5, dl: r() * 3 };
+  });
+  const chosen = theme ? stars.filter((s) => realThemes(s.l).includes(theme)) : [];
+  const path = chosen.map((s, i) => `${i ? 'L' : 'M'} ${s.x.toFixed(1)} ${s.y.toFixed(1)}`).join(' ');
+  let tickList = [];
+  if (ticks === 'month') { const days = dayDiff(to, from) + 1; tickList = [1, 8, 15, 22, 29].filter((d) => d <= days).map((d) => ({ x: padX + ((d - 1) / span) * (W - 2 * padX), label: String(d) })); }
+  else { let k = from.slice(0, 7); while (`${k}-01` <= to) { const off = dayDiff(`${k}-01`, from); tickList.push({ x: padX + (off / span) * (W - 2 * padX), label: MON[+k.slice(5) - 1] }); const [yy, mm] = k.split('-').map(Number); k = mm === 12 ? `${yy + 1}-01` : `${yy}-${pad(mm + 1)}`; } }
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${plural(stars.length, 'night')}${theme ? `, ${chosen.length} about ${esc(THEMES[theme])}` : ''}">
+    <defs><radialGradient id="glow"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".35" stop-color="#fbe9d2" stop-opacity=".35"/><stop offset="1" stop-color="#fbe9d2" stop-opacity="0"/></radialGradient></defs>
+    ${tickList.map((t) => `<g class="ns-tick"><line x1="${t.x}" x2="${t.x}" y1="${H - 26}" y2="${H - 20}"/><text x="${t.x}" y="${H - 8}" text-anchor="middle">${t.label}</text></g>`).join('')}
+    ${chosen.length > 1 ? `<path d="${path}" class="ns-line" pathLength="1"/>` : ''}
+    ${stars.map((s) => { const on = !theme || realThemes(s.l).includes(theme); return `<g class="ns-star tone-${s.l.content.tone} ${on ? '' : 'is-off'} ${pTip === s.l.id ? 'is-sel' : ''}" transform="translate(${s.x.toFixed(1)} ${s.y.toFixed(1)})" style="--tw:${s.tw}s;--dl:${s.dl}s" tabindex="0" role="button" aria-label="${esc(fmtDay(s.l.date))}: ${esc(s.l.content.headline)}" data-star="${s.l.id}"><circle r="${(s.size * 4.2).toFixed(1)}" class="halo" fill="url(#glow)"/><circle r="${s.size.toFixed(1)}" class="core"/><circle r="16" fill="transparent"/></g>`; }).join('')}
+    ${theme && chosen[0] ? `<text x="${Math.min(Math.max(chosen[0].x, 60), W - 60)}" y="${chosen[0].y - 18}" class="ns-label" text-anchor="middle">${esc(cap(THEMES[theme]))}</text>` : ''}
+  </svg>${!stars.length ? '<p class="ns-empty">No kept letters here yet. Each night you write becomes a star.</p>' : ''}`;
+  const tip = pTip && stars.find((s) => s.l.id === pTip);
+  if (tip) {
+    const up = tip.y > H / 2;
+    const d = document.createElement('div'); d.className = `ns-tip ${up ? 'up' : ''}`;
+    d.style.left = `${Math.min(Math.max(tip.x, 135), W - 135)}px`; d.style.top = `${up ? tip.y - 16 : tip.y + 16}px`;
+    d.innerHTML = `<span class="k">${fmtDay(tip.l.date)}${tip.l.sample ? ' · sample' : ''}</span><b>${esc(tip.l.content.headline)}</b><span class="fine">${realThemes(tip.l).map((t) => esc(THEMES[t])).join(' · ')}</span><button class="link" data-open="${tip.l.id}">Read the letter →</button>`;
+    el.appendChild(d);
+  }
+}
+
+/* --- Identity: who you might become --- */
+let identVeiled = true; let identFocus = null; let identRaf = 0;
+function directions() {
+  const list = keptLetters();
+  return DIRECTIONS.map((def) => {
+    const ev = list.filter((l) => (l.content.themes || []).some((t) => def.themes.includes(t))).sort((a, b) => b.date.localeCompare(a.date));
+    const days = new Set(ev.map((l) => l.date)).size; const months = new Set(ev.map((l) => l.date.slice(0, 7))).size;
+    const status = S.dirs?.[def.key] || (S.mode === 'sample' ? SAMPLE_DIRS[def.key] : null) || 'suggested';
+    const explanation = ev.length ? `${plural(ev.length, 'kept letter')}${months > 1 ? `, across ${months} months,` : ''} touch on ${def.blurb}, for example “${ev[0].content.headline}”. A possibility you might recognise in yourself, if it fits. Not a label.` : 'No kept letters support this right now.';
+    return { ...def, id: def.key, evidence: ev, days, status, sufficient: days >= 3, count: Math.max(1, ev.length), explanation };
+  });
+}
+function bubbleLayout(items, W, H) {
+  const out = {}; if (!W || !H) return out;
+  const maxCount = Math.max(1, ...items.map((d) => d.count)); const placed = []; let lastSize = Infinity;
+  const short = Math.min(W, H); const minD = Math.max(88, short * .2); const maxD = Math.max(minD + 40, Math.min(short * .46, 250));
+  [...items].sort((a, b) => b.count - a.count || a.key.localeCompare(b.key)).forEach((d, i) => {
+    let size = maxCount <= 1 ? (minD + maxD) / 2 : minD + (maxD - minD) * Math.sqrt((d.count - 1) / (maxCount - 1));
+    size = Math.min(size, lastSize); // never larger than a direction with more letters
+    const rnd = seeded(d.key); const cx0 = W * .46, cy0 = H * .5; let best = null;
+    for (let attempt = 0; attempt < 8 && !best; attempt++) {
+      const r = size / 2; const gap = attempt < 3 ? 22 : 12; // small screens: shrink until every direction fits
+      for (let k = 0; k < 1200; k++) {
+        const a = k * 2.399963 + rnd() * .6 + i; const dist = k === 0 && i === 0 ? 0 : 8 + Math.sqrt(k) * 9.5;
+        const x = cx0 + Math.cos(a) * dist * 1.35, y = cy0 + Math.sin(a) * dist * .85;
+        if (x - r < 12 || x + r > W - 12 || y - r < 12 || y + r > H - 12) continue;
+        if (placed.every((p) => Math.hypot(p.x - x, p.y - y) > p.r + r + gap)) { best = { x, y }; break; }
+      }
+      if (!best) size *= .82;
+    }
+    const r = size / 2;
+    if (!best) best = { x: Math.min(W - r - 12, Math.max(r + 12, cx0 + (rnd() - .5) * W * .6)), y: Math.min(H - r - 12, Math.max(r + 12, cy0 + (rnd() - .5) * H * .6)) };
+    placed.push({ ...best, r }); lastSize = size;
+    out[d.id] = { ...best, size, amp: 6 + rnd() * 10, ampY: 8 + rnd() * 12, period: 9000 + rnd() * 7000, phase: rnd() * Math.PI * 2 };
+  });
+  return out;
+}
+function pIdentity() {
+  const all = directions();
+  const visible = all.filter((d) => (d.status === 'confirmed' && d.evidence.length) || (d.status === 'suggested' && d.sufficient));
+  const hidden = all.filter((d) => d.status === 'dismissed' || d.status === 'removed');
+  const f = visible.find((d) => d.id === identFocus) || null;
+  if (!f) identFocus = null;
+  after.push(() => startBubbles(visible));
+  return `<section class="skycard ident">
+      <span class="stars" aria-hidden="true"></span>
+      <div class="sky-head"><span class="k">Who you might become</span><span class="sky-legend"><span>larger = more letters</span><span>lines = shared letters</span></span></div>
+      ${visible.length ? `<div class="stage ${identVeiled ? 'is-veiled' : ''} ${f ? 'has-focus' : ''}" id="stage">
+        <div class="stage-layer"><svg class="stage-links" aria-hidden="true"></svg></div>
+        <div class="veil"><span class="k" style="color:var(--amber)">Your field</span><h2>Bring it into focus.</h2><p>Directions gathered from your kept letters. The more often something appears, the larger it grows.</p><button class="btn amber" data-act="reveal">Open the map</button></div>
+      </div>` : `<div class="stage"><p class="ns-empty">A direction appears once kept letters from at least 3 different days point to it.</p></div>`}
+    </section>
+    ${f ? `<section class="card focus" aria-label="${esc(f.name)}">
+      <div class="focus-top"><span class="k" style="color:${f.status === 'confirmed' ? 'var(--amber)' : 'var(--faint)'}">${f.status === 'confirmed' ? 'Confirmed by you' : 'A possibility'}</span><button class="x-btn" data-bubble="" aria-label="Close">${I.x}</button></div>
+      <h2 class="focus-name">${esc(f.name)}</h2>
+      <p class="focus-expl">${esc(f.explanation)}</p>
+      <h3 class="k">Evidence · ${plural(f.evidence.length, 'letter')}, ${plural(f.days, 'day')}</h3>
+      <ul class="ev-list">${f.evidence.slice(0, 6).map((l) => `<li><span class="k">${fmtDay(l.date)}${l.sample ? ' · sample' : ''}</span><button class="link" data-open="${l.id}">${esc(l.content.headline)}</button></li>`).join('')}</ul>
+      <div class="row">${f.status === 'suggested' ? `<button class="btn sm amber" data-dir="${f.key}" data-st="confirmed">This fits me</button><button class="btn sm ghost" data-dir="${f.key}" data-st="dismissed">Not for me</button>` : `<button class="btn sm ghost" data-dir="${f.key}" data-st="removed">Remove from my map</button>`}</div>
+    </section>` : ''}
+    <section class="qcard"><h3 class="k">All directions</h3>
+      ${visible.length ? `<ul class="dir-list">${visible.map((d) => `<li><button class="link" data-bubble="${d.id}">${esc(d.name)}</button><span class="fine">${d.status === 'confirmed' ? '<b style="color:var(--amber)">Confirmed</b>' : 'Suggested'} · ${plural(d.evidence.length, 'letter')}</span></li>`).join('')}</ul>` : '<p class="fine">Nothing yet.</p>'}
+      ${hidden.length ? `<details class="words-d"><summary>Dismissed or removed (${hidden.length})</summary><ul class="dir-list" style="margin-top:10px">${hidden.map((d) => `<li><span>${esc(d.name)}</span><button class="btn sm ghost" data-dir="${d.key}" data-st="suggested">Restore</button></li>`).join('')}</ul></details>` : ''}
+      <p class="fine">Suggested only when kept letters from at least 3 different days point to it. Private letters are never used.</p>
+    </section>`;
+}
+function startBubbles(visible) {
+  cancelAnimationFrame(identRaf);
+  const stage = $('#stage'); if (!stage || !visible.length) return;
+  const W = stage.clientWidth, H = stage.clientHeight; const geo = bubbleLayout(visible, W, H);
+  const layer = stage.querySelector('.stage-layer'); const svg = stage.querySelector('.stage-links');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const edges = [];
+  for (let i = 0; i < visible.length; i++) for (let j = i + 1; j < visible.length; j++) {
+    const ids = new Set(visible[i].evidence.map((l) => l.id));
+    if (visible[j].evidence.some((l) => ids.has(l.id))) edges.push([visible[i].id, visible[j].id]);
+  }
+  svg.innerHTML = edges.map(([a, b]) => `<line data-e="${a}|${b}" class="${identFocus ? (a === identFocus || b === identFocus ? 'is-active' : 'is-dim') : ''}"/>`).join('');
+  for (const d of visible) {
+    const g = geo[d.id]; const fs = Math.max(13, Math.min(26, g.size / 7.6));
+    const b = document.createElement('button'); b.type = 'button';
+    b.className = `bubble is-${d.status} ${identFocus === d.id ? 'is-focused' : ''}`; b.dataset.bubble = d.id;
+    b.style.width = b.style.height = `${g.size}px`; b.tabIndex = identVeiled ? -1 : 0;
+    b.setAttribute('aria-label', `${d.name}, ${d.status === 'confirmed' ? 'confirmed' : 'suggested'}, ${plural(d.evidence.length, 'letter')}`);
+    b.innerHTML = `<span class="orb"><span class="orb-st">${d.status === 'confirmed' ? 'Confirmed' : 'Suggested'}</span><span class="orb-name" style="font-size:${fs}px">${esc(d.name)}</span><span class="orb-n">${plural(d.evidence.length, 'letter')}</span></span>`;
+    layer.appendChild(b); d.el = b;
+  }
+  const still = reduceMotion();
+  const pos = (id, t) => { const g = geo[id]; if (still) return g; const w = (t / g.period) * Math.PI * 2 + g.phase; return { x: g.x + Math.sin(w) * g.amp, y: g.y + Math.cos(w * .8) * g.ampY }; };
+  const lines = [...svg.querySelectorAll('line')];
+  const frame = (t) => {
+    if (!document.body.contains(stage)) return;
+    for (const d of visible) { const p = pos(d.id, t); d.el.style.transform = `translate3d(${p.x - geo[d.id].size / 2}px, ${p.y - geo[d.id].size / 2}px, 0)`; }
+    lines.forEach((ln, i) => {
+      const [a, b] = edges[i]; const pa = pos(a, t), pb = pos(b, t); const dx = pb.x - pa.x, dy = pb.y - pa.y, len = Math.hypot(dx, dy) || 1;
+      const ra = geo[a].size / 2 + 4, rb = geo[b].size / 2 + 4;
+      ln.style.visibility = len > ra + rb ? 'visible' : 'hidden';
+      ln.setAttribute('x1', pa.x + (dx / len) * ra); ln.setAttribute('y1', pa.y + (dy / len) * ra); ln.setAttribute('x2', pb.x - (dx / len) * rb); ln.setAttribute('y2', pb.y - (dy / len) * rb);
+    });
+    if (!still) identRaf = requestAnimationFrame(frame);
+  };
+  identRaf = requestAnimationFrame(frame);
+}
+
+/* ----- you ----- */
+let confirmDelete = false; let memEditing = null; let confirmAccount = false; let freshFor = null;
+function vYou() {
+  const own = S.letters.length;
+  const mems = allMemories();
+  const memRow = (m) => {
+    const src = m.kind === 'told' ? 'You told Beyond' : m.letterIds.map((id) => findLetter(id)).filter(Boolean).map((l) => `<button class="link" data-open="${l.id}">${fmtDay(l.date)}</button>`).join(', ') || 'From a letter';
+    if (memEditing === m.id) return `<li class="mem"><form class="mem-edit" data-memform="${m.id}"><label class="sr-only" for="mem-${m.id}">Edit memory</label><input id="mem-${m.id}" class="login-in" value="${esc(m.text)}" maxlength="140"><button class="btn sm amber" type="submit">Save</button><button class="btn sm ghost" type="button" data-memcancel>Cancel</button></form></li>`;
+    return `<li class="mem ${memoryInUse(m) && !S.memoryPaused ? '' : 'is-off'}"><p>${esc(m.text)}</p>
+      <span class="fine">${m.kind === 'told' ? src : `Learned from ${src}`}${m.sample ? ' · sample' : ''}${!memoryInUse(m) ? ' · Not used: its letter is kept out of Patterns' : ''}</span>
+      <span class="mem-acts">${m.sample ? '' : `<button class="link" data-memedit="${m.id}">Edit</button>`}<button class="link" data-memforget="${m.id}">Forget</button></span></li>`;
+  };
+  return `<header class="stack" style="gap:6px"><span class="k">You</span><h1 class="title">You</h1>
+      ${isGuest() ? `<p class="fine">Judge preview · ${AUTH.user.left ?? 0} AI letters left today. This journal belongs to your invite code only.</p>` : ''}</header>
+    <section class="setting" style="border-top:0;padding-top:0" id="memory"><h2 class="h2">Memory</h2>
+      <p class="fine">What your letters may remember about you. Each one shows where it came from. Forget anything, any time.</p>
+      ${mems.length ? `<ul class="mem-list">${mems.map(memRow).join('')}</ul>` : '<p class="fine">Nothing yet. Beyond learns at most two small things from a letter, and only things you wrote.</p>'}
+      <form class="mem-add" id="mem-add"><label class="sr-only" for="mem-new">Tell Beyond something to remember</label><input id="mem-new" class="login-in" placeholder="Tell Beyond something to remember…" maxlength="140"><button class="btn sm secondary" type="submit">Remember</button></form>
+      <button class="toggle" role="switch" aria-checked="${!!S.memoryPaused}" data-act="mem-pause"><span class="track"></span><span>Pause memory (letters won’t use it)</span></button>
+    </section>
+    <section class="setting"><h2 class="h2">Who writes your letters</h2><div class="voices" role="group" aria-label="Letter voice">${voiceCards()}</div><p class="fine">Applies to your next letter. The voice changes tone only, never the facts.</p></section>
+    <section class="setting"><h2 class="h2">Letters</h2>
+      <div class="row"><label class="pick" for="dtime"><span>Arrives at</span><select id="dtime">${timeOptions(deliverTime())}</select></label>
+      <label class="pick" for="ylang"><span>Language</span><select id="ylang">${LANGS.map(([k, l]) => `<option value="${k}" ${(S.lang || 'auto') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
+      <p class="fine">Auto writes back in the language you wrote in. Your own words are always quoted exactly as you wrote them.</p>
+      <button class="toggle" role="switch" aria-checked="${S.allowEarly !== false}" data-act="toggle-early"><span class="track"></span><span>Let me open a letter right away (“Read it now”)</span></button>
+      <p class="fine">Beyond is built around sleeping on it, but it’s your letter. Turn this off if you’d rather not be tempted.</p></section>
+    <section class="setting"><h2 class="h2">Demo mode</h2>
+      <button class="toggle" role="switch" aria-checked="${demoOn()}" data-act="toggle-sample"><span class="track"></span><span>Show Kit's sample journal and the Skip to morning button</span></button>
+      <p class="fine">For showing Beyond to others. Kit is fictional; the 18 sample letters show what months of Beyond look like. Leave it off for your own journal.</p></section>
+    <section class="setting"><h2 class="h2">AI</h2>
+      <p>${claudeState === 'checking' ? 'Connecting…' : claudeState === 'ready' ? `Letters are written by ${esc(aiLabel)} through Beyond’s letter service, after you seal a night.` : 'Beyond’s letter writer isn’t switched on yet. Sealed nights wait safely and are written as soon as it is.'}</p>
+      <p class="fine">The AI sees only the entry it writes about, the headlines of a few earlier letters, and your memories (unless paused). It never sees letters you keep out of Patterns.</p></section>
+    <section class="setting"><h2 class="h2">Your data</h2>
+      <p>Saved to your Beyond account${AUTH.user?.email ? ` (${esc(AUTH.user.email)})` : ''}, private to you. Nothing you write is kept in this browser.</p>
+      ${freshFor ? `<form class="mem-add" id="reauth-form"><label class="sr-only" for="reauth-pw">Password</label><input id="reauth-pw" class="login-in" type="password" autocomplete="current-password" placeholder="Your password" required><button class="btn sm amber" type="submit">Confirm it’s you</button><button class="btn sm ghost" type="button" data-act="reauth-google">Use Google</button></form><p class="fine">For your safety, downloading or deleting needs a fresh sign-in.</p>` : ''}
+      <div class="row"><button class="btn secondary sm" data-act="export">Download a copy</button></div>
+      ${confirmDelete ? `<div class="notice warn"><b>Delete ${plural(own, 'letter')}, your memories and everything you wrote?</b><span>This can't be undone. Download a copy first if you might want it. Your account stays, empty.</span><div class="row"><button class="btn sm" data-act="delete-yes">Delete everything</button><button class="btn sm secondary" data-act="delete-no">Keep it</button></div></div>`
+        : `<button class="btn ghost sm" data-act="delete" style="justify-self:start">Delete my journal</button>`}
+      ${!ACCOUNT.deletion ? '' : confirmAccount ? `<div class="notice warn"><b>Delete your Beyond account?</b><span>Your account and everything in it are removed for good within a few minutes. This can't be undone.</span><div class="row"><button class="btn sm" data-act="delete-account-yes">Delete my account</button><button class="btn sm secondary" data-act="delete-account-no">Keep it</button></div></div>`
+        : `<button class="btn ghost sm" data-act="delete-account" style="justify-self:start">Delete my account</button>`}
+    </section>
+    <section class="setting"><h2 class="h2">Talk to someone</h2><p>Beyond is a journal, not a crisis service.</p><button class="btn secondary sm" data-go="support" style="justify-self:start">Human support in Hong Kong</button></section>
+    ${AUTH.auth ? '<section class="setting"><button class="btn ghost sm" data-act="logout" style="justify-self:start">Sign out</button></section>' : ''}`;
+}
+/* ----- sign in: Beyond accounts (email and password, or Google) ----- */
+let loginMode = 'signin'; let loginNote = '';
+function vLogin() {
+  after.push(() => ($('#password-new') || $('#email'))?.focus());
+  const m = loginMode;
+  const title = { signin: 'Write tonight. A letter by morning.', signup: 'Start your journal.', forgot: 'Reset your password.', reset: 'Choose a new password.', sent: 'Check your email.' }[m];
+  const google = m === 'signin' || m === 'signup' ? `<button class="btn secondary" type="button" data-act="google">Continue with Google</button>` : '';
+  const fields = m === 'reset'
+    ? `<label for="password-new" class="sr-only">New password</label><input id="password-new" class="login-in" type="password" autocomplete="new-password" placeholder="New password (8+ characters)" minlength="8" required>`
+    : m === 'sent' ? ''
+    : `<label for="email" class="sr-only">Email</label><input id="email" class="login-in" type="email" autocomplete="email" placeholder="Email" required>${m === 'forgot' ? '' : `<label for="password" class="sr-only">Password</label><input id="password" class="login-in" type="password" autocomplete="${m === 'signup' ? 'new-password' : 'current-password'}" placeholder="${m === 'signup' ? 'Password (8+ characters)' : 'Password'}" minlength="${m === 'signup' ? 8 : 1}" required>`}`;
+  const submit = { signin: 'Sign in', signup: 'Create account', forgot: 'Send reset link', reset: 'Save password' }[m];
+  const switches = {
+    signin: `<button class="link" data-login="signup">New here? Create an account</button> · <button class="link" data-login="forgot">Forgot password?</button>`,
+    signup: `<button class="link" data-login="signin">Already have an account? Sign in</button>`,
+    forgot: `<button class="link" data-login="signin">Back to sign in</button>`,
+    reset: '',
+    sent: `<button class="link" data-login="signin">Back to sign in</button>`,
+  }[m];
+  return `<section class="welcome login">
+      <div class="lantern-wrap" style="--k:.85;--b:1.05" aria-hidden="true"><div class="lantern"></div></div>
+      <span class="k" style="color:var(--amber)">Beyond</span>
+      <h1 class="title">${title}</h1>
+      ${m === 'sent' ? `<p class="lead" style="max-width:36ch">${esc(loginNote)}</p>` : `<form class="login-form" id="login-form">${fields}<button class="btn amber" type="submit">${submit}</button>${google}</form>
+      <p class="fine" id="login-err" role="alert">${esc(loginNote)}</p>`}
+      <p class="fine">${switches}</p>
+      <p class="fine">${backend.configured ? 'Your journal is private to your account. Nothing you write is kept in this browser.' : 'This copy of Beyond isn’t connected to its backend yet.'}</p>
+      <p class="fine"><a class="link" href="/">About Beyond</a> · <a class="link" href="/#/privacy">Privacy</a></p>
+    </section>`;
+}
+async function exportJournal() {
+  try {
+    toast('Preparing your copy…');
+    const data = JSON.stringify(await backend.exportAll(), null, 1);
+    const filename = `beyond-journal-${journalDate()}.json`;
+    const url = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+    const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000); toast('Saved a copy of your journal.');
+  } catch (e) { needFreshSignIn(e, 'export'); }
+}
+function vSupport() {
+  return `<button class="btn ghost sm" data-back style="justify-self:start">${I.left} Back</button>
+    <header class="stack" style="gap:8px"><span class="k">Human support · Hong Kong</span><h1 class="title">Talk to someone tonight.</h1>
+      <p class="lead">Beyond isn't watched by a person and can't respond in an emergency. A morning letter is never emergency help. These people can help right now, free and confidential.</p></header>
+    <ul class="help-list">${SUPPORT.map((s) => `<li class="help"><b>${esc(s.phone || s.url.replace('https://', ''))}</b><span>${esc(s.name)} · ${esc(s.note)}</span>${s.url ? `<a class="btn sm secondary" href="${s.url}" target="_blank" rel="noreferrer">Open</a>` : `<button class="btn sm secondary" data-copy="${esc(s.phone)}">Copy</button>`}</li>`).join('')}</ul>
+    <p class="fine">Checked on 8 Oct 2026 against Mind HK's “Find help now” page. Outside Hong Kong, call your local emergency number.</p>`;
+}
+
+/* ---------- toast ---------- */
+function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg; $('#layer').appendChild(t); setTimeout(() => t.remove(), 2600); }
+
+/* ---------- events ---------- */
+document.addEventListener('click', async (ev) => {
+  const star = ev.target.closest('[data-star]');
+  if (star) { pTip = pTip === star.dataset.star ? null : star.dataset.star; return drawSky(); }
+  const el = ev.target.closest('button, a, [data-close]');
+  if (!el) { if (route === 'patterns' && pTip && !ev.target.closest('.ns-tip')) { pTip = null; drawSky(); } return; }
+  const d = el.dataset;
+  if (d.close !== undefined) return closeSheet();
+  if (d.check !== undefined) {
+    const L = findLetter(sheetId); const k = `step.${d.check}`; const actions = { ...(L.actions || {}) };
+    const before = progress(L).complete;
+    if (actions[k] === 'tried') delete actions[k]; else actions[k] = 'tried';
+    patchLetter(L.id, { actions });
+    const nowDone = progress({ ...L, actions }).complete;
+    return drawSheet({ burst: actions[k] === 'tried' ? +d.check : null, celebrate: nowDone && !before });
+  }
+  if (d.skip !== undefined) {
+    const L = findLetter(sheetId); const k = `step.${d.skip}`; const actions = { ...(L.actions || {}) };
+    const before = progress(L).complete;
+    if (actions[k] === 'skipped') delete actions[k]; else actions[k] = 'skipped';
+    patchLetter(L.id, { actions });
+    return drawSheet({ celebrate: progress({ ...L, actions }).complete && !before });
+  }
+  if (d.todo) return openSheet(d.todo);
+  if (d.go) return go(d.go);
+  if (d.open) { pTip = null; return go('letter', d.open); }
+  if (d.back !== undefined) { if (history.length > 1) history.back(); else go('you'); return; }
+  if (d.imode) { if (voice.state === 'rec') stopRecording(); if (voice.state === 'dictate') voice.state = 'idle'; S.inputMode = d.imode; save(); return render(); }
+  if (d.memedit) { memEditing = d.memedit; return render(); }
+  if (d.memcancel !== undefined) { memEditing = null; return render(); }
+  if (d.memforget) {
+    const m = allMemories().find((x) => x.id === d.memforget); if (!m) return;
+    if (m.sample) S.hiddenSampleMem = [...(S.hiddenSampleMem || []), m.id];
+    else return forgetMemory(m);
+    save(); toast('Forgotten.'); return render();
+  }
+  if (d.slang) {
+    S.speechLang = d.slang; save(); paintVoice();
+    if (voice.state === 'rec') { voice.relisten = true; stopRecording(); }
+    return;
+  }
+  if (d.lang) { S.lang = d.lang; save(); document.querySelectorAll('[data-lang]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lang === S.lang))); return; }
+  if (d.voice) { S.voice = d.voice; save(); document.querySelectorAll('[data-voice]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.voice === S.voice))); if (route === 'you') toast(`Your next letter comes from your ${VOICES[S.voice].name}`); return; }
+  if (d.month !== undefined) { if (!d.month) return; pMonth = d.month; pTheme = null; pTip = null; return render(); }
+  if (d.theme) { if (param === 'year') yTheme = yTheme === d.theme ? null : d.theme; else pTheme = pTheme === d.theme ? null : d.theme; pTip = null; return render(); }
+  if (d.ptab) { pTip = null; identFocus = null; return go('patterns', d.ptab === 'month' ? null : d.ptab); }
+  if (d.film) { pMonth = d.film; pTheme = null; pTip = null; return go('patterns'); }
+  if (d.note) return writeNote(d.note);
+  if (d.bubble !== undefined) { identVeiled = false; identFocus = d.bubble && identFocus !== d.bubble ? d.bubble : null; render(); if (identFocus) $('.focus')?.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'nearest' }); return; }
+  if (d.dir) { S.dirs = { ...(S.dirs || {}), [d.dir]: d.st }; save(); const name = DIRECTIONS.find((x) => x.key === d.dir)?.name; toast({ confirmed: `${name} is now on your map.`, dismissed: 'Dismissed. It won’t be suggested again unless you restore it.', removed: 'Removed from your map.', suggested: 'Restored to suggestions.' }[d.st]); if (d.st !== 'confirmed') identFocus = null; return render(); }
+  if (d.q !== undefined) {
+    const det = $('details.words-d'); if (det) det.open = true;
+    const m = $(`#q-${d.q}`); if (m) { m.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'center' }); m.classList.add('is-flash'); setTimeout(() => m.classList.remove('is-flash'), 1600); } return;
+  }
+  if (d.private) { const L = findLetter(d.private); const next = !L.private; patchLetter(L.id, { private: next }); toast(next ? 'Kept out of Patterns. The letter stays here.' : 'This night is back in Patterns.'); return render(); }
+  if (d.openenv) {
+    const env = $('#env'); el.disabled = true;
+    if (env) env.classList.add('is-open');
+    await sleep(reduceMotion() ? 50 : 1500);
+    opening = d.openenv; patchLetter(d.openenv, { readAt: new Date().toISOString() });
+    render(); window.scrollTo(0, 0); return;
+  }
+  if (d.retry) { writeLetter(d.retry); return render(); }
+  if (d.login) { loginMode = d.login; loginNote = ''; return render(); }
+  if (d.copy) { try { await navigator.clipboard.writeText(d.copy); toast(`Copied ${d.copy}`); } catch (e) { const r = document.createRange(); r.selectNodeContents(el.parentElement.querySelector('b')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } return; }
+  switch (d.act) {
+    case 'start-sample': S.mode = 'sample'; welcomeStep = 1; save(); return render();
+    case 'start-own': S.mode = 'own'; welcomeStep = 1; save(); return render();
+    case 'toggle-early': S.allowEarly = S.allowEarly === false; save(); toast(S.allowEarly ? '“Read it now” is on.' : 'Letters will wait for the morning.'); return render();
+    case 'mem-pause': S.memoryPaused = !S.memoryPaused; save(); toast(S.memoryPaused ? 'Memory paused. Letters won’t use it.' : 'Memory is on again.'); return render();
+    case 'export': return exportJournal();
+    case 'logout': return signOut();
+    case 'google': try { el.disabled = true; await backend.google(); } catch (e) { el.disabled = false; loginNote = 'Google sign-in isn’t available right now.'; render(); } return;
+    case 'reauth-google': try { await backend.google(); } catch (e) { toast('Google sign-in isn’t available right now.'); } return;
+    case 'delete-account': confirmAccount = true; return render();
+    case 'delete-account-no': confirmAccount = false; return render();
+    case 'delete-account-yes': el.disabled = true; return deleteAccount();
+    case 'finish-welcome': S.onboarded = true; save(); return go('tonight');
+    case 'own': S.mode = 'own'; save(); toast('Demo mode is off. Turn it back on in You.'); pMonth = null; return render();
+    case 'toggle-sample': S.mode = S.mode === 'sample' ? 'own' : 'sample'; pMonth = null; save(); return render();
+    case 'seal': el.disabled = true; return seal();
+    case 'orb': return orbTap();
+    case 'readnow': { const L = S.letters.find((l) => !delivered(l)); if (L) { el.disabled = true; return overnight(L, { now: true }); } return; }
+    case 'skip': { const L = S.letters.find((l) => !delivered(l)); if (L) { el.disabled = true; return overnight(L); } return; }
+    case 'reveal': identVeiled = false; return render();
+    case 'delete': confirmDelete = true; return render();
+    case 'delete-no': confirmDelete = false; return render();
+    case 'delete-yes': el.disabled = true; return clearJournal();
+  }
+});
+document.addEventListener('submit', async (ev) => {
+  const f = ev.target; ev.preventDefault();
+  if (f.id === 'login-form') return submitLogin(f);
+  if (f.id === 'reauth-form') return submitReauth(f);
+  if (f.id === 'mem-add') {
+    const t = clip($('#mem-new').value, 140); if (!t) return;
+    return addMemory(t);
+  }
+  if (f.dataset.memform) {
+    const t = clip(f.querySelector('input').value, 140); const m = S.memories.find((x) => x.id === f.dataset.memform);
+    memEditing = null;
+    if (m && t && t !== m.text) return editMemory(m, t);
+    render();
+  }
+});
+document.addEventListener('change', async (ev) => {
+  const t = ev.target;
+  if (t.id === 'dtime') { S.deliverTime = t.value; save(); toast(`New letters will arrive at ${t.value}.`); }
+  if (t.id === 'ylang') { S.lang = t.value; save(); }
+  if (t.id === 'tdtime' || t.id === 'ltime') {
+    S.deliverTime = t.value; save();
+    if (t.id === 'ltime') { const L = S.letters.find((l) => !delivered(l)); if (L) patchLetter(L.id, { deliverAt: deliverAtFor(L.date) }); }
+    toast(`Your letter${t.id === 'ltime' ? '' : 's'} will arrive at ${t.value}.`); if (t.id === 'ltime') render();
+  }
+});
+document.addEventListener('keydown', (ev) => {
+  const g = ev.target.closest?.('[data-star]');
+  if (g && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); pTip = g.dataset.star; drawSky(); $(`[data-star="${pTip}"]`)?.focus(); }
+  if (ev.key === 'Escape') { if ($('.sheet-wrap')) closeSheet(); else if (pTip) { pTip = null; drawSky(); } }
+});
+let rz, lastW = window.innerWidth;
+window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (route !== 'patterns') return; if (param === 'identity') { if (Math.abs(window.innerWidth - lastW) > 40) render(); } else drawSky(); lastW = window.innerWidth; }, 150); });
+
+/* ---------- boot ---------- */
+function start() {
+  if (S.onboarded && ['welcome', 'login'].includes(route)) route = 'tonight';
+  if (route === 'login') route = 'tonight';
+  render(); stateReady = true;
+}
+/* ---------- Beyond account glue ----------
+   Everything below connects the views above to your account. Journal text is
+   only ever in memory here; the backend is the single source of truth. */
+let synced = null; // settings as the server last confirmed them
+let ACCOUNT = { deletion: false, letters: false, voice: false };
+let syncing = false; let syncAgain = false;
+const SETTING_FIELDS = [['voice', 'voice'], ['lang', 'letter_language'], ['deliverTime', 'delivery_time'], ['allowEarly', 'allow_early'], ['memoryPaused', 'memory_paused'], ['onboarded', 'onboarded'], ['dirs', 'directions']];
+const settingValue = (k) => (k === 'dirs' ? { ...(S.dirs || {}) } : k === 'allowEarly' ? S.allowEarly !== false : k === 'memoryPaused' || k === 'onboarded' ? !!S[k] : S[k]);
+function applySettings(s) {
+  synced = s;
+  S.voice = s.voice; S.lang = s.letter_language; S.deliverTime = s.delivery_time; S.allowEarly = s.allow_early;
+  S.memoryPaused = s.memory_paused; S.onboarded = s.onboarded; S.dirs = { ...(s.directions || {}) };
+}
+async function syncSettings() {
+  if (!synced) return;
+  if (syncing) { syncAgain = true; return; }
+  const patch = {};
+  for (const [k, f] of SETTING_FIELDS) { const v = settingValue(k); if (JSON.stringify(v) !== JSON.stringify(synced[f])) patch[f] = v; }
+  if (!Object.keys(patch).length) return;
+  syncing = true;
+  try { synced = await backend.updateSettings(patch, synced.revision); }
+  catch (e) {
+    if (e?.code === 'conflict') { try { synced = await backend.settings(); syncAgain = true; } catch (x) { /* next change retries */ } }
+    else if (e?.code !== 'unauthorized') toast('Couldn’t save that setting. Check your connection.');
+  }
+  syncing = false;
+  if (syncAgain) { syncAgain = false; syncSettings(); }
+}
+
+/* Letters as the views expect them. */
+function toLetter(x) {
+  return {
+    id: x.id, entryId: x.entry_id, date: x.journal_date,
+    entries: x.entry ? [{ id: x.entry.id, t: hhmm(new Date(x.entry.created_at)), text: x.entry.text }] : [],
+    status: x.status === 'queued' ? 'writing' : x.status, content: x.content, deliverAt: x.deliver_at,
+    sealedAt: hhmm(new Date(x.created_at)), readAt: x.read_at, actions: { ...(x.steps || {}) }, private: x.private,
+    createdAt: x.created_at, early: x.early, by: x.status === 'ready' ? 'claude' : null, model: x.model,
+    error: x.error ? ERR[x.error] || ERR.unavailable : null, revision: x.revision,
+  };
+}
+function mergeLetter(x) {
+  const next = toLetter(x); const i = S.letters.findIndex((l) => l.id === next.id);
+  const was = i === -1 ? null : S.letters[i].status;
+  if (i === -1) S.letters.push(next); else S.letters[i] = next;
+  // A newly written letter may have taught Beyond something: show it with the letter.
+  if (was === 'writing' && next.status === 'ready') memoriesTask = refreshMemories();
+  return next;
+}
+let memoriesTask = null;
+async function refreshMemories() {
+  try { S.memories = (await backend.memories()).map(toMemory); } catch (e) { /* shown on the next refresh */ }
+}
+function toMemory(m) {
+  return {
+    id: m.id, text: m.text, kind: m.kind, revision: m.revision, sourceEntryId: m.source_entry_id,
+    get letterIds() { return this.sourceEntryId ? S.letters.filter((l) => l.entryId === this.sourceEntryId).map((l) => l.id) : []; },
+  };
+}
+function toNotes(list) { const out = {}; for (const n of list) out[n.key] = { text: n.text, n: n.letter_count, by: n.model || 'Claude', at: n.created_at }; return out; }
+
+/* One request at a time per letter, so ticks and opens arrive in order. */
+const letterQueues = new Map();
+function sendLetterPatch(L, body, before) {
+  const prev = letterQueues.get(L.id) || Promise.resolve();
+  const next = prev.then(async () => {
+    try { const fresh = mergeLetter(await backend.updateLetter(L.id, body)); if (sheetId === fresh.id) drawSheet(); }
+    catch (e) {
+      const cur = S.letters.find((l) => l.id === L.id);
+      if (cur) Object.assign(cur, { readAt: before.readAt, early: before.early, private: before.private, actions: before.actions, deliverAt: before.deliverAt });
+      toast(e?.code === 'forbidden' ? '“Read it now” is turned off in You.' : 'Couldn’t save that. Check your connection.');
+      if (!document.querySelector('.ascend, .overnight')) { if (sheetId) drawSheet(); else render(); }
+    }
+  });
+  letterQueues.set(L.id, next);
+  return next;
+}
+
+/* Sealing saves the night to your account, then asks for its letter. A retry of
+   the same words reuses the same key, so a flaky connection never saves twice. */
+let sealKey = null; let sealText = null;
+async function sealNight(text, date) {
+  if (sealText !== text) { sealKey = crypto.randomUUID(); sealText = text; }
+  const x = await backend.seal(text, sealKey, date, deliverAtFor(date));
+  sealKey = null; sealText = null;
+  const L = mergeLetter(x);
+  watchLetters();
+  return L;
+}
+
+/* While a letter is being written, look again now and then. */
+let watchTimer = null;
+function watchLetters() {
+  clearTimeout(watchTimer);
+  if (!AUTH.user) return;
+  const writing = S.letters.some((l) => l.status === 'writing');
+  watchTimer = setTimeout(async () => { await refresh(); watchLetters(); }, writing && claudeState === 'ready' ? 15000 : 120000);
+}
+function waitForLetter(id, ms = 150000) {
+  if (inflight.has(id)) return inflight.get(id);
+  const task = (async () => {
+    const t0 = Date.now();
+    while (Date.now() - t0 < ms) {
+      await sleep(3500);
+      try { mergeLetter(await backend.letter(id)); } catch (e) { break; }
+      const L = S.letters.find((l) => l.id === id);
+      if (!L || L.status !== 'writing') break;
+    }
+    if (memoriesTask) await memoriesTask;
+    inflight.delete(id);
+  })();
+  inflight.set(id, task);
+  return task;
+}
+let refreshing = null;
+async function refresh() {
+  if (!AUTH.user || refreshing) return refreshing;
+  refreshing = (async () => {
+    try {
+      const before = JSON.stringify(S.letters.map((l) => [l.id, l.status, l.revision]));
+      const deliveredBefore = S.letters.filter(delivered).length;
+      const [letters, memories, notes] = await Promise.all([backend.letters(), backend.memories(), backend.notes()]);
+      S.letters = letters.map(toLetter); S.memories = memories.map(toMemory); S.notes = toNotes(notes);
+      const changed = before !== JSON.stringify(S.letters.map((l) => [l.id, l.status, l.revision])) || deliveredBefore !== S.letters.filter(delivered).length;
+      const busy = document.querySelector('.ascend, .overnight, .sheet-wrap') || (route === 'tonight' && $('#entry') && document.activeElement === $('#entry')) || memEditing;
+      if (changed && !busy) render();
+    } catch (e) { /* offline for a moment: keep what's here */ }
+    refreshing = null;
+  })();
+  return refreshing;
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { refresh(); if (claudeState !== 'ready') checkAI(); } });
+setInterval(() => {
+  // A sealed letter arrives at its time even if nothing else happens.
+  if (!AUTH.user || route !== 'tonight' || document.querySelector('.ascend, .overnight, .sheet-wrap')) return;
+  const sealed = S.letters.find((l) => !delivered(l));
+  if (!sealed && $('.skycard.sealed')) render();
+}, 30000);
+
+/* Memory */
+async function addMemory(text) {
+  try { const m = await backend.createMemory(text, crypto.randomUUID()); S.memories = [...S.memories, toMemory(m)]; toast('Beyond will remember that.'); }
+  catch (e) { toast('Couldn’t save that. Check your connection.'); }
+  render();
+}
+async function editMemory(m, text) {
+  try { const x = await backend.updateMemory(m.id, text, m.revision); S.memories = S.memories.map((y) => (y.id === m.id ? toMemory(x) : y)); }
+  catch (e) { toast(e?.code === 'conflict' ? 'That memory changed elsewhere. Showing the latest.' : 'Couldn’t save that. Check your connection.'); await refresh(); }
+  render();
+}
+async function forgetMemory(m) {
+  try { await backend.deleteMemory(m.id); S.memories = S.memories.filter((x) => x.id !== m.id); toast('Forgotten. Beyond won’t learn it again from old letters.'); }
+  catch (e) { toast('Couldn’t forget that just now. Try again.'); }
+  render();
+}
+
+/* Account */
+function needFreshSignIn(e, action) {
+  if (e?.code === 'forbidden') { freshFor = action; if (route !== 'you') go('you'); else render(); setTimeout(() => $('#reauth-pw')?.focus(), 50); return; }
+  toast(e?.code === 'unauthorized' ? 'Please sign in again.' : 'That didn’t work. Check your connection and try again.');
+}
+async function submitReauth(f) {
+  const btn = f.querySelector('button[type=submit]'); btn.disabled = true;
+  try {
+    await backend.reauth($('#reauth-pw').value);
+    const action = freshFor; freshFor = null; render();
+    if (action === 'export') return exportJournal();
+    if (action === 'clear') return clearJournal();
+    if (action === 'account') return deleteAccount();
+  } catch (e) { btn.disabled = false; toast('That password didn’t work.'); }
+}
+async function clearJournal() {
+  const keep = { voice: S.voice, letter_language: S.lang, delivery_time: S.deliverTime, allow_early: S.allowEarly !== false, onboarded: true };
+  try {
+    await backend.clearAll();
+    confirmDelete = false;
+    S.letters = []; S.memories = []; S.notes = {}; S.dirs = {}; S.draft = '';
+    try { const fresh = await backend.settings(); synced = await backend.updateSettings(keep, fresh.revision); applySettings(synced); } catch (e) { /* defaults are fine */ }
+    toast('Your journal was deleted.'); render();
+  } catch (e) { confirmDelete = false; needFreshSignIn(e, 'clear'); }
+}
+async function deleteAccount() {
+  try {
+    await backend.deleteAccount();
+    resetToLogin('Your account is being deleted. Everything in it will be gone within a few minutes.');
+  } catch (e) { confirmAccount = false; needFreshSignIn(e, 'account'); }
+}
+async function signOut() {
+  try { await backend.signOut(); } catch (e) { /* the local session is gone either way */ }
+  resetToLogin('');
+}
+function resetToLogin(note) {
+  clearTimeout(watchTimer); closeSheet(false);
+  AUTH = { auth: true, user: null }; synced = null;
+  const prefs = loadPrefs(); S = { ...fresh(), ...prefs };
+  loginMode = 'signin'; loginNote = note || ''; route = 'login'; param = null;
+  try { history.replaceState(null, '', '/app'); } catch (e) { /* fine */ }
+  render();
+}
+async function submitLogin(f) {
+  const btn = f.querySelector('button[type=submit]'); btn.disabled = true; loginNote = '';
+  const err = (msg) => { loginNote = msg; const p = $('#login-err'); if (p) p.textContent = msg; btn.disabled = false; };
+  const email = $('#email')?.value.trim(); const password = $('#password')?.value || '';
+  try {
+    if (loginMode === 'signin') return signedIn(await backend.signIn(email, password));
+    if (loginMode === 'signup') {
+      if (password.length < 8) return err('Use at least 8 characters for your password.');
+      const user = await backend.signUp(email, password);
+      if (user) return signedIn(user);
+      loginMode = 'sent'; loginNote = 'We sent you a link to confirm your email. Open it on this device to start your journal.'; return render();
+    }
+    if (loginMode === 'forgot') { await backend.resetPassword(email); loginMode = 'sent'; loginNote = 'If that email has a Beyond account, a reset link is on its way. Open it on this device.'; return render(); }
+    if (loginMode === 'reset') {
+      const pw = $('#password-new').value; if (pw.length < 8) return err('Use at least 8 characters for your password.');
+      await backend.updatePassword(pw); toast('Your new password is saved.');
+      const user = await backend.session(); return user ? signedIn(user) : resetToLogin('Sign in with your new password.');
+    }
+  } catch (e) {
+    err(e?.code === 'auth_failed' ? (loginMode === 'signin' ? 'That email and password don’t match. Try again, or reset your password.' : 'That didn’t work. Check the details and try again.') : 'Can’t reach Beyond. Check your connection.');
+  }
+}
+async function loadAll() {
+  const [settings, letters, memories, notes, account] = await Promise.all([backend.settings(), backend.letters(), backend.memories(), backend.notes(), backend.account().catch(() => ACCOUNT)]);
+  applySettings(settings); ACCOUNT = account;
+  S.letters = letters.map(toLetter); S.memories = memories.map(toMemory); S.notes = toNotes(notes);
+  claudeState = account.letters ? 'ready' : 'off'; SERVER_STT = !!account.voice;
+  // Letters are timed in the zone you write in.
+  try { const tz = Intl.DateTimeFormat().resolvedOptions().timeZone; if (tz && tz !== settings.timezone) synced = await backend.updateSettings({ timezone: tz }, settings.revision); } catch (e) { /* keep the old zone */ }
+}
+async function signedIn(user) {
+  AUTH = { auth: true, user };
+  $('#app').innerHTML = '<div class="booting"><div class="lantern"></div></div>';
+  try { await loadAll(); }
+  catch (e) { AUTH = { auth: true, user: null }; synced = null; loginNote = e?.code === 'unauthorized' || e?.code === 'forbidden' ? 'Please sign in again.' : 'Beyond couldn’t load your journal. Check your connection and try again.'; route = 'login'; render(); return; }
+  try { history.replaceState(null, '', `/app${location.hash}`); } catch (e) { /* fine */ }
+  readHash(); start(); watchLetters();
+}
+async function boot(callback) {
+  setAmbient('full');
+  $('#app').innerHTML = '<div class="booting"><div class="lantern"></div></div>';
+  backend.onSignedOut(() => resetToLogin('You were signed out. Sign in again to continue.'));
+  if (!backend.configured) { route = 'login'; render(); return; }
+  if (new URLSearchParams(location.search).has('signup')) loginMode = 'signup';
+  if (callback) {
+    try { await backend.completeCallback(); } catch (e) { loginNote = 'That sign-in link didn’t work. It may have expired; try again.'; }
+  }
+  let user = null;
+  try { user = await backend.session(); } catch (e) { loginNote = 'Can’t reach Beyond. Check your connection.'; }
+  if (user && backend.recovering()) { AUTH = { auth: true, user }; loginMode = 'reset'; route = 'login'; render(); return; }
+  if (!user) { route = 'login'; try { history.replaceState(null, '', `/app${location.search.includes('signup') ? '?signup=1' : ''}`); } catch (e) { /* fine */ } render(); return; }
+  return signedIn(user);
+}
+boot(location.pathname.startsWith('/auth/callback'));
+
+}
+
+

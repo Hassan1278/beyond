@@ -6,7 +6,7 @@ import {
   entrySchema,
   memorySchema,
   todoSchema,
-  reflectionSchema,
+  letterSchema,
 } from '@beyond/shared';
 import { isAllowedBrowserOrigin, type WritingConfig } from './config-parser';
 import { hasRecentSignIn } from './account';
@@ -54,20 +54,20 @@ export function createAccountExportHandler(
       const cursor = query.cursor ? decodeCursor(query.cursor) : null;
       const value = await rpc(config, fetcher, headers, 'account_export_page', {
         p_section: query.section,
-        p_limit: query.section === 'settings' ? null : limit + 1,
+        p_limit: ['settings', 'notes'].includes(query.section) ? null : limit + 1,
         p_before_created_at: cursor?.created_at ?? null,
         p_before_id: cursor?.id ?? null,
       });
       let result: unknown;
-      if (query.section === 'settings') result = value;
+      if (query.section === 'settings' || query.section === 'notes') result = value;
       else {
         const row =
           query.section === 'entries'
             ? entrySchema
             : query.section === 'memories'
               ? memorySchema
-              : query.section === 'reflections'
-                ? reflectionSchema
+              : query.section === 'letters'
+                ? letterSchema
                 : todoSchema;
         const batch = accountExportMetadataSchema
           .extend({ section: z.literal(query.section), items: row.array().max(limit + 1) })

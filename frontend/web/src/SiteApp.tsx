@@ -1,20 +1,16 @@
 'use client';
 /**
- * The site and the app demo, in one build.
+ * The marketing site, with hash routes so it works on any static host.
  *
  *   #/ #/problem #/how ...   short site pages
- *   #/app                    the phone demo
+ *   /app                     the journal itself (its own page, real accounts)
  *
- * Inside #/app there are two shells. On a phone (or an installed PWA) Beyond
- * fills the screen and behaves like the app; on a laptop it opens inside the
- * phone frame with the flow list and the notes you pitch from. `?mode=app` or
- * `?mode=present` forces either one.
+ * Old #/app links go straight to /app. The interactive pieces on the site
+ * (one tonight, patterns) use clearly fictional demo content only.
  */
-import { useEffect, useState, type ReactElement } from 'react';
-import { SCREENS } from '@beyond/app-ui/data/content';
+import { useEffect, type ReactElement } from 'react';
 import { PAGES } from './data/site';
-import { BeyondProvider, useBeyond } from '@beyond/app-ui/state/store';
-import { PresenterShell } from './presenter/PresenterShell';
+import { DemoProvider } from './demo/store';
 import { SiteShell } from './site/SiteShell';
 import { HomePage } from './site/pages/HomePage';
 import { ProblemPage } from './site/pages/ProblemPage';
@@ -24,13 +20,7 @@ import { PrivacyPage } from './site/pages/PrivacyPage';
 import { InstitutionsPage } from './site/pages/InstitutionsPage';
 import { BetaPage } from './site/pages/BetaPage';
 import { useRoute } from './router';
-import { AppPhone } from '@beyond/app-ui';
-import { webRuntime } from './runtime';
 import { useRouteTransition, useRevealOnScroll } from './site/motion';
-
-type Shell = 'app' | 'present';
-
-const PHONE = '(max-width: 820px)';
 
 const SITE: Record<string, () => ReactElement> = {
   '/': HomePage,
@@ -48,84 +38,24 @@ const MOVED: Record<string, string> = {
   '/schools': '/institutions',
 };
 
-function forcedShell(): Shell | null {
-  const p = new URLSearchParams(window.location.search).get('mode');
-  return p === 'app' || p === 'present' ? p : null;
-}
-
-function naturalShell(): Shell {
-  const standalone =
-    window.matchMedia('(display-mode: standalone)').matches ||
-    ('standalone' in window.navigator && Boolean(window.navigator.standalone));
-  return standalone || window.matchMedia(PHONE).matches ? 'app' : 'present';
-}
-
-/** The app as the phone sees it: no bezel, no notes, nothing around it. */
-function AppShell(): ReactElement {
-  return <AppPhone />;
-}
-
-/** #/app, and #/app/<screen> to open the demo on one screen. */
-function Demo({ sub }: { sub: string }): ReactElement {
-  const { go } = useBeyond();
-  const [shell, setShell] = useState<Shell>(() =>
-    new URLSearchParams(window.location.search).get('demo') === '1'
-      ? (forcedShell() ?? naturalShell())
-      : 'app',
-  );
-
-  useEffect(() => {
-    const match = SCREENS.find((s) => s.id === sub);
-    if (match) go(match.id);
-    // Only on entry: afterwards the hash follows the screen, not the other way.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (forcedShell() || new URLSearchParams(window.location.search).get('demo') !== '1') return;
-    const mq = window.matchMedia(PHONE);
-    const onChange = (): void => setShell(naturalShell());
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
-
-  useEffect(() => {
-    document.body.dataset.mode = shell;
-  }, [shell]);
-
-  return shell === 'app' ? (
-    <AppShell />
-  ) : (
-    <PresenterShell
-      onOpenApp={() => {
-        setShell('app');
-        window.scrollTo({ top: 0 });
-      }}
-    />
-  );
-}
-
-function Routes(): ReactElement {
+function Routes(): ReactElement | null {
   const path = useRoute();
-  const isDemo = path === '/app' || path.startsWith('/app/');
-
-  // The visible page lags the URL just long enough for the old one to leave.
+  const isApp = path === '/app' || path.startsWith('/app/');
   const resolved = MOVED[path] ?? path;
   const { shown, leaving } = useRouteTransition(resolved, 220);
-  const visible = isDemo ? path : shown;
-  useRevealOnScroll(visible);
+  useRevealOnScroll(shown);
 
   useEffect(() => {
-    if (!isDemo) document.body.dataset.mode = 'site';
-  }, [isDemo, path]);
+    if (isApp) window.location.replace('/app');
+    else document.body.dataset.mode = 'site';
+  }, [isApp, path]);
 
-  if (isDemo) return <Demo sub={path.slice('/app/'.length)} />;
-
-  const Page = SITE[visible] ?? HomePage;
+  if (isApp) return null;
+  const Page = SITE[shown] ?? HomePage;
   const navMeta = PAGES.find((p) => p.path === resolved) ?? PAGES[0];
   return (
     <SiteShell path={navMeta.path} time={navMeta.time}>
-      <div className={`page${leaving ? ' is-leaving' : ''}`} key={visible}>
+      <div className={`page${leaving ? ' is-leaving' : ''}`} key={shown}>
         <Page />
       </div>
     </SiteShell>
@@ -133,16 +63,9 @@ function Routes(): ReactElement {
 }
 
 export default function SiteApp(): ReactElement {
-  const path = useRoute();
-  const isApp = path === '/app' || path.startsWith('/app/');
-  const demo = !isApp || new URLSearchParams(window.location.search).get('demo') === '1';
   return (
-    <BeyondProvider
-      key={demo ? 'demo' : 'product'}
-      demo={demo}
-      runtime={demo ? undefined : webRuntime()}
-    >
+    <DemoProvider>
       <Routes />
-    </BeyondProvider>
+    </DemoProvider>
   );
 }

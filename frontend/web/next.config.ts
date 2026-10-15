@@ -1,6 +1,6 @@
 import type { NextConfig } from 'next';
 const config: NextConfig = {
-  transpilePackages: ['@beyond/shared', '@beyond/app-ui'],
+  transpilePackages: ['@beyond/shared'],
   async headers() {
     return [
       {

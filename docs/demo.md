@@ -1,9 +1,24 @@
-# Demo and connected app
+# Demo
 
-Run `npm run dev:web` from the root. The marketing site is `/#/`; the real private app is `/#/app` with configured Supabase/API environments. The real app never substitutes demo accounts/history if configuration fails.
+**Site.** `/#/` is the marketing site.
 
-The existing pitch presentation is `/?demo=1#/app`, with `mode=present` or `mode=app` to choose the shell. Its letters/themes/history are explicitly fictional and have no provider calls. The original typography, palette, CSS, marketing SVG feed, QR/presenter and screens are retained after moving source into web/shared workspaces. Run `npm run test:design` and `npm run test:palette` to render/check those original designs.
+- "Try one night" and the Patterns section use fictional, scripted content.
+- They never call the backend and forget what a visitor types.
 
-Product demonstrations use fictional fixture accounts on local Supabase and the real backend: login, writing/editing/reload, approved memories, tasks, export/content clear/logout/owner isolation. While production AI is deferred, real letter/pattern/Wrapped areas stay empty. Do not imply model results, voice recording or deployment are working. Speak remains disabled for the current text MVP.
+**Journal with Kit's sample.**
 
-The old pitch offline cache is retired. An installed old worker deletes only Beyond-owned cache entries and unregisters; product content is never cached offline. Remaining work is listed in the [README](../README.md#whats-left).
+1. Sign in at `/app`.
+2. Choose **See an example first (demo)** on the welcome screen, or turn on **Demo mode** in You.
+
+Kit's fictional letters (a few months of them) appear next to your own, labelled "sample", with pre-written month and year notes.
+
+- **Skip to morning** plays the overnight animation and opens a sealed letter right away.
+- Kit's letters live only in the page. Turning demo mode off hides them.
+- Your own nights still go to your account and are written by the real letter service.
+
+**Recording a demo.**
+
+- **Without AI keys:** sealing works and the letter waits. Use Kit's sample for the morning, Patterns and Identity views.
+- **With keys:** seal a night, wait about a minute for the scheduled writer (or use **Read it now**), and the real letter arrives.
+
+Use a fictional account and fictional words when recording. Everything you seal in your own journal is saved to that account.

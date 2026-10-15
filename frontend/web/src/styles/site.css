@@ -158,6 +158,10 @@ body[data-mode='site'] .wrap {
   text-decoration: none;
   flex: none;
 }
+.nav .btn {
+  flex: none;
+  white-space: nowrap;
+}
 .nav-links {
   display: flex;
   gap: 20px;

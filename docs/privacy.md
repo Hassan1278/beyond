@@ -1,14 +1,36 @@
 # Data handling
 
-See [API reference](api.md) and [AI service](ai-service.md) for exact bounds, routes and privacy limits.
+See [API reference](api.md) and [AI service](ai-service.md) for exact bounds, routes and limits. The public summary is the site's Privacy page (`/#/privacy`).
 
-- Journals and approved memories/todos are owner-scoped in Postgres through RLS and validated RPCs. Server calls verify Auth and active profiles; both direct DB reads and RPCs require a live owned Auth session ID. Original payload/key/context/queue/quota columns are private.
-- Production drafts/content live in app memory and backend, not localStorage/sessionStorage/offline caches. Web stores only Auth credentials in sessionStorage and nonprivate theme preference in localStorage. Native credentials use encrypted, byte-bounded SecureStore chunks. Explicit demos may persist fictional data under their separate demo key.
-- Switching accounts/logout aborts requests, clears visible data/drafts and fences old responses. Logout erases owned credentials even when server revocation cannot be confirmed; failures are reported without private upstream details. Downloaded exports are user-owned copies and must be kept private.
-- Export/clear/account deletion require a recent non-refresh sign-in in API and DB. Exports are paginated current live resources, not a consistent snapshot, with no stored server copies. Content clear scrubs originals/current content and linked jobs/results, resets preferences and retains only content-free retired keys. Auth deletion removes residual owned metadata too.
-- Reflection processing requires explicit per-entry revision consent. AI receives only that live text, bounded approved memories and owned explicit corrections. Pausing memory excludes both kinds of historical context. No database admin credentials cross the service boundary. Writing never depends on AI health/configuration.
-- Jobs store metadata only, not copied journal text. Leased input reads/commits validate current source/account/context. Edits/deletions and forgotten/paused context cancel pending work and remove derived results/tasks. Accepted-action retries do not resurrect explicitly deleted todos. Standalone todos remain independent.
-- Optional account deletion durably blocks the account and purges product data before hard Auth deletion. Configure and verify its scheduler before enabling. No private media exists yet; any future Storage/media introduction must extend cleanup before rollout.
-- No private payloads, credentials, provider outputs or upstream exception bodies belong in logs. Use fictional fixtures only. Production AI provider/transcription/retention/safety policy is the AI owner's later release gate. Provider processing is not end-to-end encryption; there is no perfect safety claim.
+- **Ownership.** Nights, letters, notes, memories, to-dos and settings are owner-scoped in Postgres through RLS and validated RPCs.
+  - Server calls verify Auth and active profiles. Direct reads and RPCs require a live owned Auth session.
+  - Original payloads, idempotency keys, job/lease metadata, note source ids, forgotten-memory hashes and AI quotas are private columns or tables.
+- **The browser.**
+  - Journal text, drafts and letters are held in page memory only, never in localStorage, sessionStorage or offline caches.
+  - The Supabase session (tokens only) is in sessionStorage, so closing the tab signs out.
+  - localStorage holds only display choices: write or speak, speech language, demo mode, and the site's theme.
+  - The site's fictional demo keeps what a visitor types in memory only, and clears the storage older versions used.
+- **Sealing is consent.**
+  - Saving a night alone sends nothing anywhere. Sealing it asks for one letter.
+  - The letter writer then receives only what [the contract](ai-service.md#post-v1letters) lists: that night's words, voice and language, visible memories unless paused, and outlines of up to four earlier letters kept in Patterns.
+  - It never receives email, name, account or user ids, other nights, private letters, or forgotten memories.
+  - The AI service has no database or admin credentials and stores nothing. Provider requests carry only the prompt.
+- **Learned memory.**
+  - A letter may learn at most two short things, only from that night's words, and none when it senses a safety concern. Health, mental-health, sexual, religious, political, financial and other people's private details are excluded by the rules.
+  - Each memory shows its source and can be edited or forgotten. Forgotten text is kept only as a SHA-256 hash of its normalized form, so it is never relearned.
+  - A learned memory is used only while a letter it came from is kept in Patterns.
+- **Invalidation.**
+  - Editing or deleting a night deletes its letter. Deleting a night also scrubs memories learned from it.
+  - Changing, forgetting or pausing memory cancels any letter being written with the old context; it is picked up again with the new one.
+  - Keeping a letter private deletes notes built on it.
+- **Voice.** When transcription is on, a recording is sent once through the API to the AI service and the provider, and only the words come back. Nothing is stored. Otherwise the browser's own speech recognition or the keyboard's dictation is used.
+- **Export, clearing, deletion.**
+  - These require a sign-in within the last five minutes; the app asks for the password, or Google, again.
+  - Export pages are current live records, not a snapshot.
+  - Clearing removes letters, notes, jobs, memories, to-dos and nights, and resets settings.
+  - Account deletion blocks the account, purges everything including AI usage counts, then deletes the Auth user.
+- **Limits.**
+  - Each person gets 6 letters, 10 notes and 40 transcriptions a day, plus the existing request budget.
+  - Logs never contain journal text, credentials, provider output or upstream error bodies. Tests use fictional content only.
 
-Hosted backups, provider retention and users' exported copies have independent lifecycles. This code does not claim to erase those instantly. Voice/media/transcription and real analytics remain deferred.
+This is access isolation, not end-to-end encryption: the backend and the AI provider read what they process. Hosted backups, the provider's own retention, and copies a person downloads have lifecycles that deletion here cannot reach. Review the provider's retention terms before real users write.

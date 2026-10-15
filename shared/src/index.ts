@@ -28,4 +28,4 @@ export * from './schemas/product';
 export * from './schemas/export';
 export * from './schemas/account';
 export { createApiClient, ApiClientError } from './api/client';
-export * from './schemas/reflections';
+export * from './schemas/letters';

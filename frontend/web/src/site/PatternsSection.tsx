@@ -4,10 +4,10 @@
  * a separate feature.
  */
 import type { ReactElement } from 'react';
-import { TRENDS } from '@beyond/app-ui/data/content';
+import { TRENDS } from '../demo/content';
 import { MEMORY_POINTS } from '../data/site';
-import { monthSoFar } from '@beyond/app-ui/lib/date';
-import { useBeyond } from '@beyond/app-ui/state/store';
+import { monthSoFar } from '../demo/date';
+import { useDemo } from '../demo/store';
 import { WrappedStrip } from './WrappedStrip';
 
 const W = 96;
@@ -39,7 +39,7 @@ function Spark({ w, up }: { w: number[]; up: boolean }): ReactElement {
 }
 
 export function PatternsSection(): ReactElement {
-  const { state, dispatch } = useBeyond();
+  const { state, dispatch } = useDemo();
 
   return (
     <>

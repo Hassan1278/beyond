@@ -1,6 +1,6 @@
 import { accountSchema, clearedAccountDataSchema } from '@beyond/shared';
 import { hasRecentSignIn, parseAccountConfig } from './account';
-import { parseReflectionConfig } from './reflections';
+import { aiStatus, parseAiServiceConfig } from './letters';
 import { requireBudget } from './budget';
 import {
   isAllowedBrowserOrigin,
@@ -46,13 +46,12 @@ export function createAccountDataHandler(
         if (!result.success) fail('internal_error');
         return withCors(dataResponse(result.data), origin);
       }
-      let deletion = false,
-        reflections = false;
+      let deletion = false;
+      let ai = null;
       try {
-        parseReflectionConfig(env);
-        reflections = true;
+        ai = parseAiServiceConfig(env);
       } catch {
-        /* disabled until the independent service is configured */
+        /* letters stay queued until the AI service is configured */
       }
       try {
         parseAccountConfig(env);
@@ -60,11 +59,16 @@ export function createAccountDataHandler(
       } catch {
         /* optional feature is disabled */
       }
+      const status = await aiStatus(ai, fetcher);
       return withCors(
         dataResponse(
           accountSchema.parse({
             status: 'active',
-            capabilities: { account_deletion: deletion, reflections, voice_transcription: false },
+            capabilities: {
+              account_deletion: deletion,
+              letters: status.letters,
+              voice_transcription: status.transcribe,
+            },
           }),
         ),
         origin,

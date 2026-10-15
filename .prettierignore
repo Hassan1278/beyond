@@ -10,3 +10,9 @@ test-results/
 *.tsbuildinfo
 supabase/.temp/
 supabase/.branches/
+
+# Ported verbatim from the Beyond prototype; kept in its original layout so
+# later changes to the prototype can be compared and carried over line by line.
+frontend/web/src/journal/app.js
+frontend/web/src/journal/journal.css
+frontend/web/src/journal/sample.json

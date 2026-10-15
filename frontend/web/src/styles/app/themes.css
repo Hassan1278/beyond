@@ -1,0 +1,113 @@
+/* Two palettes: Candle (the app's own) and Bloom.
+ *
+ * Every theme redefines the same token set, so nothing in the rest of the CSS
+ * needs to know which one is active. Each keeps the structure the design
+ * depends on - a dark night, a light paper, one accent that carries the dawn -
+ * but moves hue, chroma and value far enough that the page is unmistakably a
+ * different colour, not the same page with a different detail.
+ *
+ * The first pass tinted only the near-black and the near-white, which is
+ * exactly where hue is invisible: at 4% and 96% lightness every palette looks
+ * the same. So the paper carries real colour, the night is lifted until its
+ * hue reads, and the mid-tones - mist, the hairlines, the soft inks, which
+ * together outnumber every other token - are pulled toward the theme as well.
+ *
+ * Named for their character rather than for an audience.
+ *
+ * Contrast for every text-on-surface pair is checked by scripts/contrast.mjs.
+ */
+
+/* Candle - the default, from the journal app's own grading. Warm charcoal,
+   cream, an amber dawn: the same light the app is written in. */
+:root,
+:root[data-theme='candle'] {
+  --night: #15100e;
+  --night-2: #201815;
+  --night-3: #2d231e;
+  --night-line: #3c3029;
+  --paper: #f6ecdf;
+  --paper-2: #ece2d3;
+  --paper-hi: #fcf7f0;
+  --paper-line: #d9cbb8;
+  --ink: #17110e;
+  --ink-soft: #5b5149;
+  --ink-faint: #685e55;
+  --moon: #b8a898;
+  --mist: #c1b2a2;
+  --dusk: #8e86b8;
+  --dawn: #f3c68e;
+  --ok: #4f8a5e;
+  --alert: #b4513a;
+  --phone: #201815;
+  --g1: #1a1310;
+  --g2: #261a14;
+  --g3: #3a2418;
+  --g4: #7a4526;
+  --warm: #f3c68e;
+}
+
+/* Bloom - aubergine night, blush paper, a hot rose dawn. */
+:root[data-theme='bloom'] {
+  --night: #27102f;
+  --night-2: #341740;
+  --night-3: #452055;
+  --night-line: #5f2d70;
+  --paper: #fae2ee;
+  --paper-2: #f4cfe2;
+  --paper-hi: #fef5fa;
+  --paper-line: #dca6c4;
+  --ink: #1d0c22;
+  --ink-soft: #6a3650;
+  --ink-faint: #834e6b;
+  --moon: #d7a5c0;
+  --mist: #cf9cb7;
+  --dusk: #a76ede;
+  --dawn: #ff6fa5;
+  --ok: #3f8f6a;
+  --alert: #e04865;
+  --phone: #341740;
+  --g1: #2e1338;
+  --g2: #4a1a4e;
+  --g3: #611d5d;
+  --g4: #a53789;
+  --warm: #ffb6d0;
+}
+
+/* ------------------------------------------------------------- the picker */
+.themes {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+}
+.themes button {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  border: 1px solid var(--night-line);
+  padding: 0;
+  background: var(--sw);
+  position: relative;
+  transition:
+    transform 0.18s var(--ease-out),
+    box-shadow 0.18s var(--ease-out);
+}
+.themes button:hover {
+  transform: scale(1.14);
+}
+.themes button[aria-pressed='true'] {
+  box-shadow: 0 0 0 2px var(--night);
+  outline: 1.5px solid var(--paper);
+  outline-offset: 0;
+  transform: scale(1.1);
+}
+
+@media (max-width: 560px) {
+  .themes {
+    gap: 5px;
+  }
+  .themes button {
+    width: 16px;
+    height: 16px;
+  }
+}

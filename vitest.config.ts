@@ -19,6 +19,14 @@ export default defineConfig({
         },
       },
       {
+        test: {
+          name: 'ai',
+          environment: 'node',
+          include: ['ai/src/**/*.test.ts'],
+          passWithNoTests: false,
+        },
+      },
+      {
         plugins: [react()],
         resolve: {
           alias: {
@@ -28,11 +36,7 @@ export default defineConfig({
         test: {
           name: 'frontend',
           environment: 'jsdom',
-          include: [
-            'frontend/ui/src/**/*.test.ts',
-            'frontend/ui/src/**/*.test.tsx',
-            'frontend/mobile/src/secure-session.test.ts',
-          ],
+          include: ['frontend/web/src/**/*.test.ts', 'frontend/web/src/**/*.test.tsx'],
           passWithNoTests: false,
         },
       },
