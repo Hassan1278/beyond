@@ -27,6 +27,7 @@ docs/         Architecture, API, database, AI contract, deployment, privacy, set
 | [Database](docs/database.md)         | Tables, migrations, how to add schema                |
 | [AI service](docs/ai-service.md)     | The letter contract and how to switch the keys on    |
 | [Deployment](docs/deployment.md)     | What's live where, environment variables, schedulers |
+| [Landing page](docs/landing-page.md) | How `/` is built, and why it shows the journal's own components |
 | [Setup](docs/setup.md)               | Running everything locally                           |
 | [Privacy](docs/privacy.md)           | Data handling rules                                  |
 | [Demo](docs/demo.md)                 | Showing Beyond with Kit's fictional journal          |
