@@ -3,7 +3,8 @@
  * and a fake product API, so the whole UI flow is checked without a database:
  * sign in, onboarding, sealing a night, a letter arriving, opening it, ticking a
  * to-do, Letters with search, Identity, Patterns, Settings with memory,
- * export, a demo-mode night with its pre-written letter, and signing out.
+ * export, Demo mode (a sample night sealed and answered by the AI), and
+ * signing out.
  * Also checks that nothing the person writes is left in browser storage, and
  * that the site links in.
  *
@@ -337,7 +338,17 @@ try {
   console.log('sign in');
   await page.goto(`${ORIGIN}/app`);
   await page.getByText('Write tonight. A letter by morning.').waitFor();
+  check(
+    await page.locator('.mode-note').getByText('Demo mode').isVisible(),
+    'the first page says Beyond starts in Demo mode',
+  );
   await shot(page, '01-login');
+  // The main flow runs in Normal mode; Demo mode is checked further down.
+  await page.evaluate(() =>
+    localStorage.setItem('beyond.prefs.v1', JSON.stringify({ mode: 'own' })),
+  );
+  await page.reload();
+  await page.getByText('Write tonight. A letter by morning.').waitFor();
   await page.fill('#email', USER.email);
   await page.fill('#password', 'wrong');
   await page.getByRole('button', { name: 'Sign in' }).click();
@@ -502,23 +513,28 @@ try {
   await page.locator('[data-act="toggle-sample"]').click();
   const entriesBefore = db.entries.length;
   await page.locator('.tab[data-go="tonight"]').click();
-  await page.fill(
-    '#entry',
-    'Fictional demo night: I ate lunch alone again, but tutoring the kids was the best part of my week.',
+  await page.locator('[data-sample-night="0"]').click();
+  check(
+    (await page.locator('#entry').inputValue()).startsWith('First month at uni'),
+    'demo mode offers sample nights that fill the page in one tap',
   );
   await page.getByRole('button', { name: 'Seal tonight' }).click();
   await page.getByText('Sealed for the night.').waitFor();
+  check(
+    db.entries.length === entriesBefore + 1 && db.letters.length === 2,
+    'a demo night is saved and its letter is asked of the AI, like any other night',
+  );
+  finishLetter(db.letters[1]);
   await page.getByRole('button', { name: 'Skip to morning' }).click();
   await page.getByRole('button', { name: 'Open the letter' }).click({ timeout: 20000 });
-  await page.getByText('Looking for your people, one night at a time').first().waitFor();
-  check(
-    await page.getByText('Demo mode: a pre-written sample letter').isVisible(),
-    'demo mode answers a sealed night with a labelled sample letter, without the AI',
-  );
-  check(db.entries.length === entriesBefore, 'a demo night is not saved to the account');
+  await page.getByText('A calm walk by the harbour').first().waitFor();
+  await sleep(400);
+  check(db.letters[1].read_at !== null, 'the demo night’s AI letter opens');
   await shot(page, '11-demo-letter');
   await page.locator('.tab[data-go="settings"]').click();
   await page.locator('[data-act="toggle-sample"]').click();
+  await page.locator('.tab[data-go="tonight"]').click();
+  check(!(await page.locator('.samples').count()), 'Normal mode has no sample nights');
 
   console.log('sign out');
   await page.getByRole('button', { name: 'Sign out' }).click();
