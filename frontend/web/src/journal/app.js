@@ -11,9 +11,15 @@
 import SAMPLE_DATA from './sample.json';
 
 let started = false;
-export function startJournal(backend) {
+export function startJournal(backend, makeDemo) {
 if (started) return;
 started = true;
+/* Two versions of Beyond, picked on the first page:
+   live = your Beyond account, letters written by the AI through the backend;
+   demo = no account and no AI, Kit's fictional journal, pre-written letters,
+   everything in this page's memory only. */
+const LIVE = backend;
+let APP = 'live';
 const SAMPLE = SAMPLE_DATA;
 
 /* ---------- vocab ---------- */
@@ -86,25 +92,26 @@ const countWords = (t) => { const s = (t || '').trim(); if (!s) return 0; return
 
 /* ---------- state ----------
    Your journal lives in your Beyond account. This page holds it in memory
-   only. A few display choices (write or speak, speech language, demo mode)
+   only. A few display choices (write or speak, speech language, demo or live)
    are remembered on this device; nothing you write is. */
 const OFFLINE = false;
 let AUTH = { auth: true, user: null };
 const isGuest = () => false;
 let storageOk = true;
 function fresh() { return { v: 2, onboarded: false, mode: 'own', voice: 'friend', lang: 'auto', inputMode: 'type', deliverTime: '08:00', allowEarly: true, draft: '', letters: [], demoNights: [], sampleMeta: {}, notes: {}, dirs: {}, memories: [], memoryPaused: false, forgotten: [], hiddenSampleMem: [], savedAt: 0 }; }
-/* Demo mode = Kit's sample journal is shown and "Skip to morning" is available. */
-const demoOn = () => S.mode === 'sample';
+/* The demo: Kit's sample journal is shown, nights get pre-written letters and "Skip to morning" is available. */
+const demoOn = () => APP === 'demo';
 const canSkip = () => demoOn() || isGuest() || OFFLINE || S.allowEarly !== false;
 const isDemoSkip = () => demoOn() || isGuest() || OFFLINE;
 const TIMES = ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '12:00'];
 const timeOptions = (cur) => [...new Set([...TIMES, cur])].sort().map((t) => `<option ${cur === t ? 'selected' : ''}>${t}</option>`).join('');
 const PREFS = 'beyond.prefs.v1';
 function loadPrefs() {
-  try { const p = JSON.parse(localStorage.getItem(PREFS) || '{}'); return { inputMode: p.inputMode === 'speak' ? 'speak' : 'type', speechLang: typeof p.speechLang === 'string' ? p.speechLang : undefined, mode: p.mode === 'sample' ? 'sample' : 'own' }; } catch (e) { return { inputMode: 'type', mode: 'own' }; }
+  try { const p = JSON.parse(localStorage.getItem(PREFS) || '{}'); return { inputMode: p.inputMode === 'speak' ? 'speak' : 'type', speechLang: typeof p.speechLang === 'string' ? p.speechLang : undefined }; } catch (e) { return { inputMode: 'type' }; }
 }
+const lastApp = () => { try { return JSON.parse(localStorage.getItem(PREFS) || '{}').app === 'demo' ? 'demo' : 'live'; } catch (e) { return 'live'; } };
 function savePrefs() {
-  try { localStorage.setItem(PREFS, JSON.stringify({ inputMode: S.inputMode, speechLang: S.speechLang || null, mode: S.mode })); } catch (e) { /* private window: fine */ }
+  try { localStorage.setItem(PREFS, JSON.stringify({ inputMode: S.inputMode, speechLang: S.speechLang || null, app: APP })); } catch (e) { /* private window: fine */ }
 }
 let S = { ...fresh(), ...loadPrefs() };
 let syncTimer = null;
@@ -139,7 +146,7 @@ function sampleLetters() {
   });
 }
 function allLetters() {
-  const list = S.mode === 'sample' ? [...S.letters, ...(S.demoNights || []), ...sampleLetters()] : [...S.letters];
+  const list = demoOn() ? [...S.letters, ...(S.demoNights || []), ...sampleLetters()] : [...S.letters];
   return list.sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''));
 }
 const findLetter = (id) => allLetters().find((l) => l.id === id);
@@ -640,7 +647,7 @@ function render() {
   if (entering && route === 'identity' && !identVeiled) identRevealAt = performance.now();
   const nav = route === 'welcome' || route === 'login' ? '' : `
     <header class="topbar">
-      <button class="brand" data-go="tonight" aria-label="Beyond, Tonight">${I.moon}<span>Beyond</span></button>
+      <div class="topbar-l"><button class="brand" data-go="tonight" aria-label="Beyond, Tonight">${I.moon}<span>Beyond</span></button>${appSwitch()}</div>
       <nav class="tabs" aria-label="Main">
         ${[['tonight', 'Tonight', I.moon], ['letters', 'Letters', I.mail], ['identity', 'Identity', I.bubbles], ['patterns', 'Patterns', I.sky], ['settings', 'Settings', I.gear]].map(([r, l, ic]) =>
           `<button class="tab" data-go="${r}" ${here(r) ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${r === 'letters' && unread ? '<i class="dot" aria-label="Unread letter"></i>' : ''}</button>`).join('')}
@@ -674,7 +681,47 @@ function setAmbient(mode) {
 
 function sampleBanner() {
   if (!demoOn()) return '';
-  return `<p class="sample-banner">Demo mode: Kit's sample letters (fictional) are shown with yours. <button class="link" data-act="own">Turn off demo mode</button></p>`;
+  return `<p class="sample-banner">This is the demo. Kit is fictional and the letters are pre-written. <button class="link" data-act="enter-live">Try the live version</button></p>`;
+}
+/* Demo or live, always one tap away in the top bar. */
+function appSwitch() {
+  return `<div class="switch app-switch" role="group" aria-label="Version of Beyond">
+      <button data-act="enter-demo" aria-pressed="${demoOn()}" title="Pre-written letters, no account">Demo</button>
+      <button data-act="enter-live" aria-pressed="${!demoOn()}" title="Your account, letters written by ${esc(aiLabel)}">Live</button>
+    </div>`;
+}
+/* The demo walkthrough: where you are in one night of Beyond. */
+const TOUR = ['Write a few lines', 'Seal tonight', 'Skip to morning', 'Open the letter', 'Look around'];
+function tourStep() {
+  const nights = S.demoNights || [];
+  if (!nights.length) return S.draft.trim() ? 1 : 0;
+  if (pendingNight()) return 2;
+  return nights.some((l) => l.readAt) ? 4 : 3;
+}
+function demoTour() {
+  if (!demoOn()) return '';
+  const at = tourStep();
+  const tip = [
+    'Write anything about tonight, or speak it. Short is fine.',
+    'When you’re done, seal it. Nothing replies tonight.',
+    'In the real app the letter comes at your morning time. Here you can skip ahead.',
+    'Your letter is waiting. It quotes your own words, then offers three small to-dos.',
+    'That’s one night. Kit’s months of letters fill Letters, Identity and Patterns, so have a look around.',
+  ][at];
+  return `<nav class="tour" aria-label="Demo walkthrough">
+      <ol>${TOUR.map((t, i) => `<li class="${i < at ? 'done' : i === at ? 'now' : ''}" ${i === at ? 'aria-current="step"' : ''}>${esc(t)}</li>`).join('')}</ol>
+      <p>${tip}${at === 0 ? ' <button class="link" data-act="demo-example">Fill in an example night</button>' : ''}${at === 4 ? ' <button class="link" data-act="enter-live">Then try it live with your own night</button>' : ''}</p>
+    </nav>`;
+}
+const DEMO_EXAMPLES = [
+  'Ate lunch alone again today. Everyone in my tutorial already seems to have their group, and I keep pretending to check my phone. But tutoring the kids at the community centre was the best part of my week. One of them finally got fractions and did a little dance.',
+  '今日又係一個人食晏，返到宿舍都冇人傾偈。不過下午幫中心啲細路補習，有個小朋友終於識咗分數，佢好開心，我都好開心。可能我其實鍾意教人多過我以為。',
+];
+let exampleAt = 0;
+function fillExample() {
+  const t = DEMO_EXAMPLES[exampleAt++ % DEMO_EXAMPLES.length];
+  S.inputMode = 'type'; S.draft = t; render();
+  const ta = $('#entry'); if (ta) { ta.classList.add('arrive'); ta.focus({ preventScroll: true }); }
 }
 
 /* ----- welcome ----- */
@@ -694,10 +741,10 @@ function vWelcome() {
         <li><b>Overnight</b>It's sealed. Claude reads it next to your earlier nights.</li>
         <li><b>Morning</b>A short letter, and three small to-dos you can tick off.</li>
       </ol>
-      <div class="row">${isGuest() || OFFLINE
-        ? `<button class="btn amber" data-act="start-sample">Try it with Kit's sample journal</button><button class="link" data-act="start-own">Start an empty journal</button>`
-        : `<button class="btn amber" data-act="start-own">Start my journal</button><button class="link" data-act="start-sample">See an example first (demo)</button>`}</div>
-      <p class="fine">${OFFLINE ? 'Offline trial: letters here are simple templates. The online version writes them with Claude.' : LOCAL ? (isGuest() ? 'Judge preview: you have your own empty journal, and Claude writes your letters.' : 'Letters are written by Claude. Your journal is saved to your Beyond account, private to you.') : 'Letters are written by Claude on your own claude.ai account. Your journal stays in this browser.'}</p>
+      <div class="row">${demoOn()
+        ? `<button class="btn amber" data-act="start-own">Start the demo</button><button class="link" data-act="enter-live">Use the live version instead</button>`
+        : `<button class="btn amber" data-act="start-own">Start my journal</button><button class="link" data-act="enter-demo">See the demo first</button>`}</div>
+      <p class="fine">${demoOn() ? 'Demo: Kit’s journal is fictional and the letters are pre-written, so no account or AI is needed. Nothing you type is saved.' : 'Live: letters are written by Claude from what you write. Your journal is saved to your Beyond account, private to you.'}</p>
     </section>`;
   }
   return `<section class="welcome" style="align-content:center">
@@ -754,6 +801,7 @@ function vTonight() {
     }, 5200);
   });
   return `<section class="tn ${speak ? 'is-speak' : ''}">
+      ${demoTour()}
       ${unread ? `<p class="arrived">${I.mail}<span>A letter arrived for ${fmtDay(unread.date)}${unread.sample ? ' (sample)' : unread.demo ? ' (demo)' : ''}.</span> <button class="link" data-open="${unread.id}">Open it</button></p>` : ''}
       <div class="switch mode-seg" role="group" aria-label="How do you want to say it tonight?">
         <button data-imode="type" aria-pressed="${!speak}">Write</button>
@@ -885,7 +933,7 @@ function startOrrery(canvas, vis, most) {
   requestAnimationFrame(frame);
 }
 function claudeNote() {
-  if (demoOn()) return 'Demo mode: a night you seal here stays on this page and gets a pre-written sample letter in a few seconds, with no AI. Turn off demo mode in Settings to keep your own journal.';
+  if (demoOn()) return 'Demo: a night you seal here gets a pre-written letter matched to what you wrote, in a few seconds, with no AI. Nothing is saved. Switch to Live to get a letter written from your own words.';
   if (claudeState !== 'off') return '';
   return 'Beyond’s letter writer isn’t switched on yet. Seal tonight anyway: your letter is kept safe and written as soon as it is.';
 }
@@ -901,12 +949,17 @@ function supportInline() {
    the double-clicked file. If that isn't available, the local app records and
    its server transcribes. claude.ai doesn't let pages use the microphone at
    all, so there the light falls back to the device's own dictation. */
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+/* Some browsers have the speech API but no speech service behind it, so it
+   starts and then hears nothing: Brave, Opera, in-app browsers and desktop
+   app shells. There the light records for Beyond's server, or uses dictation. */
+const UA = navigator.userAgent;
+const SR_HOLLOW = !!navigator.brave || /Electron\/|OPR\/|; wv\)|FBA[NV]|Instagram|Line\/|MicroMessenger|WeChat/.test(UA);
+const SR = SR_HOLLOW ? null : window.SpeechRecognition || window.webkitSpeechRecognition;
 const IN_CLAUDE = !LOCAL && !OFFLINE && !!window.claude?.use;
 const MIC = LOCAL && !!(navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
 const RECORDS = MIC && window.isSecureContext;
 const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Mac/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-const voice = { state: 'idle', raf: 0, lvl: 0, impulse: 0, an: null, buf: null, freq: null, ac: null, rec: null, sr: null, stream: null, t0: 0, tick: 0, blocked: false };
+const voice = { state: 'idle', raf: 0, lvl: 0, impulse: 0, an: null, buf: null, freq: null, ac: null, rec: null, sr: null, stream: null, t0: 0, tick: 0, blocked: false, down: '', words: false, peak: 0, metered: false };
 const SPEECH_LANGS = [['mixed', '粵 + 普 + EN'], ['yue-Hant-HK', '廣東話'], ['zh-CN', '普通话'], ['en-US', 'English']];
 const mixedOK = () => RECORDS && SERVER_STT;
 function speechLang() {
@@ -916,12 +969,20 @@ function speechLang() {
   if (mixedOK()) return 'mixed';
   if (S.lang === 'zh-hans') return 'zh-CN'; if (S.lang === 'zh-hant') return 'yue-Hant-HK'; if (S.lang === 'en') return 'en-US';
   const prefs = (navigator.languages || [navigator.language || '']).join(',');
-  return /zh-(HK|TW|MO)|yue/i.test(prefs) ? 'yue-Hant-HK' : /zh/i.test(prefs) ? 'zh-CN' : 'yue-Hant-HK';
+  // A browser set to English listens in English; only a Chinese browser guesses a Chinese language.
+  return /zh-(HK|TW|MO)|yue/i.test(prefs) ? 'yue-Hant-HK' : /zh/i.test(prefs) ? 'zh-CN' : 'en-US';
 }
-const canListen = () => !!SR && !voice.blocked && speechLang() !== 'mixed';
+const canListen = () => !!SR && !voice.blocked && !voice.down && speechLang() !== 'mixed';
+const langName = (k) => (SPEECH_LANGS.find(([x]) => x === k) || [k, k])[1];
+function level() {
+  // How loud the microphone is right now, 0 to 1 (only while the light is metering).
+  if (!voice.an) return 0;
+  voice.an.getByteTimeDomainData(voice.buf); let s = 0; for (const v of voice.buf) { const x = (v - 128) / 128; s += x * x; }
+  return Math.min(1, Math.sqrt(s / voice.buf.length) * 5);
+}
 function langChips() {
   const cur = speechLang();
-  return SPEECH_LANGS.filter(([k]) => k !== 'mixed' || mixedOK()).map(([k, l]) => `<button class="chip lang-chip" data-slang="${k}" aria-pressed="${cur === k}">${l}</button>`).join('');
+  return '<span class="slang-k">I’m speaking</span>' + SPEECH_LANGS.filter(([k]) => k !== 'mixed' || mixedOK()).map(([k, l]) => `<button class="chip lang-chip" data-slang="${k}" aria-pressed="${cur === k}">${l}</button>`).join('');
 }
 function dictationHint() {
   const ua = navigator.userAgent; const touch = window.matchMedia('(pointer: coarse)').matches;
@@ -935,14 +996,28 @@ function paintVoice() {
   orb.classList.toggle('is-rec', voice.state === 'rec'); orb.classList.toggle('is-busy', voice.state === 'busy');
   glyph.innerHTML = voice.state === 'rec' ? I.stop : voice.state === 'busy' ? '<i class="dots"><i></i><i></i><i></i></i>' : I.mic;
   orb.setAttribute('aria-label', voice.state === 'rec' ? 'Stop' : 'Start talking');
-  if (voice.state === 'rec') { const sec = Math.floor((Date.now() - voice.t0) / 1000); hint.innerHTML = `<span class="rec-dot"></span>Listening · ${Math.floor(sec / 60)}:${pad(sec % 60)} · tap the light when you’re done${voice.rec ? ', then your words appear' : ''}`; }
+  if (voice.state === 'rec') {
+    const sec = Math.floor((Date.now() - voice.t0) / 1000);
+    if (voice.an) { voice.metered = true; voice.peak = Math.max(voice.peak, level()); }
+    // Sound but no words for a while: usually the wrong language is picked.
+    const stuck = voice.sr && !voice.words && sec >= 6;
+    hint.innerHTML = stuck && voice.metered && voice.peak < 0.05
+      ? '<span class="rec-dot"></span>No sound is reaching Beyond. Check that your microphone is on and is the one your browser uses.'
+      : stuck
+      ? `<span class="rec-dot"></span>${voice.metered ? 'Hearing you, but no words yet.' : 'No words yet.'} Listening in <b>${esc(langName(speechLang()))}</b>. Speaking another language? Pick it below.`
+      : `<span class="rec-dot"></span>Listening · ${Math.floor(sec / 60)}:${pad(sec % 60)} · tap the light when you’re done${voice.rec ? ', then your words appear' : ''}`;
+  }
   else if (voice.state === 'busy') hint.textContent = 'Turning your voice into words…';
   else if (voice.state === 'dictate') hint.innerHTML = voice.blocked && IN_CLAUDE
     ? `claude.ai doesn’t let pages use the microphone, so here: ${dictationHint()} One-tap recording works in Beyond’s own app (on your computer or the online link).`
-    : `Your device’s dictation: ${dictationHint()}`;
+    : voice.down || (SR_HOLLOW && !SERVER_STT)
+      ? `${voice.down || 'This browser can’t turn speech into text by itself.'} For one-tap talking, open Beyond in Chrome, Edge or Safari. Or here: ${dictationHint()}`
+      : `Your device’s dictation: ${dictationHint()}`;
   else if (voice.blocked && !IN_CLAUDE) hint.innerHTML = `The microphone is blocked for this page. Allow it from the icon in the address bar, or ${dictationHint()}`;
   else if (speechLang() === 'mixed') hint.innerHTML = 'Tap the light and just talk, in any mix of 粵語, 普通话 and English. Your words appear when you tap again.';
-  else hint.innerHTML = canListen() || (RECORDS && SERVER_STT) ? 'Tap the light and just talk. Your words appear as you speak.' : `Tap the light, then ${dictationHint()}`;
+  else if (canListen()) hint.innerHTML = `Tap the light and just talk. Your words appear as you speak, in <b>${esc(langName(speechLang()))}</b>.`;
+  else if (RECORDS && SERVER_STT) hint.innerHTML = 'Tap the light and just talk. Your words appear when you tap again.';
+  else hint.innerHTML = `This browser can’t turn speech into text by itself. For one-tap talking, open Beyond in Chrome, Edge or Safari. Or tap the light, then ${dictationHint()}`;
   const chips = $('#slang-chips'); if (chips) { chips.hidden = !(SR || mixedOK()) || (voice.blocked && IN_CLAUDE); chips.innerHTML = langChips(); }
 }
 function setEntry(text) {
@@ -977,7 +1052,7 @@ function startListening(sameBreath = false) {
   r.onresult = (e) => {
     let interim = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
-      const t = e.results[i][0].transcript;
+      const t = e.results[i][0].transcript; if (t.trim()) voice.words = true;
       if (e.results[i].isFinal) finals += (spaced && finals && !/\s$/.test(finals) && !/^\s/.test(t) ? ' ' : '') + t;
       else interim += t;
     }
@@ -985,8 +1060,11 @@ function startListening(sameBreath = false) {
     voice.impulse = Math.min(1, voice.impulse + 0.45);
   };
   r.onerror = (e) => {
-    if (e.error === 'not-allowed' || e.error === 'service-not-allowed' || e.error === 'audio-capture') { voice.blocked = true; voice.stopping = true; }
-    else if (e.error === 'network') { voice.stopping = true; toast('Speech recognition needs an internet connection. You can type instead.'); }
+    // no-speech and aborted are normal pauses; the session restarts on its own.
+    if (e.error === 'not-allowed' || e.error === 'audio-capture') { voice.blocked = true; voice.stopping = true; }
+    else if (e.error === 'service-not-allowed') { voice.down = 'Speech recognition is switched off in this browser (on a Mac, Safari needs Dictation turned on in System Settings).'; voice.stopping = true; }
+    else if (e.error === 'network') { voice.down = 'This browser couldn’t reach its speech service.'; voice.stopping = true; }
+    else if (e.error === 'language-not-supported') { voice.stopping = true; toast(`This browser can’t listen in ${langName(lang)}. Pick another language.`); }
   };
   r.onend = () => {
     // Browsers stop after a pause; keep listening until you tap again.
@@ -995,14 +1073,35 @@ function startListening(sameBreath = false) {
     setEntry(base + finals);
     if (voice.relisten) { voice.relisten = false; voice.state = 'idle'; voice.stopping = false; return canListen() ? startListening(true) : orbTap(); }
     if (voice.blocked) { if (IN_CLAUDE) useDictation(); else { voice.state = 'idle'; paintVoice(); } return; }
+    if (voice.down) {
+      // The speech service failed: record for Beyond's server if it can transcribe, otherwise dictation.
+      voice.state = 'idle'; voice.stopping = false;
+      if (RECORDS && SERVER_STT) { toast('Switched to recording. Tap the light again and talk; your words appear when you stop.'); return paintVoice(); }
+      return useDictation();
+    }
     voice.state = 'idle'; voice.stopping = false; paintVoice();
     if (finals.trim()) { const ta = $('#entry'); if (ta) { ta.classList.remove('arrive'); void ta.offsetWidth; ta.classList.add('arrive'); } }
+    else if (!voice.words && Date.now() - voice.t0 > 2500) toast(voice.metered && voice.peak < 0.05
+      ? 'No sound reached Beyond. Check that your microphone is on and is the one your browser uses.'
+      : `No words came back. Check the language (listening in ${langName(lang)}), or type instead.`);
   };
-  voice.sr = r; voice.state = 'rec'; voice.stopping = false; voice.t0 = Date.now();
+  voice.sr = r; voice.state = 'rec'; voice.stopping = false; voice.t0 = Date.now(); voice.words = false; voice.peak = 0; voice.metered = false;
   let heard = false; r.onstart = r.onaudiostart = () => { heard = true; };
   try { r.start(); } catch (e) { voice.state = 'idle'; voice.blocked = true; return IN_CLAUDE ? useDictation() : paintVoice(); }
-  // If the microphone never opens (a page that isn't allowed to use it can stay silent), fall back.
-  setTimeout(() => { if (voice.sr === r && !heard && !finals) { voice.blocked = true; voice.stopping = true; try { r.abort ? r.abort() : r.stop(); } catch (e) { /* gone */ } if (voice.sr === r) r.onend?.(); } }, 4000);
+  // If listening never starts, find out why. Still waiting on the browser's "Allow microphone?"
+  // question: keep waiting. Blocked: say so. Allowed but silent: the browser has no speech service
+  // behind its speech API, so record for Beyond's server or use dictation instead.
+  const watch = (waited) => setTimeout(async () => {
+    if (voice.sr !== r || heard || finals) return;
+    let perm = 'unknown';
+    try { perm = (await navigator.permissions.query({ name: 'microphone' })).state; } catch (e) { /* not supported */ }
+    if (voice.sr !== r || heard || finals) return;
+    if (perm === 'prompt' && waited < 60000) return watch(waited + 4000);
+    if (perm === 'denied' || IN_CLAUDE) voice.blocked = true;
+    else voice.down = 'This browser’s speech recognition didn’t start.';
+    voice.stopping = true; try { r.abort ? r.abort() : r.stop(); } catch (e) { /* gone */ } if (voice.sr === r) r.onend?.();
+  }, 4000);
+  watch(4000);
   paintVoice(); voice.tick = setInterval(paintVoice, 500); meter();
 }
 async function orbTap() {
@@ -1144,10 +1243,10 @@ async function ascend(text, id, rect, lrect) {
 function vSealed(L) {
   const n = L.entries.reduce((a, e) => a + countWords(e.text), 0);
   const stars = starPositions(L.id, 26);
-  const status = L.status === 'writing' ? `<p class="status"><i></i>${L.demo ? 'Preparing your sample letter' : claudeState === 'off' ? 'Sealed and waiting for the letter writer' : 'Claude is writing quietly'}</p>`
+  const status = L.status === 'writing' ? `<p class="status"><i></i>${L.demo ? 'Preparing your demo letter' : claudeState === 'off' ? 'Sealed and waiting for the letter writer' : 'Claude is writing quietly'}</p>`
     : L.status === 'failed' ? `<p class="status err"><i></i>The letter couldn't be written yet</p>`
     : `<p class="status ok"><i></i>Written and sealed until ${atTime(L)}</p>`;
-  return `<section class="sealed">
+  return `${demoTour()}<section class="sealed">
       ${stars.map((s) => `<i class="s" style="left:${s.x}%;top:${s.y * 0.7}%;--tw:${s.tw}s;--dl:${s.dl}s"></i>`).join('')}
       <span class="mini-lantern" aria-hidden="true"></span>
       <div class="env" aria-hidden="true"><div class="env-back"></div><div class="env-paper"><i></i><i style="width:80%"></i><i style="width:60%"></i></div><div class="env-pocket"></div><div class="env-flap"></div><div class="env-seal">${I.crescent}</div></div>
@@ -1182,7 +1281,7 @@ async function overnight(L, { now: readNow = false } = {}) {
   const fast = reduceMotion();
   if (readNow) {
     const task = L.status !== 'writing' ? null : L.demo ? L.task : claudeState === 'ready' ? waitForLetter(L.id) : null;
-    clock.textContent = hhmm(); txt.textContent = task ? (L.demo ? 'Finishing your sample letter…' : 'Claude is finishing your letter…') : 'Opening your letter…'; ov.querySelector('.ov-note').textContent = '';
+    clock.textContent = hhmm(); txt.textContent = task ? (L.demo ? 'Finishing your demo letter…' : 'Claude is finishing your letter…') : 'Opening your letter…'; ov.querySelector('.ov-note').textContent = '';
     if (task) await task; else await sleep(fast ? 50 : 900);
     const done = findLetter(L.id);
     if (!done || done.status !== 'ready') { await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'forwards' }).finished; ov.remove(); render(); if (done?.status === 'writing') toast(claudeState === 'ready' ? 'Still being written. It will be here soon.' : 'Your letter is sealed and waiting for the letter writer.'); return; }
@@ -1194,7 +1293,7 @@ async function overnight(L, { now: readNow = false } = {}) {
   await roll(toMin(hhmm()), toMin(before), fast ? 200 : 2600);
   const task = L.status !== 'writing' ? null : L.demo ? L.task : claudeState === 'ready' ? waitForLetter(L.id) : null;
   if (task) {
-    txt.textContent = L.demo ? 'Finishing your sample letter…' : 'Claude is still writing your letter…';
+    txt.textContent = L.demo ? 'Finishing your demo letter…' : 'Claude is still writing your letter…';
     const slow = setTimeout(() => { txt.textContent = 'Still writing. This can take up to a minute.'; }, 9000);
     await task; clearTimeout(slow);
   }
@@ -1240,7 +1339,7 @@ function vLetter() {
   const p = progress(L);
   const by = L.by === 'claude' ? `Written by ${L.model ? esc(L.model) : 'Claude'}. Every quote is checked against your words.`
     : L.by === 'template' ? 'A plain template letter. No AI was available when it was written.'
-    : L.by === 'demo' ? 'Demo mode: a pre-written sample letter, matched to what you wrote and quoting your own words. Nothing was sent to an AI or saved to your account.'
+    : L.by === 'demo' ? 'Demo: a pre-written letter, matched to what you wrote and quoting your own words. No AI was used and nothing was saved.'
     : 'Kit’s sample letter, pre-written for the demo. Kit isn’t a real person.';
   const fresh = opening === L.id; if (fresh) opening = null;
   const insights = (c.analysis || []).slice(0, 2);
@@ -1515,7 +1614,7 @@ function noteCard(key, title, n) {
   const sn = !S.notes[key] && sampleNote(key);
   const note = S.notes[key] || (sn ? { text: sn, n, by: 'sample' } : null); const busy = noteInflight === key;
   return `<section class="qcard note"><h3 class="k">${esc(title)}</h3>
-    ${note ? `<p>${esc(note.text)}</p><span class="fine">${note.by === 'sample' ? 'Kit’s sample note, pre-written for the demo.' : note.by === 'demo' ? `A pre-written sample note for demo mode, built from ${plural(note.n, 'letter')} and their own words.` : `Written by ${esc(note.by || 'Claude')} from ${plural(note.n, 'letter')}.`}</span>${note.n !== n ? `<button class="btn sm secondary" data-note="${key}">Write it again</button>` : ''}`
+    ${note ? `<p>${esc(note.text)}</p><span class="fine">${note.by === 'sample' ? 'Kit’s sample note, pre-written for the demo.' : note.by === 'demo' ? `A pre-written demo note, built from ${plural(note.n, 'letter')} and their own words.` : `Written by ${esc(note.by || 'Claude')} from ${plural(note.n, 'letter')}.`}</span>${note.n !== n ? `<button class="btn sm secondary" data-note="${key}">Write it again</button>` : ''}`
       : busy ? `<p class="writing">Reading your letters…</p>`
       : claudeState === 'ready' || demoOn() ? `<p class="fine">A short note that quotes only your own words.</p><button class="btn sm amber" data-note="${key}">Write this note</button>`
       : `<p class="fine">Notes are written by Beyond’s letter writer, which isn’t switched on yet.</p>`}
@@ -1588,7 +1687,7 @@ function directions() {
   return DIRECTIONS.map((def) => {
     const ev = list.filter((l) => (l.content.themes || []).some((t) => def.themes.includes(t))).sort((a, b) => b.date.localeCompare(a.date));
     const days = new Set(ev.map((l) => l.date)).size; const months = new Set(ev.map((l) => l.date.slice(0, 7))).size;
-    const status = S.dirs?.[def.key] || (S.mode === 'sample' ? SAMPLE_DIRS[def.key] : null) || 'suggested';
+    const status = S.dirs?.[def.key] || (demoOn() ? SAMPLE_DIRS[def.key] : null) || 'suggested';
     const explanation = ev.length ? `${plural(ev.length, 'kept letter')}${months > 1 ? `, across ${months} months,` : ''} touch on ${def.blurb}, for example “${ev[0].content.headline}”. A possibility you might recognise in yourself, if it fits. Not a label.` : 'No kept letters support this right now.';
     return { ...def, id: def.key, evidence: ev, days, status, sufficient: days >= 3, count: Math.max(1, ev.length), explanation };
   });
@@ -1897,6 +1996,15 @@ function vSettings() {
       <h1 class="display">Settings</h1>
       <p class="lead">How your letters are written, what Beyond remembers, your data, and where to find help.</p>
     </header>
+    <section class="spread" id="version"><h2 class="sec">Demo or live</h2><div class="stack">
+      ${demoOn()
+        ? `<p>You’re in the <b>demo</b>. Kit is fictional, letters are pre-written, and nothing you type is saved. Reloading the page starts the demo over.</p>
+      <div class="row"><button class="btn sm amber" data-act="enter-live">Switch to the live version</button></div>
+      <p class="fine">The live version uses your Beyond account, and ${esc(aiLabel)} writes each letter from what you actually wrote.</p>`
+        : `<p>You’re using the <b>live</b> version. Your journal is saved to your account and ${esc(aiLabel)} writes your letters.</p>
+      <div class="row"><button class="btn sm" data-act="enter-demo">Open the demo</button></div>
+      <p class="fine">The demo shows the whole loop with Kit’s fictional journal and pre-written letters. It never touches your journal, and you can come back here any time.</p>`}
+    </div></section>
     <section class="spread" id="letters-settings"><h2 class="sec">Letters</h2><div class="stack">
       <h3 class="qh">Who writes your letters</h3>
       <div class="voices" role="group" aria-label="Letter voice">${voiceCards()}</div>
@@ -1908,9 +2016,6 @@ function vSettings() {
       <h3 class="qh">Language</h3>
       <div class="row"><label class="pick" for="ylang"><span>Write letters in</span><select id="ylang">${LANGS.map(([k, l]) => `<option value="${k}" ${(S.lang || 'auto') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
       <p class="fine">Auto writes back in the language you wrote in. Your own words are always quoted exactly as you wrote them.</p>
-      <h3 class="qh">Demo mode</h3>
-      <button class="toggle" role="switch" aria-checked="${demoOn()}" data-act="toggle-sample"><span class="track"></span><span>Show Kit's sample journal, and give nights sealed here a pre-written sample letter</span></button>
-      <p class="fine">For showing Beyond to others, for example to judges. Kit is fictional; the sample letters show what months of Beyond look like. A night you seal in demo mode stays on this page only and gets a pre-written letter matched to what you wrote, with no AI and nothing saved. Leave it off for your own journal.</p>
     </div></section>
     <section class="spread" id="memory"><h2 class="sec">Memory and privacy</h2><div class="stack">
       <h3 class="qh">What Beyond remembers</h3>
@@ -1919,17 +2024,17 @@ function vSettings() {
       <form class="mem-add" id="mem-add"><label class="sr-only" for="mem-new">Tell Beyond something to remember</label><input id="mem-new" class="login-in" placeholder="Tell Beyond something to remember…" maxlength="140"><button class="btn sm amber" type="submit">Remember</button></form>
       <button class="toggle" role="switch" aria-checked="${!!S.memoryPaused}" data-act="mem-pause"><span class="track"></span><span>Pause memory (letters won’t use it)</span></button>
       <h3 class="qh">What the AI sees</h3>
-      <p>${claudeState === 'checking' ? 'Connecting…' : claudeState === 'ready' ? `Letters are written by ${esc(aiLabel)} through Beyond’s letter service, after you seal a night.` : 'Beyond’s letter writer isn’t switched on yet. Sealed nights wait safely and are written as soon as it is.'}</p>
+      <p>${demoOn() ? `In the demo, letters are pre-written and no AI is used. In the live version, letters are written by ${esc(aiLabel)} through Beyond’s letter service, after you seal a night.` : claudeState === 'checking' ? 'Connecting…' : claudeState === 'ready' ? `Letters are written by ${esc(aiLabel)} through Beyond’s letter service, after you seal a night.` : 'Beyond’s letter writer isn’t switched on yet. Sealed nights wait safely and are written as soon as it is.'}</p>
       <p class="fine">The AI sees only the entry it writes about, the headlines of a few earlier letters, and your memories (unless paused). It never sees letters you keep out of Patterns.</p>
     </div></section>
     <section class="spread" id="data"><h2 class="sec">Your data</h2><div class="stack">
-      <p>Saved to your Beyond account, private to you. Nothing you write is kept in this browser.</p>
+      ${demoOn() ? '<p>Nothing in the demo is saved, here or anywhere else. Closing or reloading the page clears it.</p>' : `<p>Saved to your Beyond account, private to you. Nothing you write is kept in this browser.</p>
       ${freshFor ? `<form class="mem-add" id="reauth-form"><label class="sr-only" for="reauth-pw">Password</label><input id="reauth-pw" class="login-in" type="password" autocomplete="current-password" placeholder="Your password" required><button class="btn sm amber" type="submit">Confirm it’s you</button><button class="link" type="button" data-act="reauth-google">Use Google</button></form><p class="fine">For your safety, downloading or deleting needs a fresh sign-in.</p>` : ''}
       <p><button class="link" data-act="export">Download a copy</button> <span class="fine">as a JSON file of everything in your account.</span></p>
       ${confirmDelete ? `<div class="notice warn"><b>Delete ${plural(own, 'letter')}, your memories and everything you wrote?</b><span>This can't be undone. Download a copy first if you might want it. Your account stays, empty.</span><div class="row"><button class="btn sm danger" data-act="delete-yes">Delete everything</button><button class="link" data-act="delete-no">Keep it</button></div></div>`
         : `<p><button class="link danger" data-act="delete">Delete my journal</button></p>`}
       ${!ACCOUNT.deletion ? '' : confirmAccount ? `<div class="notice warn"><b>Delete your Beyond account?</b><span>Your account and everything in it are removed for good within a few minutes. This can't be undone.</span><div class="row"><button class="btn sm danger" data-act="delete-account-yes">Delete my account</button><button class="link" data-act="delete-account-no">Keep it</button></div></div>`
-        : `<p><button class="link danger" data-act="delete-account">Delete my account</button></p>`}
+        : `<p><button class="link danger" data-act="delete-account">Delete my account</button></p>`}`}
     </div></section>
     <section class="spread" id="help"><h2 class="sec">Need help?</h2><div class="stack">
       <p>Beyond is a journal, not a crisis service. If you’re struggling or in danger, people can help right now, free and confidential.</p>
@@ -1937,16 +2042,17 @@ function vSettings() {
       <p><button class="link" data-go="support">All human support in Hong Kong</button></p>
     </div></section>
     <section class="spread" id="account"><h2 class="sec">Account</h2><div class="stack">
-      ${AUTH.user?.email ? `<p>Signed in as <b>${esc(AUTH.user.email)}</b>.</p>` : ''}
-      ${AUTH.auth ? '<p><button class="btn sm" data-act="logout">Sign out</button></p>' : ''}
+      ${demoOn() ? '<p>The demo has no account.</p><p><button class="btn sm" data-act="logout">Leave the demo</button></p>' : `${AUTH.user?.email ? `<p>Signed in as <b>${esc(AUTH.user.email)}</b>.</p>` : ''}
+      ${AUTH.auth ? '<p><button class="btn sm" data-act="logout">Sign out</button></p>' : ''}`}
     </div></section>`;
 }
 const helpRow = (s) => `<li class="help"><b>${esc(s.phone || s.url.replace('https://', ''))}</b><span>${esc(s.name)}. ${esc(s.note)}</span>${s.url ? `<a class="link" href="${s.url}" target="_blank" rel="noreferrer">Open</a>` : `<button class="link" data-copy="${esc(s.phone)}">Copy</button>`}</li>`;
 /* ----- sign in: Beyond accounts (email and password, or Google) ----- */
 let loginMode = 'signin'; let loginNote = '';
 function vLogin() {
-  after.push(() => ($('#password-new') || $('#email'))?.focus());
   const m = loginMode;
+  // On the first page the choice comes first, so nothing grabs focus there.
+  if (m !== 'signin') after.push(() => ($('#password-new') || $('#email'))?.focus());
   const title = { signin: 'Write tonight. A letter by morning.', signup: 'Start your journal.', forgot: 'Reset your password.', reset: 'Choose a new password.', sent: 'Check your email.' }[m];
   const google = m === 'signin' || m === 'signup' ? `<button class="link" type="button" data-act="google">Continue with Google</button>` : '';
   const fields = m === 'reset'
@@ -1961,15 +2067,38 @@ function vLogin() {
     reset: '',
     sent: `<button class="link" data-login="signin">Back to sign in</button>`,
   }[m];
-  return `<section class="welcome login">
+  const form = m === 'sent' ? `<p class="lead" style="max-width:36ch">${esc(loginNote)}</p>` : `<form class="login-form" id="login-form">${fields}<button class="btn amber" type="submit">${submit}</button>${google}</form>
+      <p class="fine" id="login-err" role="alert">${esc(loginNote)}</p>`;
+  const privacy = `<p class="fine">${LIVE.configured ? 'Your journal is private to your account. Nothing you write is kept in this browser.' : 'This copy of Beyond isn’t connected to its backend yet, so only the demo works.'}</p>`;
+  const footer = `<p class="fine"><a class="link" href="/">About Beyond</a><span class="sp"></span><a class="link" href="/#/privacy">Privacy</a></p>`;
+  if (m !== 'signin') return `<section class="welcome login">
       <div class="lantern-wrap" style="--k:.85;--b:1.05" aria-hidden="true"><div class="lantern"></div></div>
       <p class="brand-line">${I.moon}<span>Beyond</span></p>
       <h1 class="display">${title}</h1>
-      ${m === 'sent' ? `<p class="lead" style="max-width:36ch">${esc(loginNote)}</p>` : `<form class="login-form" id="login-form">${fields}<button class="btn amber" type="submit">${submit}</button>${google}</form>
-      <p class="fine" id="login-err" role="alert">${esc(loginNote)}</p>`}
+      ${form}
       <p class="fine">${switches}</p>
-      <p class="fine">${backend.configured ? 'Your journal is private to your account. Nothing you write is kept in this browser.' : 'This copy of Beyond isn’t connected to its backend yet.'}</p>
-      <p class="fine"><a class="link" href="/">About Beyond</a><span class="sp"></span><a class="link" href="/#/privacy">Privacy</a></p>
+      ${privacy}${footer}
+    </section>`;
+  // The first page: pick the demo (no account, pre-written letters) or the live version.
+  return `<section class="welcome login is-doors">
+      <div class="lantern-wrap" style="--k:.85;--b:1.05" aria-hidden="true"><div class="lantern"></div></div>
+      <p class="brand-line">${I.moon}<span>Beyond</span></p>
+      <h1 class="display">${title}</h1>
+      <div class="doors">
+        <section class="door door-demo paper" aria-labelledby="door-demo-h">
+          <h2 class="door-h" id="door-demo-h">Demo</h2>
+          <p class="door-p">See one night of Beyond from start to finish with Kit, a fictional student. Letters are pre-written, so there’s no account and no AI. Nothing is saved.</p>
+          <ol class="door-steps">${TOUR.slice(0, 4).map((t) => `<li>${esc(t)}</li>`).join('')}</ol>
+          <button class="btn" data-act="enter-demo">Start the demo</button>
+        </section>
+        <section class="door door-live" aria-labelledby="door-live-h">
+          <h2 class="door-h" id="door-live-h">Live</h2>
+          <p class="door-p">Your own journal. Write or talk about tonight, and ${esc(aiLabel)} writes tomorrow’s letter from your words.</p>
+          ${form}
+          <p class="fine">${switches}</p>
+        </section>
+      </div>
+      ${privacy}${footer}
     </section>`;
 }
 async function exportJournal() {
@@ -2058,22 +2187,24 @@ document.addEventListener('click', async (ev) => {
   if (d.login) { loginMode = d.login; loginNote = ''; return render(); }
   if (d.copy) { try { await navigator.clipboard.writeText(d.copy); toast(`Copied ${d.copy}`); } catch (e) { const r = document.createRange(); r.selectNodeContents(el.parentElement.querySelector('b')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } return; }
   switch (d.act) {
-    case 'start-sample': S.mode = 'sample'; welcomeStep = 1; save(); return render();
-    case 'start-own': S.mode = 'own'; welcomeStep = 1; save(); return render();
+    case 'start-sample': case 'enter-demo': return APP === 'demo' ? undefined : enterDemo();
+    case 'enter-live': return APP === 'live' && AUTH.user ? undefined : enterLive();
+    case 'start-own': welcomeStep = 1; return render();
+    case 'demo-example': return fillExample();
     case 'toggle-early': S.allowEarly = S.allowEarly === false; save(); toast(S.allowEarly ? '“Read it now” is on.' : 'Letters will wait for the morning.'); return render();
     case 'mem-pause': S.memoryPaused = !S.memoryPaused; save(); toast(S.memoryPaused ? 'Memory paused. Letters won’t use it.' : 'Memory is on again.'); return render();
     case 'export': return exportJournal();
-    case 'logout': return signOut();
+    case 'logout': return APP === 'demo' ? enterLive() : signOut();
     case 'google': try { el.disabled = true; await backend.google(); } catch (e) { el.disabled = false; loginNote = 'Google sign-in isn’t available right now.'; render(); } return;
     case 'reauth-google': try { await backend.google(); } catch (e) { toast('Google sign-in isn’t available right now.'); } return;
     case 'delete-account': confirmAccount = true; return render();
     case 'delete-account-no': confirmAccount = false; return render();
     case 'delete-account-yes': el.disabled = true; return deleteAccount();
     case 'finish-welcome': S.onboarded = true; save(); return go('tonight');
-    case 'own': S.mode = 'own'; save(); toast('Demo mode is off. Turn it back on in Settings.'); pMonth = null; return render();
+    case 'own': return enterLive();
     case 'arch-gold': arch.gold = !arch.gold; return refreshArchive();
     case 'arch-clear': Object.assign(arch, { q: '', month: '', theme: '', gold: false }); return render();
-    case 'toggle-sample': S.mode = S.mode === 'sample' ? 'own' : 'sample'; pMonth = null; save(); return render();
+    case 'toggle-sample': return APP === 'demo' ? enterLive() : enterDemo();
     case 'seal': el.disabled = true; return seal();
     case 'orb': return orbTap();
     case 'readnow': { const L = pendingNight(); if (L) { el.disabled = true; return overnight(L, { now: true }); } return; }
@@ -2321,7 +2452,8 @@ async function signOut() {
 function resetToLogin(note) {
   clearTimeout(watchTimer); closeSheet(false);
   AUTH = { auth: true, user: null }; synced = null;
-  const prefs = loadPrefs(); S = { ...fresh(), ...prefs };
+  APP = 'live'; backend = LIVE;
+  const prefs = loadPrefs(); S = { ...fresh(), ...prefs }; savePrefs();
   loginMode = 'signin'; loginNote = note || ''; route = 'login'; param = null;
   try { history.replaceState(null, '', '/app'); } catch (e) { /* fine */ }
   render();
@@ -2348,6 +2480,31 @@ async function submitLogin(f) {
     err(e?.code === 'auth_failed' ? (loginMode === 'signin' ? 'That email and password don’t match. Try again, or reset your password.' : 'That didn’t work. Check the details and try again.') : 'Can’t reach Beyond. Check your connection.');
   }
 }
+/* Switching versions. The demo starts over every time; the live version picks
+   up your account session if this tab still has one. */
+function leaveCurrent() {
+  clearTimeout(watchTimer); clearTimeout(syncTimer); closeSheet(false);
+  if (voice.state === 'rec') stopRecording(true);
+  voice.state = 'idle'; voice.blocked = false;
+  synced = null; pMonth = null; param = null; welcomeStep = 0;
+}
+async function enterDemo() {
+  leaveCurrent();
+  APP = 'demo'; backend = makeDemo();
+  S = { ...fresh(), ...loadPrefs() }; savePrefs();
+  route = 'tonight';
+  try { history.replaceState(null, '', '/app'); } catch (e) { /* fine */ }
+  return signedIn(await backend.session());
+}
+async function enterLive() {
+  leaveCurrent();
+  APP = 'live'; backend = LIVE;
+  S = { ...fresh(), ...loadPrefs() }; savePrefs();
+  let user = null;
+  try { user = LIVE.configured ? await LIVE.session() : null; } catch (e) { /* sign in below */ }
+  if (user) { route = 'tonight'; try { history.replaceState(null, '', '/app'); } catch (e) { /* fine */ } return signedIn(user); }
+  resetToLogin('');
+}
 async function loadAll() {
   const [settings, letters, memories, notes, account] = await Promise.all([backend.settings(), backend.letters(), backend.memories(), backend.notes(), backend.account().catch(() => ACCOUNT)]);
   applySettings(settings); ACCOUNT = account;
@@ -2367,7 +2524,11 @@ async function signedIn(user) {
 async function boot(callback) {
   setAmbient('full');
   $('#app').innerHTML = '<div class="booting"><div class="lantern"></div></div>';
-  backend.onSignedOut(() => resetToLogin('You were signed out. Sign in again to continue.'));
+  LIVE.onSignedOut(() => { if (APP === 'live') resetToLogin('You were signed out. Sign in again to continue.'); });
+  // ?demo opens the demo straight away (a link for judges); otherwise the demo
+  // comes back if it was the last version used on this device.
+  const q = new URLSearchParams(location.search);
+  if (!callback && !LIVE.recovering() && (q.has('demo') || (!q.has('live') && lastApp() === 'demo'))) return enterDemo();
   if (!backend.configured) { route = 'login'; render(); return; }
   if (new URLSearchParams(location.search).has('signup')) loginMode = 'signup';
   if (callback) {

@@ -3,7 +3,8 @@
  * and a fake product API, so the whole UI flow is checked without a database:
  * sign in, onboarding, sealing a night, a letter arriving, opening it, ticking a
  * to-do, Letters with search, Identity, Patterns, Settings with memory,
- * export, a demo-mode night with its pre-written letter, and signing out.
+ * export, the demo (no account, a pre-written letter) and back to live, and
+ * signing out.
  * Also checks that nothing the person writes is left in browser storage, and
  * that the site links in.
  *
@@ -498,10 +499,21 @@ try {
     'Download a copy exports the account',
   );
 
-  console.log('demo mode');
-  await page.locator('[data-act="toggle-sample"]').click();
-  const entriesBefore = db.entries.length;
-  await page.locator('.tab[data-go="tonight"]').click();
+  console.log('demo and live');
+  const callsBefore = db.calls.length;
+  await page.getByRole('button', { name: 'Open the demo' }).click();
+  await page.getByRole('button', { name: 'Start the demo' }).click();
+  await page.getByRole('button', { name: 'Start writing' }).click();
+  await page.locator('.tour').waitFor();
+  check(
+    (await page.locator('.app-switch [data-act="enter-demo"]').getAttribute('aria-pressed')) ===
+      'true',
+    'the top bar shows the demo is on',
+  );
+  check(
+    await page.locator('.tour li.now').getByText('Write a few lines').isVisible(),
+    'the demo walkthrough starts at writing',
+  );
   await page.fill(
     '#entry',
     'Fictional demo night: I ate lunch alone again, but tutoring the kids was the best part of my week.',
@@ -512,19 +524,35 @@ try {
   await page.getByRole('button', { name: 'Open the letter' }).click({ timeout: 20000 });
   await page.getByText('Looking for your people, one night at a time').first().waitFor();
   check(
-    await page.getByText('Demo mode: a pre-written sample letter').isVisible(),
-    'demo mode answers a sealed night with a labelled sample letter, without the AI',
+    await page.getByText('Demo: a pre-written letter').isVisible(),
+    'the demo answers a sealed night with a labelled pre-written letter, without the AI',
   );
-  check(db.entries.length === entriesBefore, 'a demo night is not saved to the account');
+  check(
+    !db.calls.slice(callsBefore).some((c) => !c.startsWith('GET')),
+    'the demo writes nothing to the account',
+  );
   await shot(page, '11-demo-letter');
-  await page.locator('.tab[data-go="settings"]').click();
-  await page.locator('[data-act="toggle-sample"]').click();
+  await page.locator('.app-switch [data-act="enter-live"]').click();
+  await page.locator('#entry').waitFor();
+  check(
+    !(await page.getByText('(sample)').count()) && !(await page.locator('.tour').count()),
+    'the live version shows only your own journal',
+  );
 
   console.log('sign out');
+  await page.locator('.tab[data-go="settings"]').click();
   await page.getByRole('button', { name: 'Sign out' }).click();
   await page.getByText('Write tonight. A letter by morning.').waitFor();
   const after = await page.evaluate(() => JSON.stringify({ ...sessionStorage }));
   check(!after.includes('fixture-refresh'), 'signing out removes the session from the browser');
+  check(
+    await page.getByRole('button', { name: 'Start the demo' }).isVisible(),
+    'the first page offers the demo next to signing in',
+  );
+  await page.getByRole('button', { name: 'Start the demo' }).click();
+  await page.getByRole('button', { name: 'Use the live version instead' }).click();
+  await page.locator('#email').waitFor();
+  check(true, 'the demo needs no account, and the live version is one tap back');
 
   console.log('site');
   await page.goto(`${ORIGIN}/#/`);

@@ -171,6 +171,52 @@ b { font-weight: 600; }
 .login-in { min-height: 46px; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--cream) 28%, transparent); border-radius: 0; background: transparent; color: var(--fg); padding: 8px 2px; font: 400 19px/1.3 var(--f-display); outline: none; }
 .login-in::placeholder { color: color-mix(in srgb, var(--cream) 40%, transparent); }
 .login-in:focus { border-bottom-color: var(--amber); }
+/* first page: two doors, the demo on paper and the live version on the night */
+main.v-login:has(.is-doors) { max-width: 1000px; }
+.welcome.login.is-doors { gap: 20px; }
+.welcome.login.is-doors .display { max-width: 20ch; font-size: clamp(34px, 4.6vw, 54px); }
+.doors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(28px, 5vw, 64px); width: 100%; max-width: 900px; margin-top: 10px; text-align: left; align-items: stretch; }
+.door { display: grid; align-content: start; gap: 16px; padding: clamp(26px, 3.2vw, 38px); }
+.door-h { font: 400 clamp(30px, 3.2vw, 38px)/1.05 var(--f-display); letter-spacing: -.015em; }
+.door-p { font: 400 18px/1.55 var(--f-display); color: var(--soft); max-width: 40ch; }
+.door-demo { border-radius: 3px; transform: rotate(-.5deg); box-shadow: 0 1px 0 rgba(255,255,255,.25) inset, 0 40px 70px -40px rgba(0,0,0,.9); transition: transform .5s var(--ease); }
+.door-demo:hover { transform: rotate(0deg) translateY(-2px); }
+.door-demo .btn { justify-self: start; margin-top: 6px; }
+.door-steps { list-style: none; counter-reset: st; display: grid; gap: 8px; padding: 0; margin: 2px 0 0; }
+.door-steps li { counter-increment: st; display: grid; grid-template-columns: 28px 1fr; align-items: baseline; color: var(--paper-ink); font-size: 15.5px; }
+.door-steps li::before { content: counter(st); font: italic 400 20px/1 var(--f-display); color: var(--ember-deep); }
+.door-live { padding-inline: clamp(4px, 1vw, 12px); }
+.door-live .login-form { width: 100%; justify-items: stretch; }
+.door-live .login-form .btn { justify-self: start; }
+.door-live .login-form .link { justify-self: start; }
+.door-live > .fine { margin-top: -4px; }
+@media (max-width: 760px) {
+  .doors { grid-template-columns: 1fr; gap: 36px; }
+  .door-demo { transform: none; }
+  .door-live { padding-inline: 0; }
+}
+
+/* demo or live, next to the name in the top bar */
+.topbar-l { display: flex; align-items: center; gap: clamp(16px, 2.4vw, 30px); }
+.app-switch { gap: 14px; justify-self: auto; }
+.app-switch button { font-size: 13.5px; padding: 3px 0 7px; }
+.app-switch button[aria-pressed="true"] { color: var(--amber); }
+
+/* the demo walkthrough, above tonight's page */
+.tour { display: grid; justify-items: center; gap: 10px; width: 100%; max-width: 720px; margin: 0 auto 6px; text-align: center; }
+.tour ol { list-style: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 22px; padding: 0; margin: 0; counter-reset: tour; }
+.tour li { counter-increment: tour; position: relative; display: inline-flex; gap: 7px; align-items: baseline; font-size: 14px; color: var(--faint); }
+.tour li::before { content: counter(tour); font: italic 400 17px/1 var(--f-display); }
+.tour li.done { color: var(--soft); }
+.tour li.done::before { content: "✓"; font: 600 13px/1 var(--f-ui); color: var(--gold); }
+.tour li.now { color: var(--fg); }
+.tour li.now::before { color: var(--amber); }
+.tour li.now::after { content: ""; position: absolute; left: -3px; right: -3px; bottom: -6px; height: 6px; background: var(--hand-u) no-repeat center / 100% 100%; animation: pen .6s var(--ease) both; }
+.tour p { font: italic 400 17px/1.45 var(--f-display); color: var(--soft); max-width: 60ch; }
+.tour p .link { font-style: normal; font-family: var(--f-ui); font-size: 15px; color: var(--amber); }
+main.v-tonight > .tour { margin-bottom: 0; }
+@media (max-width: 560px) { .tour ol { gap: 4px 14px; } .tour li { font-size: 13px; } }
+
 .booting { min-height: 80svh; display: grid; place-items: center; }
 .booting .lantern { --k: .6; }
 label.btn { display: inline-flex; }
@@ -511,7 +557,8 @@ mark.is-flash { background: #e9b97b; box-shadow: 0 0 0 4px rgba(233,185,123,.35)
 .chip[aria-pressed="true"] { color: var(--fg); }
 .chip[aria-pressed="true"]::after { content: ""; position: absolute; left: -3px; right: -3px; bottom: 0; height: 7px; background: var(--hand-u) no-repeat center / 100% 100%;  animation: pen .5s var(--ease) both; }
 .chip small { color: var(--faint); font-size: 12px; margin-left: 5px; }
-.slang-chips { margin-top: -4px; }
+.slang-chips { margin-top: -4px; align-items: baseline; }
+.slang-k { font: italic 400 15px/1 var(--f-display); color: var(--faint); padding-bottom: 8px; }
 .qcards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px 64px; }
 @media (max-width: 760px) { .qcards { grid-template-columns: 1fr; gap: 40px; } }
 .qcard { display: grid; gap: 12px; align-content: start; }
