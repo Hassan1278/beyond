@@ -3,8 +3,9 @@
  * and a fake product API, so the whole UI flow is checked without a database:
  * sign in, onboarding, sealing a night, a letter arriving, opening it, ticking a
  * to-do, Letters with search, Identity, Patterns, Settings with memory,
- * export, and signing out. Also checks that nothing the person writes is left in
- * browser storage, and that the site links in.
+ * export, a demo-mode night with its pre-written letter, and signing out.
+ * Also checks that nothing the person writes is left in browser storage, and
+ * that the site links in.
  *
  *   npm run build:web (with the NEXT_PUBLIC_* values below), then
  *   node tests/frontend/journal-smoke.mjs
@@ -497,6 +498,28 @@ try {
     'Download a copy exports the account',
   );
 
+  console.log('demo mode');
+  await page.locator('[data-act="toggle-sample"]').click();
+  const entriesBefore = db.entries.length;
+  await page.locator('.tab[data-go="tonight"]').click();
+  await page.fill(
+    '#entry',
+    'Fictional demo night: I ate lunch alone again, but tutoring the kids was the best part of my week.',
+  );
+  await page.getByRole('button', { name: 'Seal tonight' }).click();
+  await page.getByText('Sealed for the night.').waitFor();
+  await page.getByRole('button', { name: 'Skip to morning' }).click();
+  await page.getByRole('button', { name: 'Open the letter' }).click({ timeout: 20000 });
+  await page.getByText('Looking for your people, one night at a time').first().waitFor();
+  check(
+    await page.getByText('Demo mode: a pre-written sample letter').isVisible(),
+    'demo mode answers a sealed night with a labelled sample letter, without the AI',
+  );
+  check(db.entries.length === entriesBefore, 'a demo night is not saved to the account');
+  await shot(page, '11-demo-letter');
+  await page.locator('.tab[data-go="settings"]').click();
+  await page.locator('[data-act="toggle-sample"]').click();
+
   console.log('sign out');
   await page.getByRole('button', { name: 'Sign out' }).click();
   await page.getByText('Write tonight. A letter by morning.').waitFor();
@@ -507,7 +530,7 @@ try {
   await page.goto(`${ORIGIN}/#/`);
   await page.locator('a[href="/app"]').first().waitFor();
   check(true, 'the site links to the app');
-  await shot(page, '11-site');
+  await shot(page, '12-site');
   for (const [path, words] of [
     ['/how', 'Say it whenever. Understand it tomorrow.'],
     ['/privacy', 'Safe enough to be honest.'],
