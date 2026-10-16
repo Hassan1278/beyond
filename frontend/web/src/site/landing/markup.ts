@@ -149,7 +149,7 @@ export const LANDING_MARKUP = String.raw`</head>
     </div>
     <div class="try-grid bui">
       <div class="try-night">
-        <div class="try-top"><span class="k">Thu 8 Oct, 23:48</span><span class="k">No replies. Just you.</span></div>
+        <div class="try-top"><span class="try-k">Thu 8 Oct, 23:48</span><span class="try-k">No replies. Just you.</span></div>
         <div class="lantern-wrap" id="lanternWrap" aria-hidden="true"><div class="lantern"></div></div>
         <label for="entryText" class="sr">Tonight's entry</label>
         <textarea class="paper-in" id="entryText" placeholder="What's actually on your mind?"></textarea>
@@ -164,9 +164,9 @@ export const LANDING_MARKUP = String.raw`</head>
           <button role="tab" aria-selected="false" data-v="future">Future you</button>
           <button role="tab" aria-selected="false" data-v="diary">Diary</button>
         </div>
-        <article class="letter" id="letter" aria-live="polite" style="position:relative">
+        <article class="letter paper" id="letter" aria-live="polite" style="position:relative">
           <div class="overnight" id="overnight" hidden><p class="t" id="ovClock">23:48</p><p>Reading between the nights…</p></div>
-          <div class="letter-meta"><span class="k">Fri 9 Oct</span><span class="k" id="letterFrom">From your Friend</span></div>
+          <div class="letter-meta"><span>Fri 9 Oct</span><span id="letterFrom">From your Friend</span></div>
           <div id="letterBody"></div>
           <div class="ls"><h2 class="ls-label" style="--c:var(--m4)"><b>One small step</b></h2>
             <div class="ls-body">

@@ -254,7 +254,7 @@ export const SHARED_CSS = [
   '.ambient', '.stars', '.band', '.sky', '.leg-dot', '.orrery', '.constellation',
   '.ns-', '.tone-', '.mag', '.theme-line', '.qcard', '.qcards', '.qh', '.chip', '.chips',
   '.dots', '.changes', '.done-list', '.open-list', '.film', '.frame',
-  '.letter', '.ls', '.greet', '.headline', '.insight', '.signoff', '.issue', '.cause',
+  '.letter', '.paper', '.ls', '.greet', '.headline', '.insight', '.signoff', '.issue', '.cause',
   '.notice', '.words', '.remembers', '.provenance', '.todo-cta', '.quote', 'mark',
   '.paper-in', '.lantern', '.ripple', '.tn-',
   '.mem', '.login-in', '.toggle', '.track',

@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0",
+    "prebuild": "node ../../scripts/lift-journal.mjs",
     "build": "next build",
+    "lift": "node ../../scripts/lift-journal.mjs",
     "start": "next start --hostname 0.0.0.0",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
