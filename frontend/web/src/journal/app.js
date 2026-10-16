@@ -92,7 +92,7 @@ const OFFLINE = false;
 let AUTH = { auth: true, user: null };
 const isGuest = () => false;
 let storageOk = true;
-function fresh() { return { v: 2, onboarded: false, mode: 'own', voice: 'friend', lang: 'auto', inputMode: 'type', deliverTime: '08:00', allowEarly: true, draft: '', letters: [], sampleMeta: {}, notes: {}, dirs: {}, memories: [], memoryPaused: false, forgotten: [], hiddenSampleMem: [], savedAt: 0 }; }
+function fresh() { return { v: 2, onboarded: false, mode: 'own', voice: 'friend', lang: 'auto', inputMode: 'type', deliverTime: '08:00', allowEarly: true, draft: '', letters: [], demoNights: [], sampleMeta: {}, notes: {}, dirs: {}, memories: [], memoryPaused: false, forgotten: [], hiddenSampleMem: [], savedAt: 0 }; }
 /* Demo mode = Kit's sample journal is shown and "Skip to morning" is available. */
 const demoOn = () => S.mode === 'sample';
 const canSkip = () => demoOn() || isGuest() || OFFLINE || S.allowEarly !== false;
@@ -139,12 +139,14 @@ function sampleLetters() {
   });
 }
 function allLetters() {
-  const list = S.mode === 'sample' ? [...S.letters, ...sampleLetters()] : [...S.letters];
+  const list = S.mode === 'sample' ? [...S.letters, ...(S.demoNights || []), ...sampleLetters()] : [...S.letters];
   return list.sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''));
 }
 const findLetter = (id) => allLetters().find((l) => l.id === id);
 const delivered = (l) => l.status === 'ready' && (l.early || Date.now() >= Date.parse(l.deliverAt));
 function patchLetter(id, patch) {
+  const demo = (S.demoNights || []).find((l) => l.id === id);
+  if (demo) { Object.assign(demo, patch); return; } // demo nights never reach the account
   const own = S.letters.find((l) => l.id === id);
   if (!own) { Object.assign((S.sampleMeta[id] = S.sampleMeta[id] || {}), patch); return; }
   const before = { ...own, actions: { ...(own.actions || {}) } };
@@ -189,6 +191,321 @@ function memoryInUse(m) {
 const usableMemories = () => (S.memoryPaused ? [] : allMemories().filter(memoryInUse)).slice(0, 20);
 /* Learning happens on the server when a letter is stored (at most two small,
    checked things, never something you told Beyond to forget). */
+
+/* ---------- demo mode: pre-written letters ----------
+   In demo mode a sealed night stays on this page only (it is not saved to the
+   account and nothing is sent to an AI). A few seconds later it gets a
+   pre-written sample letter, chosen from what was written and built around
+   the writer's own sentences. Shown only while demo mode is on, and always
+   labelled as a demo letter. Real letters still come from Beyond's letter
+   service. */
+const DEMO_TOPICS = [
+  ['lonely', ['lonely', 'alone', 'no friends', 'no one', 'nobody', 'left out', 'fit in', 'belong', 'friend', 'friends', 'group chat', 'roommate', 'lunch alone', 'invisible', '孤單', '孤独', '孤獨', '寂寞', '一個人', '一个人', '冇人', '沒有人', '没有人', '朋友', '融入', '室友', '宿舍']],
+  ['direction', ['future', 'career', 'job', 'jobs', 'internship', 'internships', 'what i want', 'what to do', 'direction', 'lost', 'compare', 'comparing', 'everyone else', 'behind', 'major', 'path', 'graduate', 'purpose', 'linkedin', '將來', '将来', '未來', '未来', '前途', '工作', '實習', '实习', '方向', '迷茫', '迷失', '比較', '比较', '落後', '落后', '主修', '專業', '专业', '唔知做咩', '人生']],
+  ['study', ['exam', 'exams', 'midterm', 'midterms', 'final', 'finals', 'gpa', 'grade', 'grades', 'assignment', 'assignments', 'deadline', 'deadlines', 'homework', 'lecture', 'lectures', 'study', 'studying', 'fail', 'failed', 'quiz', 'essay', '考試', '考试', '測驗', '测验', '功課', '功课', '作業', '作业', '成績', '成绩', '溫書', '复习', '複習', '讀書', '读书', '死線', '截止', '論文', '论文', '挂科', '肥佬']],
+  ['family', ['mum', 'mom', 'dad', 'parents', 'parent', 'family', 'home', 'brother', 'sister', 'grandma', 'grandpa', '爸', '媽', '妈', '父母', '家人', '屋企', '家裡', '家里', '家庭', '哥哥', '姐姐', '弟弟', '妹妹']],
+  ['tired', ['tired', 'exhausted', 'sleep', 'sleepy', 'burnt out', 'burned out', 'burnout', 'drained', 'no energy', 'worn out', '攰', '累', '疲倦', '疲惫', '疲憊', '冇精神', '沒精神', '没精神', '瞓唔着', '失眠']],
+  ['bright', ['happy', 'fun', 'great day', 'good day', 'proud', 'enjoyed', 'loved it', 'excited', 'smiled', 'laughed', 'grateful', 'calm', '開心', '开心', '高興', '高兴', '好玩', '滿足', '满足', '感恩', '好正', '平靜', '平静']],
+];
+const DEMO_INTERESTS = [
+  ['community', ['help', 'helped', 'helping', 'volunteer', 'volunteering', 'volunteered', 'tutor', 'tutoring', 'kids', 'children', 'mentor', 'teach', 'teaching', '幫人', '帮人', '幫忙', '帮忙', '義工', '义工', '志愿', '志願', '補習', '补习', '小朋友', '教人']],
+  ['technology', ['code', 'coding', 'app', 'website', 'program', 'programming', 'built', 'hackathon', 'robot', 'prototype', '寫程式', '写程序', '編程', '编程', '程式', '網站', '网站', '黑客松']],
+  ['creativity', ['draw', 'drawing', 'paint', 'painting', 'music', 'song', 'guitar', 'piano', 'photo', 'photos', 'photography', 'film', 'design', '畫畫', '画画', '音樂', '音乐', '結他', '吉他', '鋼琴', '钢琴', '攝影', '摄影', '影相', '設計', '设计']],
+  ['learning', ['curious', 'learned', 'learnt', 'interesting', 'question', 'questions', 'research', 'book', 'books', '好奇', '學到', '学到', '有趣', '研究', '看書', '看书']],
+  ['business', ['startup', 'business', 'sell', 'selling', 'shop', 'customer', 'customers', '創業', '创业', '生意', '客人']],
+  ['nature', ['hike', 'hiking', 'beach', 'sea', 'outdoor', 'outdoors', 'walk', 'walked', 'park', 'sunset', 'harbour', 'harbor', '行山', '海邊', '海边', '散步', '公園', '公园', '日落', '爬山', '海港']],
+];
+const DEMO_THEMES = { lonely: ['loneliness', 'friendship'], direction: ['uncertainty', 'comparison', 'career'], study: ['study'], family: ['family'], tired: ['rest', 'health'], bright: ['achievement'], general: ['ordinary'], crisis: [] };
+const DEMO_TONE = { lonely: 'difficult', direction: 'mixed', study: 'difficult', family: 'mixed', tired: 'difficult', bright: 'positive', general: 'ordinary', crisis: 'difficult' };
+const S3 = (a, b, c) => [a, b, c];
+/* Each letter: headline, recap ({q} = their own words), two insights [lens, title, text],
+   challenge [issue, cause], try this [text, why], encouragement, three to-dos [text, kind, minutes]. */
+const DEMO_LETTERS = {
+  en: {
+    lonely: { headline: 'Looking for your people, one night at a time', recap: 'Tonight you wrote about feeling on the outside of things. In your words: “{q}”. That’s a hard thing to admit, even to a journal.',
+      a: ['context', 'It might be timing, not you', 'A new place resets everyone’s circle at once. Many people around you are quietly looking for their people too, even the ones who look settled.'],
+      b: ['pattern', 'Small and repeated beats big and perfect', 'Friendships rarely start with one great conversation. They grow from seeing the same faces doing the same thing, week after week.'],
+      ch: ['Feeling alone where everyone else seems settled', 'When you can’t see other people’s doubts, it’s easy to assume you’re the only one who has them.'],
+      ad: ['Pick one place you’ll show up to every week this month: a society, a study group, a regular volunteer slot. Go even when you don’t feel like talking. Being a familiar face comes before being a friend.', 'Repeated, low-pressure contact is how most friendships start.'],
+      enc: 'You noticed the feeling and named it instead of scrolling past it. That’s the first step to changing it.',
+      steps: [S3('Star one society or group that meets every week', 'exploration', 10), S3('Ask one classmate a question about the course', 'connection', 3), S3('Send an old friend a voice message about your week', 'connection', 5)] },
+    direction: { headline: 'You don’t need the whole map yet', recap: 'Tonight you wrote about not knowing what comes next: “{q}”. Not knowing gets louder at night, when everyone else’s plans look certain.',
+      a: ['pattern', 'Comparing is loudest when you’re tired', 'It might be that you’re measuring your inside against everyone else’s outside. Their highlight reel doesn’t show their doubts.'],
+      b: ['need', 'Direction comes from evidence, not from thinking harder', 'Most people don’t find a direction by deciding it. They notice which small things they keep coming back to, and follow those.'],
+      ch: ['Pressure to choose a path before you’ve tried many', 'University can make every choice feel final, even though most early choices can be changed.'],
+      ad: ['This week, treat the question as an experiment, not an exam. Try one small thing connected to something you’re curious about: a talk, a short course, a coffee with a senior. Notice how you feel while you do it.', 'Real experiences tell you more than imagined futures.'],
+      enc: 'Not knowing yet is not the same as being behind. You’re asking the question honestly, which is where every direction starts.',
+      steps: [S3('Write down three things you lost track of time doing this year', 'reflection', 10), S3('Ask one senior how they chose their path', 'connection', 5), S3('Go to one talk or event outside your major', 'exploration', 60)] },
+    study: { headline: 'One deadline at a time', recap: 'Tonight you wrote about how much the work is weighing on you: “{q}”. It sounds like the pile is bigger than the hours right now.',
+      a: ['feeling', 'Pressure makes everything feel urgent', 'When everything seems due at once, it’s hard to start anything. That freeze is a common reaction to pressure, not a sign you can’t do this.'],
+      b: ['strength', 'You still care about doing it well', 'You wouldn’t be this stressed if the work didn’t matter to you. That care is worth protecting, not burning out.'],
+      ch: ['Too much to do and no clear first step', 'A long list held in your head feels bigger than the same list written down and put in order.'],
+      ad: ['Tomorrow, write every task on paper, then circle the one that would make the biggest difference. Give it 25 focused minutes before anything else. If you’re stuck on the content, ask your tutor or a classmate early; that’s what office hours are for.', 'Starting small breaks the freeze faster than planning more.'],
+      enc: 'You’ve got through hard weeks before. This one has an end date too.',
+      steps: [S3('Write every task down and circle one', 'practical', 10), S3('Spend 25 focused minutes on the circled task', 'practical', 25), S3('Email your tutor one specific question', 'connection', 5)] },
+    family: { headline: 'Between what they hope and what you want', recap: 'Tonight you wrote about home and the people there: “{q}”. Family can be what holds you up and what weighs most, at the same time.',
+      a: ['context', 'Their worry is often love in an awkward shape', 'It might be that pressure from home comes from wanting you to be safe, even when it doesn’t feel that way.'],
+      b: ['need', 'You’re allowed your own pace', 'Growing up includes finding where their plans for you and your own plans overlap, and where they don’t.'],
+      ch: ['Feeling torn between home and your own path', 'You care about them and about yourself, so neither side is easy to let go of.'],
+      ad: ['Instead of one big conversation, share one small, true thing about your life this week: something you enjoyed, not only results. Small updates make the bigger conversations easier later.', 'People worry less about what they can see.'],
+      enc: 'Caring about your family and about your own direction isn’t a contradiction. It’s what makes this hard, and it’s also a good sign.',
+      steps: [S3('Send home a photo of something you enjoyed this week', 'connection', 3), S3('Write down what you want, separate from what they want', 'reflection', 10), S3('Plan one meal or call with family that isn’t about grades', 'connection', 30)] },
+    tired: { headline: 'Running on empty is still running', recap: 'Tonight you wrote about being worn out: “{q}”. It sounds like your body and mind have been asking for a pause.',
+      a: ['feeling', 'Tired makes everything look worse', 'At the end of a long day, problems look bigger than they are. Some of what feels hopeless tonight may look different after sleep.'],
+      b: ['need', 'Rest is part of the work', 'It might be that you’ve been treating rest as something you earn after everything is done. Everything is never done.'],
+      ch: ['No space to recover between demands', 'When every hour is full, the first thing to go is usually sleep, then the things that recharge you.'],
+      ad: ['Tonight, put your phone across the room and go to bed 30 minutes earlier than usual. Tomorrow, keep one short break that is only for you: a walk, music, a meal without a screen.', 'Small, protected rest adds up faster than one long weekend you never get.'],
+      enc: 'Being this tired means you’ve kept showing up. You’re allowed to let today be finished.',
+      steps: [S3('Put your phone across the room 30 minutes before sleep', 'rest', 30), S3('Take a 10-minute walk outside tomorrow', 'rest', 10), S3('Cross one non-urgent thing off this week’s list', 'practical', 5)] },
+    bright: { headline: 'Notice what lit you up', recap: 'Tonight you wrote about a moment that went well: “{q}”. It’s worth stopping to keep that one.',
+      a: ['strength', 'This is what energy feels like', 'The things that leave you lighter, not just busy, are clues. They often point to what you’ll want more of.'],
+      b: ['pattern', 'Small wins are evidence', 'A good day isn’t random. Something about where you were, who you were with or what you were doing worked, and you can do it again.'],
+      ch: ['Letting good moments pass without noticing them', 'Busy weeks make it easy to remember only what went wrong.'],
+      ad: ['This week, do one more small thing connected to today’s good moment, on purpose. Then notice whether the feeling comes back.', 'Directions grow from following what gives you energy.'],
+      enc: 'Days like this count. Keep this letter for the nights that feel heavier.',
+      steps: [S3('Write one line about why today felt good', 'reflection', 3), S3('Plan one more hour of the same kind of thing', 'exploration', 5), S3('Tell someone about it', 'connection', 5)] },
+    general: { headline: 'An ordinary night, written down', recap: 'Tonight you wrote: “{q}”. Not every night needs a big story. Writing it down still counts.',
+      a: ['pattern', 'Ordinary days build the picture', 'Over weeks, the small details you write on quiet nights show what you keep coming back to.'],
+      b: ['need', 'What would make tomorrow slightly better?', 'It might help to name one small thing you’d like more of tomorrow, and one you’d like less of.'],
+      ch: ['Days blurring together', 'When nothing stands out, it’s easy to stop noticing what you actually enjoy.'],
+      ad: ['Tomorrow, notice one moment that feels even slightly good, and write it down here at night.', 'Noticing comes before changing.'],
+      enc: 'Coming back to write on a quiet night is a habit worth keeping.',
+      steps: [S3('Notice one good moment tomorrow', 'reflection', 2), S3('Take a different route somewhere', 'exploration', 10), S3('Write one line here tomorrow night', 'reflection', 5)] },
+    crisis: { headline: 'You don’t have to carry tonight alone', recap: 'Tonight you wrote something that sounds really heavy. Thank you for putting it into words. You deserve support right now, not just in the morning.',
+      a: ['need', 'Talking to someone helps', 'Beyond is a journal, not a person, and it can’t help in an emergency. A trained person on a helpline can talk with you right now, free and confidential.'],
+      ch: ['Carrying this much on your own', 'Heavy feelings often grow at night, and when we’re alone with them.'],
+      ad: ['Please reach out tonight. In Hong Kong you can call the Mental Health Support Hotline on 18111 or The Samaritans on 2896 0000, any time. If you are in immediate danger, call 999.', 'You deserve to be heard by a real person.'],
+      enc: 'Writing this down took courage. Please let someone help you with the rest.',
+      steps: [S3('Open Need help? in Settings and save one number', 'connection', 2), S3('Tell one person you trust how tonight feels', 'connection', 5), S3('Stay somewhere you’re not alone for the next hour', 'rest', 60)] },
+    interest: ['strength', 'Where your energy went up', 'When you wrote about {name}, your words changed. Small signals like that are how a direction starts.'],
+    tangled: ['pattern', 'Two things got tangled', '{a} and {b} showed up on the same night. It might be that one is making the other feel heavier than it is.'],
+    names: { community: 'helping others', technology: 'building things', creativity: 'making something', learning: 'learning something new', business: 'your idea', nature: 'being outside' },
+    topics: { lonely: 'Feeling alone', direction: 'Not knowing what’s next', study: 'The workload', family: 'Home', tired: 'Tiredness', bright: 'A good moment', general: 'An ordinary day' },
+  },
+  hant: {
+    lonely: { headline: '慢慢找到屬於你的人', recap: '今晚你寫到自己好像站在人群之外。你這樣說：「{q}」。把這種感覺誠實寫下來，並不容易。',
+      a: ['context', '可能是時機，而不是你', '一個新環境會讓每個人的圈子同時重新開始。你身邊很多人其實也在默默尋找自己的朋友，包括那些看起來已經適應得很好的人。'],
+      b: ['pattern', '細水長流，勝過一次完美的對話', '友誼很少從一次很好的聊天開始，多數是因為一星期又一星期，在同一個地方見到同一些人。'],
+      ch: ['身邊的人好像都已經安頓好，只有自己還在外面', '當你看不見別人的不安，就很容易以為只有自己有這些感覺。'],
+      ad: ['這個月選一個你每星期都會出現的地方：一個學會、一個溫習小組，或一個固定的義工時段。即使不想說話也照樣去。先成為熟悉的面孔，才會成為朋友。', '重複而沒有壓力的接觸，是大部分友誼的開始。'],
+      enc: '你察覺到這種感覺，並把它說出來，而不是滑手機帶過。這就是改變的第一步。',
+      steps: [S3('收藏一個每星期聚會的學會或小組', 'exploration', 10), S3('下課後問同學一個關於課程的問題', 'connection', 3), S3('給一個舊朋友傳一段語音，講講你這星期', 'connection', 5)] },
+    direction: { headline: '你不需要一下子看清整張地圖', recap: '今晚你寫到不知道下一步該怎樣走：「{q}」。到了晚上，這種不確定總會變得更大聲，尤其當別人的計劃看起來都很清楚。',
+      a: ['pattern', '累的時候，比較的聲音最大', '你可能在拿自己的內心，去比較別人的外表。別人的精華片段，不會拍到他們的猶豫。'],
+      b: ['need', '方向來自經驗，而不是想得更用力', '大部分人不是靠決定找到方向的，而是留意自己一次又一次回到哪些小事，再跟着走。'],
+      ch: ['還未試過很多，就被逼要選一條路', '大學會讓每個選擇都好像是最終答案，但其實很多早期的選擇都可以再改。'],
+      ad: ['這星期把這個問題當成一個實驗，而不是考試。試一件和你好奇的事有關的小事：聽一場講座、上一個短課程，或約一位學長姐喝咖啡，然後留意自己在過程中的感覺。', '真實的經驗，比想像中的未來告訴你更多。'],
+      enc: '還不知道，並不代表落後。你誠實地問這個問題，這正是每個方向的起點。',
+      steps: [S3('寫下今年三件讓你做到忘記時間的事', 'reflection', 10), S3('問一位學長姐當初怎樣選擇自己的路', 'connection', 5), S3('去一個主修以外的講座或活動', 'exploration', 60)] },
+    study: { headline: '一次只處理一個死線', recap: '今晚你寫到功課和考試壓得你很重：「{q}」。聽起來，事情比時間多。',
+      a: ['feeling', '壓力會令所有事都變得很急', '當所有事好像都同時到期，就很難開始任何一件。這種停頓是面對壓力時很常見的反應，不代表你做不到。'],
+      b: ['strength', '你仍然在乎把事情做好', '如果這些功課對你不重要，你不會這麼緊張。這份在乎值得好好保護，而不是燒盡。'],
+      ch: ['事情太多，卻不知道從哪裡開始', '放在腦裡的長清單，總比寫下來排好次序的同一張清單顯得更大。'],
+      ad: ['明天先把所有要做的事寫在紙上，再圈出最能幫到你的一件，先專心做 25 分鐘。如果卡在內容上，早點問導師或同學，這正是 office hours 存在的原因。', '由小處開始，比計劃更多更快打破停頓。'],
+      enc: '你以前也撐過很難的星期，這一個也會有完結的一天。',
+      steps: [S3('把所有事寫下來，圈出一件', 'practical', 10), S3('為圈出的那件事專心做 25 分鐘', 'practical', 25), S3('電郵導師，問一個具體的問題', 'connection', 5)] },
+    family: { headline: '在他們的期望和你想要的之間', recap: '今晚你寫到家和家人：「{q}」。家可以同時是最支持你、也是最讓你有壓力的地方。',
+      a: ['context', '他們的擔心，有時是用錯了形狀的愛', '家裡的壓力，可能來自希望你平安，即使感覺上不像這樣。'],
+      b: ['need', '你可以有自己的步伐', '長大的一部分，是找出他們對你的期望和你自己的計劃，哪裡重疊、哪裡不同。'],
+      ch: ['在家人和自己的路之間左右為難', '你在乎他們，也在乎自己，所以兩邊都不容易放下。'],
+      ad: ['與其一次過談一件大事，這星期先和家人分享一件真實的小事：一件你喜歡做的事，而不只是成績。小小的近況，會讓之後的大對話容易一些。', '人對看得見的事，會少擔心一點。'],
+      enc: '同時在乎家人和自己的方向，並不矛盾。正因如此才會難，這其實也是好事。',
+      steps: [S3('傳一張你這星期喜歡的照片回家', 'connection', 3), S3('寫下你想要的，和他們想要的分開', 'reflection', 10), S3('約家人吃一頓不談成績的飯，或打一次電話', 'connection', 30)] },
+    tired: { headline: '即使很累，你仍在前進', recap: '今晚你寫到自己很累：「{q}」。聽起來，你的身體和心都在要求停一停。',
+      a: ['feeling', '累的時候，一切看起來都更差', '一天完結的時候，問題總顯得比實際大。今晚覺得沒希望的事，睡一覺後可能會不一樣。'],
+      b: ['need', '休息也是工作的一部分', '你可能一直把休息當成做完所有事之後的獎勵，但事情永遠不會全部做完。'],
+      ch: ['在各種要求之間，沒有時間恢復', '當每個鐘頭都排滿，最先被犧牲的通常是睡眠，然後是讓你充電的事。'],
+      ad: ['今晚把手機放到房間另一邊，比平時早 30 分鐘上床。明天留一段只屬於自己的小休息：散步、聽歌，或吃一頓不看螢幕的飯。', '小而受保護的休息，比一個永遠等不到的長週末來得更快。'],
+      enc: '累成這樣，代表你一直在努力出現。今天可以就這樣結束。',
+      steps: [S3('睡前 30 分鐘把手機放遠', 'rest', 30), S3('明天到戶外散步 10 分鐘', 'rest', 10), S3('從這星期的清單刪走一件不急的事', 'practical', 5)] },
+    bright: { headline: '留意讓你發亮的時刻', recap: '今晚你寫到一個順利的時刻：「{q}」。值得停一停，把它留住。',
+      a: ['strength', '這就是有能量的感覺', '讓你覺得輕鬆、而不只是忙碌的事，都是線索。它們往往指向你會想要更多的東西。'],
+      b: ['pattern', '小小的成功也是證據', '美好的一天不是偶然。當時的地方、身邊的人或你在做的事，總有些東西奏效，而你可以再做一次。'],
+      ch: ['讓美好的時刻就這樣溜走', '忙碌的星期，很容易只記得出錯的事。'],
+      ad: ['這星期刻意再做一件和今天這個時刻有關的小事，再看看那種感覺會不會回來。', '方向，往往是跟着讓你有能量的事慢慢長出來的。'],
+      enc: '這樣的日子也算數。把這封信留給比較沉重的晚上。',
+      steps: [S3('寫一句今天為甚麼感覺好', 'reflection', 3), S3('再安排一小時做同類的事', 'exploration', 5), S3('把這件事告訴一個人', 'connection', 5)] },
+    general: { headline: '一個平凡的晚上，也值得寫下', recap: '今晚你寫下：「{q}」。不是每個晚上都需要大故事，寫下來已經算數。',
+      a: ['pattern', '平凡的日子，慢慢拼出全貌', '幾個星期後，你在平靜晚上寫下的小細節，會顯示你一直回到哪些事。'],
+      b: ['need', '甚麼會讓明天好一點點？', '或許可以說出一件明天想多一點的小事，和一件想少一點的。'],
+      ch: ['日子模糊成一片', '當沒有甚麼特別突出，就很容易不再留意自己真正喜歡的事。'],
+      ad: ['明天留意一個哪怕只是有點開心的時刻，晚上回到這裡寫下來。', '先留意，才會改變。'],
+      enc: '在平靜的晚上也來寫，是值得保持的習慣。',
+      steps: [S3('明天留意一個好時刻', 'reflection', 2), S3('換一條路去某個地方', 'exploration', 10), S3('明晚在這裡寫一句', 'reflection', 5)] },
+    crisis: { headline: '今晚你不需要一個人撐着', recap: '今晚你寫下的東西聽起來很沉重。謝謝你把它寫出來。你現在就值得有人支持，而不只是等到早上。',
+      a: ['need', '和人傾訴會有幫助', 'Beyond 是一本日記，不是真人，也不能處理緊急情況。熱線上受過訓練的人，現在就可以和你傾談，免費而且保密。'],
+      ch: ['一個人承受這麼多', '沉重的感覺，常常在晚上、在獨處的時候變得更大。'],
+      ad: ['今晚請找人傾訴：在香港可以隨時致電 18111 精神健康支援熱線，或撒瑪利亞會 2896 0000。如果你有即時危險，請致電 999。', '你值得被一個真人聆聽。'],
+      enc: '把這些寫下來需要勇氣。剩下的，請讓別人幫你一起承擔。',
+      steps: [S3('打開 Settings 裡的 Need help?，儲存一個號碼', 'connection', 2), S3('告訴一個你信任的人今晚的感受', 'connection', 5), S3('接下來一小時，待在有人陪伴的地方', 'rest', 60)] },
+    interest: ['strength', '你的能量在這裡升起', '寫到{name}的時候，你的文字變得不一樣。這些小訊號，正是一個方向的開始。'],
+    tangled: ['pattern', '兩件事纏在一起', '{a}和{b}在同一個晚上出現。可能其中一件，令另一件顯得比實際更沉重。'],
+    names: { community: '幫助別人', technology: '動手做東西', creativity: '創作', learning: '學到新東西', business: '你的想法', nature: '走到戶外' },
+    topics: { lonely: '孤單', direction: '對將來的迷茫', study: '功課', family: '家', tired: '疲累', bright: '一個美好的時刻', general: '平凡的一天' },
+  },
+  hans: {
+    lonely: { headline: '慢慢找到属于你的人', recap: '今晚你写到自己好像站在人群之外。你这样说：「{q}」。把这种感觉诚实写下来，并不容易。',
+      a: ['context', '可能是时机，而不是你', '一个新环境会让每个人的圈子同时重新开始。你身边很多人其实也在默默寻找自己的朋友，包括那些看起来已经适应得很好的人。'],
+      b: ['pattern', '细水长流，胜过一次完美的对话', '友谊很少从一次很好的聊天开始，多数是因为一周又一周，在同一个地方见到同一些人。'],
+      ch: ['身边的人好像都已经安顿好，只有自己还在外面', '当你看不见别人的不安，就很容易以为只有自己有这些感觉。'],
+      ad: ['这个月选一个你每周都会出现的地方：一个社团、一个复习小组，或一个固定的志愿者时段。即使不想说话也照样去。先成为熟悉的面孔，才会成为朋友。', '重复而没有压力的接触，是大部分友谊的开始。'],
+      enc: '你察觉到这种感觉，并把它说出来，而不是刷手机带过。这就是改变的第一步。',
+      steps: [S3('收藏一个每周聚会的社团或小组', 'exploration', 10), S3('下课后问同学一个关于课程的问题', 'connection', 3), S3('给一个老朋友发一段语音，讲讲你这周', 'connection', 5)] },
+    direction: { headline: '你不需要一下子看清整张地图', recap: '今晚你写到不知道下一步该怎么走：「{q}」。到了晚上，这种不确定总会变得更响，尤其当别人的计划看起来都很清楚。',
+      a: ['pattern', '累的时候，比较的声音最大', '你可能在拿自己的内心，去比较别人的外表。别人的精彩片段，不会拍到他们的犹豫。'],
+      b: ['need', '方向来自经验，而不是想得更用力', '大部分人不是靠决定找到方向的，而是留意自己一次又一次回到哪些小事，再跟着走。'],
+      ch: ['还没试过很多，就被逼要选一条路', '大学会让每个选择都好像是最终答案，但其实很多早期的选择都可以再改。'],
+      ad: ['这周把这个问题当成一个实验，而不是考试。试一件和你好奇的事有关的小事：听一场讲座、上一门短课，或约一位学长学姐喝咖啡，然后留意自己在过程中的感觉。', '真实的经验，比想象中的未来告诉你更多。'],
+      enc: '还不知道，并不代表落后。你诚实地问这个问题，这正是每个方向的起点。',
+      steps: [S3('写下今年三件让你做到忘记时间的事', 'reflection', 10), S3('问一位学长学姐当初怎样选择自己的路', 'connection', 5), S3('去一个专业以外的讲座或活动', 'exploration', 60)] },
+    study: { headline: '一次只处理一个截止日期', recap: '今晚你写到作业和考试压得你很重：「{q}」。听起来，事情比时间多。',
+      a: ['feeling', '压力会让所有事都变得很急', '当所有事好像都同时到期，就很难开始任何一件。这种停顿是面对压力时很常见的反应，不代表你做不到。'],
+      b: ['strength', '你仍然在乎把事情做好', '如果这些作业对你不重要，你不会这么紧张。这份在乎值得好好保护，而不是燃尽。'],
+      ch: ['事情太多，却不知道从哪里开始', '放在脑子里的长清单，总比写下来排好顺序的同一张清单显得更大。'],
+      ad: ['明天先把所有要做的事写在纸上，再圈出最能帮到你的一件，先专心做 25 分钟。如果卡在内容上，早点问老师或同学，这正是答疑时间存在的原因。', '从小处开始，比计划更多更快打破停顿。'],
+      enc: '你以前也撑过很难的一周，这一周也会有结束的一天。',
+      steps: [S3('把所有事写下来，圈出一件', 'practical', 10), S3('为圈出的那件事专心做 25 分钟', 'practical', 25), S3('给老师发邮件，问一个具体的问题', 'connection', 5)] },
+    family: { headline: '在他们的期望和你想要的之间', recap: '今晚你写到家和家人：「{q}」。家可以同时是最支持你、也是最让你有压力的地方。',
+      a: ['context', '他们的担心，有时是用错了形状的爱', '家里的压力，可能来自希望你平安，即使感觉上不像这样。'],
+      b: ['need', '你可以有自己的步伐', '长大的一部分，是找出他们对你的期望和你自己的计划，哪里重叠、哪里不同。'],
+      ch: ['在家人和自己的路之间左右为难', '你在乎他们，也在乎自己，所以两边都不容易放下。'],
+      ad: ['与其一次谈一件大事，这周先和家人分享一件真实的小事：一件你喜欢做的事，而不只是成绩。小小的近况，会让之后的大对话容易一些。', '人对看得见的事，会少担心一点。'],
+      enc: '同时在乎家人和自己的方向，并不矛盾。正因如此才会难，这其实也是好事。',
+      steps: [S3('发一张你这周喜欢的照片回家', 'connection', 3), S3('写下你想要的，和他们想要的分开', 'reflection', 10), S3('约家人吃一顿不谈成绩的饭，或打一次电话', 'connection', 30)] },
+    tired: { headline: '即使很累，你仍在前进', recap: '今晚你写到自己很累：「{q}」。听起来，你的身体和心都在要求停一停。',
+      a: ['feeling', '累的时候，一切看起来都更糟', '一天结束的时候，问题总显得比实际大。今晚觉得没希望的事，睡一觉后可能会不一样。'],
+      b: ['need', '休息也是工作的一部分', '你可能一直把休息当成做完所有事之后的奖励，但事情永远不会全部做完。'],
+      ch: ['在各种要求之间，没有时间恢复', '当每个小时都排满，最先被牺牲的通常是睡眠，然后是让你充电的事。'],
+      ad: ['今晚把手机放到房间另一边，比平时早 30 分钟上床。明天留一段只属于自己的小休息：散步、听歌，或吃一顿不看屏幕的饭。', '小而受保护的休息，比一个永远等不到的长周末来得更快。'],
+      enc: '累成这样，代表你一直在努力出现。今天可以就这样结束。',
+      steps: [S3('睡前 30 分钟把手机放远', 'rest', 30), S3('明天到户外散步 10 分钟', 'rest', 10), S3('从这周的清单删掉一件不急的事', 'practical', 5)] },
+    bright: { headline: '留意让你发光的时刻', recap: '今晚你写到一个顺利的时刻：「{q}」。值得停一停，把它留住。',
+      a: ['strength', '这就是有能量的感觉', '让你觉得轻松、而不只是忙碌的事，都是线索。它们往往指向你会想要更多的东西。'],
+      b: ['pattern', '小小的成功也是证据', '美好的一天不是偶然。当时的地方、身边的人或你在做的事，总有些东西奏效，而你可以再做一次。'],
+      ch: ['让美好的时刻就这样溜走', '忙碌的一周，很容易只记得出错的事。'],
+      ad: ['这周刻意再做一件和今天这个时刻有关的小事，再看看那种感觉会不会回来。', '方向，往往是跟着让你有能量的事慢慢长出来的。'],
+      enc: '这样的日子也算数。把这封信留给比较沉重的晚上。',
+      steps: [S3('写一句今天为什么感觉好', 'reflection', 3), S3('再安排一小时做同类的事', 'exploration', 5), S3('把这件事告诉一个人', 'connection', 5)] },
+    general: { headline: '一个平凡的晚上，也值得写下', recap: '今晚你写下：「{q}」。不是每个晚上都需要大故事，写下来已经算数。',
+      a: ['pattern', '平凡的日子，慢慢拼出全貌', '几周后，你在平静晚上写下的小细节，会显示你一直回到哪些事。'],
+      b: ['need', '什么会让明天好一点点？', '或许可以说出一件明天想多一点的小事，和一件想少一点的。'],
+      ch: ['日子模糊成一片', '当没有什么特别突出，就很容易不再留意自己真正喜欢的事。'],
+      ad: ['明天留意一个哪怕只是有点开心的时刻，晚上回到这里写下来。', '先留意，才会改变。'],
+      enc: '在平静的晚上也来写，是值得保持的习惯。',
+      steps: [S3('明天留意一个好时刻', 'reflection', 2), S3('换一条路去某个地方', 'exploration', 10), S3('明晚在这里写一句', 'reflection', 5)] },
+    crisis: { headline: '今晚你不需要一个人扛着', recap: '今晚你写下的东西听起来很沉重。谢谢你把它写出来。你现在就值得有人支持，而不只是等到早上。',
+      a: ['need', '和人倾诉会有帮助', 'Beyond 是一本日记，不是真人，也不能处理紧急情况。热线上受过训练的人，现在就可以和你倾谈，免费而且保密。'],
+      ch: ['一个人承受这么多', '沉重的感觉，常常在晚上、在独处的时候变得更大。'],
+      ad: ['今晚请找人倾诉：在香港可以随时致电 18111 精神健康支援热线，或撒玛利亚会 2896 0000。如果你有即时危险，请致电 999。', '你值得被一个真人聆听。'],
+      enc: '把这些写下来需要勇气。剩下的，请让别人帮你一起承担。',
+      steps: [S3('打开 Settings 里的 Need help?，保存一个号码', 'connection', 2), S3('告诉一个你信任的人今晚的感受', 'connection', 5), S3('接下来一小时，待在有人陪伴的地方', 'rest', 60)] },
+    interest: ['strength', '你的能量在这里升起', '写到{name}的时候，你的文字变得不一样。这些小信号，正是一个方向的开始。'],
+    tangled: ['pattern', '两件事缠在一起', '{a}和{b}在同一个晚上出现。可能其中一件，让另一件显得比实际更沉重。'],
+    names: { community: '帮助别人', technology: '动手做东西', creativity: '创作', learning: '学到新东西', business: '你的想法', nature: '走到户外' },
+    topics: { lonely: '孤单', direction: '对将来的迷茫', study: '作业', family: '家', tired: '疲惫', bright: '一个美好的时刻', general: '平凡的一天' },
+  },
+};
+const CJK_RE = /[㐀-鿿]/;
+/* English keywords match whole words ("home" is not "homework"); Chinese ones match anywhere. */
+const kwMatch = (s, kw) => (CJK_RE.test(kw) ? s.includes(kw) : new RegExp(`(^|[^a-z])${kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`, 'i').test(s));
+const kwCount = (s, list) => list.reduce((n, kw) => n + (kwMatch(s, kw) ? 1 : 0), 0);
+/* A quote is always an exact piece of what they wrote, so the letter can highlight it. */
+function clipQuote(s) {
+  s = s.trim(); const zh = CJK_RE.test(s); const max = zh ? 40 : 110;
+  if (s.length > max) {
+    let cut = s.slice(0, max); const at = zh ? Math.max(cut.lastIndexOf('，'), cut.lastIndexOf('、'), cut.lastIndexOf(',')) : cut.lastIndexOf(' ');
+    if (at > max * 0.5) cut = cut.slice(0, at);
+    s = cut;
+  }
+  return s.replace(/[\s,，、;；:：.。]+$/, '');
+}
+const demoSentences = (t) => (t.match(/[^.!?。！？\n]+[.!?。！？]*/g) || []).map((x) => clipQuote(x)).filter((x) => countWords(x) >= 3);
+function demoLanguage(text) {
+  if (S.lang === 'en') return 'en'; if (S.lang === 'zh-hant') return 'hant'; if (S.lang === 'zh-hans') return 'hans';
+  const zh = (text.match(/[㐀-鿿]/g) || []).length; const en = (text.replace(/[㐀-鿿]/g, ' ').match(/[A-Za-z]{2,}/g) || []).length;
+  return zh > en * 1.5 ? (scriptOf(text) === 'hans' ? 'hans' : 'hant') : 'en';
+}
+function demoLetter(text, entryId, date) {
+  const lang = demoLanguage(text); const T = DEMO_LETTERS[lang];
+  const scored = DEMO_TOPICS.map(([k, kw]) => [k, kwCount(text, kw), kw]).filter((x) => x[1] > 0).sort((a, b) => b[1] - a[1]);
+  const crisis = hasCrisis(text);
+  const topic = crisis ? 'crisis' : scored[0]?.[0] || 'general';
+  const second = !crisis && scored[1] && scored[1][0] !== 'bright' && topic !== 'bright' ? scored[1] : null;
+  const interest = crisis ? null : DEMO_INTERESTS.map(([k, kw]) => [k, kwCount(text, kw), kw]).filter((x) => x[1] > 0).sort((a, b) => b[1] - a[1])[0] || null;
+  const sents = demoSentences(text);
+  const pick = (test, not = []) => sents.find((x) => test(x) && !not.includes(x)) || null;
+  const mainKw = scored[0]?.[2] || [];
+  const q1 = crisis ? '' : pick((x) => mainKw.some((kw) => kwMatch(x, kw))) || [...sents].sort((a, b) => countWords(b) - countWords(a))[0] || clipQuote(text);
+  const qi = interest ? pick((x) => interest[2].some((kw) => kwMatch(x, kw)), [q1]) : null;
+  const qs = second ? pick((x) => second[2].some((kw) => kwMatch(x, kw)), [q1, qi]) : null;
+  const qOther = crisis ? null : pick(() => true, [q1, qi, qs]);
+  const L = T[topic];
+  const fill = (s, map) => s.replace(/\{(\w+)\}/g, (_, k) => map[k] ?? '');
+  const insight = ([lens, title, body], quote) => ({ lens, title, text: body, quote: quote || '', entryId: quote ? entryId : null });
+  const analysis = [insight(L.a, qOther || '')]; // the recap already quotes q1
+  if (!crisis) {
+    if (qi) analysis.push(insight([T.interest[0], T.interest[1], fill(T.interest[2], { name: T.names[interest[0]] })], qi));
+    else if (second) analysis.push(insight([T.tangled[0], T.tangled[1], fill(T.tangled[2], { a: T.topics[topic], b: lang === 'en' ? T.topics[second[0]].toLowerCase() : T.topics[second[0]] })], qs));
+    else analysis.push(insight(L.b, ''));
+  }
+  const questions = crisis ? [] : (text.match(/[^.!?。！？\n]+[?？]/g) || []).map((x) => clipQuote(x)).filter((x) => countWords(x) >= 2).slice(0, 2);
+  const v = S.voice || 'friend';
+  return {
+    voice: v, language: lang === 'en' ? 'en' : lang === 'hans' ? 'zh-hans' : 'zh-hant',
+    ...(v === 'diary' ? { greeting: lang === 'en' ? `${fmtDay(date)}, summary` : `${date} 摘要`, signoff: '' } : {}),
+    headline: L.headline, recap: fill(L.recap, { q: q1 }), analysis,
+    challenge: { issue: L.ch[0], cause: L.ch[1] }, advice: { text: L.ad[0], why: L.ad[1] }, encouragement: L.enc,
+    steps: L.steps.map(([t, kind, minutes]) => ({ text: t, kind, minutes, why: '' })),
+    themes: [...new Set([...(DEMO_THEMES[topic] || []), ...(second ? DEMO_THEMES[second[0]] : []), ...(interest ? [interest[0] === 'nature' ? 'nature' : interest[0]] : [])])].slice(0, 5),
+    openQuestions: questions, wins: topic === 'bright' && q1 ? [{ text: q1, entryId }] : [],
+    tone: DEMO_TONE[topic], safetyConcern: crisis, remember: [],
+  };
+}
+/* Seal a night in demo mode: it stays in this page, and its letter is ready in a few seconds. */
+function sealDemoNight(text, date) {
+  const entryId = uid('dn'); const now = new Date();
+  const L = { id: uid('demo'), demo: true, by: 'demo', date, entries: [{ id: entryId, t: hhmm(now), text }], status: 'writing', content: null,
+    deliverAt: deliverAtFor(date), sealedAt: hhmm(now), readAt: null, early: false, actions: {}, private: false, createdAt: now.toISOString() };
+  S.demoNights = [...(S.demoNights || []), L];
+  // The letter is "written" for a few seconds after the sealing animation, so the sealed screen shows it being prepared.
+  let release; L.task = new Promise((r) => { release = r; });
+  L.begin = () => { L.begin = null; sleep(reduceMotion() ? 600 : 3200).then(() => {
+    L.content = demoLetter(text, entryId, date); L.status = 'ready'; release();
+    if (route === 'tonight' && !document.querySelector('.ascend, .overnight')) render();
+  }); };
+  return L;
+}
+/* The night waiting for its letter: in demo mode only demo nights, so a real queued letter never blocks a demo. */
+const pendingNight = () => (demoOn() ? (S.demoNights || []).find((l) => !delivered(l)) : S.letters.find((l) => !delivered(l)));
+/* A month or year note in demo mode, built from the letters' own quotes. */
+const THEMES_ZH = {
+  hant: { study: '學業壓力', career: '實習和工作', business: '你的生意點子', technology: '動手做東西', creativity: '創作', learning: '好奇心', friendship: '朋友', family: '家人', community: '幫助別人', rest: '休息', health: '身體', uncertainty: '對將來的不確定', comparison: '和別人比較', loneliness: '孤單', achievement: '完成事情', money: '金錢', nature: '戶外', travel: '旅行', ordinary: '平凡的日子' },
+  hans: { study: '学业压力', career: '实习和工作', business: '你的生意点子', technology: '动手做东西', creativity: '创作', learning: '好奇心', friendship: '朋友', family: '家人', community: '帮助别人', rest: '休息', health: '身体', uncertainty: '对将来的不确定', comparison: '和别人比较', loneliness: '孤单', achievement: '完成事情', money: '金钱', nature: '户外', travel: '旅行', ordinary: '平凡的日子' },
+};
+function demoNote(key) {
+  const year = key.startsWith('Y'); const span = year ? key.slice(1) : key;
+  const ls = keptLetters().filter((l) => l.date.startsWith(span)).sort((a, b) => a.date.localeCompare(b.date));
+  if (!ls.length) return null;
+  const langs = ls.map((l) => l.content.language); const zh = langs.filter((x) => x && x !== 'en').length > ls.length / 2;
+  const lang = S.lang === 'en' ? 'en' : S.lang === 'zh-hans' ? 'hans' : S.lang === 'zh-hant' ? 'hant' : zh ? (langs.includes('zh-hans') ? 'hans' : 'hant') : 'en';
+  const top = countThemes(ls).slice(0, 2).map(([t]) => t);
+  const quotes = [...new Set(ls.flatMap((l) => (l.content.analysis || []).map((a) => a.quote).filter(Boolean)))];
+  const qa = quotes[0]; const qb = quotes.length > 1 ? quotes[quotes.length - 1] : null;
+  const seals = ls.filter((l) => progress(l).complete).length; const n = ls.length;
+  if (lang === 'en') {
+    return [`${year ? 'So far this year' : `In ${MONTH[+span.slice(5) - 1]}`} you kept ${plural(n, 'letter')}.`,
+      top.length ? `What came up most was ${THEMES[top[0]]}${top[1] ? `, then ${THEMES[top[1]]}` : ''}.` : '',
+      qa ? `Early on you wrote “${qa}”.` : '', qb ? `More recently: “${qb}”.` : '',
+      seals ? `${plural(seals, 'letter')} ended with all three to-dos done.` : 'No letter has all three to-dos done yet, and that’s fine; they were always optional.',
+      'These are your own words, worth coming back to.'].filter(Boolean).join(' ');
+  }
+  const Z = THEMES_ZH[lang]; const hans = lang === 'hans';
+  return [`${year ? (hans ? '今年到目前为止' : '今年到目前為止') : `${+span.slice(5)} 月`}，你留下了 ${n} 封信。`,
+    top.length ? `${hans ? '最常出现的是' : '最常出現的是'}${Z[top[0]] || THEMES[top[0]]}${top[1] ? `，${hans ? '其次是' : '其次是'}${Z[top[1]] || THEMES[top[1]]}` : ''}。` : '',
+    qa ? `${hans ? '早些时候你写' : '早些時候你寫'}：「${qa}」。` : '', qb ? `${hans ? '最近你写' : '最近你寫'}：「${qb}」。` : '',
+    seals ? `${hans ? '其中' : '其中'} ${seals} ${hans ? '封信的三件小事都完成了' : '封信的三件小事都完成了'}。` : (hans ? '还没有一封信的三件小事全部完成，没关系，它们本来就是可选的。' : '還沒有一封信的三件小事全部完成，沒關係，它們本來就是可選的。'),
+    hans ? '这些都是你自己的话，值得回头再看。' : '這些都是你自己的話，值得回頭再看。'].filter(Boolean).join('');
+}
 
 /* ---------- letter writer ----------
    Letters are written by Beyond's letter service after you seal a night, with
@@ -402,7 +719,7 @@ function lanternVars(words) { const t = Math.min(1, words / 120); return `--k:${
 const countLine = (n, speak) => (n ? `${plural(n, 'word')} · ${speak ? 'keep going, or seal it when you’re done' : 'the light grows as you write'}` : speak ? 'Your words will appear below as you talk' : 'The light grows as you write');
 function vTonight() {
   clearInterval(promptTimer); cancelAnimationFrame(voice.raf);
-  const sealed = S.letters.find((l) => !delivered(l));
+  const sealed = pendingNight();
   if (sealed) return vSealed(sealed);
   const unread = allLetters().find((l) => delivered(l) && !l.readAt);
   const speak = S.inputMode === 'speak';
@@ -437,7 +754,7 @@ function vTonight() {
     }, 5200);
   });
   return `<section class="tn ${speak ? 'is-speak' : ''}">
-      ${unread ? `<p class="arrived">${I.mail}<span>A letter arrived for ${fmtDay(unread.date)}${unread.sample ? ' (sample)' : ''}.</span> <button class="link" data-open="${unread.id}">Open it</button></p>` : ''}
+      ${unread ? `<p class="arrived">${I.mail}<span>A letter arrived for ${fmtDay(unread.date)}${unread.sample ? ' (sample)' : unread.demo ? ' (demo)' : ''}.</span> <button class="link" data-open="${unread.id}">Open it</button></p>` : ''}
       <div class="switch mode-seg" role="group" aria-label="How do you want to say it tonight?">
         <button data-imode="type" aria-pressed="${!speak}">Write</button>
         <button data-imode="speak" aria-pressed="${speak}">Speak</button>
@@ -568,6 +885,7 @@ function startOrrery(canvas, vis, most) {
   requestAnimationFrame(frame);
 }
 function claudeNote() {
+  if (demoOn()) return 'Demo mode: a night you seal here stays on this page and gets a pre-written sample letter in a few seconds, with no AI. Turn off demo mode in Settings to keep your own journal.';
   if (claudeState !== 'off') return '';
   return 'Beyond’s letter writer isn’t switched on yet. Seal tonight anyway: your letter is kept safe and written as soon as it is.';
 }
@@ -772,7 +1090,7 @@ async function seal() {
   window.scrollTo(0, 0); // the light must be on screen for the words to float into it
   const rect = ta.getBoundingClientRect(); const lrect = $('.lantern').getBoundingClientRect();
   let L;
-  try { L = await sealNight(text, date); }
+  try { L = demoOn() ? sealDemoNight(text, date) : await sealNight(text, date); }
   catch (e) {
     const b = $('#b-seal'); if (b) b.disabled = false;
     toast(e?.code === 'rate_limited' ? 'Today’s letters are used up. Your words are still here.' : e?.code === 'unauthorized' ? 'Please sign in again. Your words are still here.' : 'Couldn’t seal tonight. Your words are still here; check your connection and try again.');
@@ -780,6 +1098,7 @@ async function seal() {
   }
   S.draft = ''; save();
   await ascend(text, L.id, rect, lrect);
+  L.begin?.();
   go('tonight');
 }
 function starPositions(id, n) {
@@ -825,7 +1144,7 @@ async function ascend(text, id, rect, lrect) {
 function vSealed(L) {
   const n = L.entries.reduce((a, e) => a + countWords(e.text), 0);
   const stars = starPositions(L.id, 26);
-  const status = L.status === 'writing' ? `<p class="status"><i></i>${claudeState === 'off' ? 'Sealed and waiting for the letter writer' : 'Claude is writing quietly'}</p>`
+  const status = L.status === 'writing' ? `<p class="status"><i></i>${L.demo ? 'Preparing your sample letter' : claudeState === 'off' ? 'Sealed and waiting for the letter writer' : 'Claude is writing quietly'}</p>`
     : L.status === 'failed' ? `<p class="status err"><i></i>The letter couldn't be written yet</p>`
     : `<p class="status ok"><i></i>Written and sealed until ${atTime(L)}</p>`;
   return `<section class="sealed">
@@ -862,8 +1181,8 @@ async function overnight(L, { now: readNow = false } = {}) {
   });
   const fast = reduceMotion();
   if (readNow) {
-    const task = L.status === 'writing' && claudeState === 'ready' ? waitForLetter(L.id) : null;
-    clock.textContent = hhmm(); txt.textContent = task ? 'Claude is finishing your letter…' : 'Opening your letter…'; ov.querySelector('.ov-note').textContent = '';
+    const task = L.status !== 'writing' ? null : L.demo ? L.task : claudeState === 'ready' ? waitForLetter(L.id) : null;
+    clock.textContent = hhmm(); txt.textContent = task ? (L.demo ? 'Finishing your sample letter…' : 'Claude is finishing your letter…') : 'Opening your letter…'; ov.querySelector('.ov-note').textContent = '';
     if (task) await task; else await sleep(fast ? 50 : 900);
     const done = findLetter(L.id);
     if (!done || done.status !== 'ready') { await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'forwards' }).finished; ov.remove(); render(); if (done?.status === 'writing') toast(claudeState === 'ready' ? 'Still being written. It will be here soon.' : 'Your letter is sealed and waiting for the letter writer.'); return; }
@@ -873,9 +1192,9 @@ async function overnight(L, { now: readNow = false } = {}) {
   requestAnimationFrame(() => ov.classList.add('is-late'));
   const at = toMin(atTime(L)); const before = fmtMin(at - 20);
   await roll(toMin(hhmm()), toMin(before), fast ? 200 : 2600);
-  const task = L.status === 'writing' && claudeState === 'ready' ? waitForLetter(L.id) : null;
+  const task = L.status !== 'writing' ? null : L.demo ? L.task : claudeState === 'ready' ? waitForLetter(L.id) : null;
   if (task) {
-    txt.textContent = 'Claude is still writing your letter…';
+    txt.textContent = L.demo ? 'Finishing your sample letter…' : 'Claude is still writing your letter…';
     const slow = setTimeout(() => { txt.textContent = 'Still writing. This can take up to a minute.'; }, 9000);
     await task; clearTimeout(slow);
   }
@@ -907,7 +1226,7 @@ function vLetter() {
     return `<button class="link back" data-go="letters">${I.left}Letters</button>
       <section class="env-stage">
         <span class="stars" aria-hidden="true"></span>
-        <p class="tn-date">${fmtDay(L.date)}${L.sample ? ', Kit’s sample' : ''}</p>
+        <p class="tn-date">${fmtDay(L.date)}${L.sample ? ', Kit’s sample' : L.demo ? ', demo letter' : ''}</p>
         <h1 class="display sm">From your ${esc(v.name)}</h1>
         <div class="env" id="env"><div class="env-back"></div><div class="env-paper"><i></i><i style="width:80%"></i><i style="width:60%"></i></div><div class="env-pocket"></div><div class="env-flap"></div><div class="env-seal">${I.crescent}</div></div>
         <button class="btn amber" data-openenv="${L.id}">Open the letter</button>
@@ -921,6 +1240,7 @@ function vLetter() {
   const p = progress(L);
   const by = L.by === 'claude' ? `Written by ${L.model ? esc(L.model) : 'Claude'}. Every quote is checked against your words.`
     : L.by === 'template' ? 'A plain template letter. No AI was available when it was written.'
+    : L.by === 'demo' ? 'Demo mode: a pre-written sample letter, matched to what you wrote and quoting your own words. Nothing was sent to an AI or saved to your account.'
     : 'Kit’s sample letter, pre-written for the demo. Kit isn’t a real person.';
   const fresh = opening === L.id; if (fresh) opening = null;
   const insights = (c.analysis || []).slice(0, 2);
@@ -928,7 +1248,7 @@ function vLetter() {
   return `<button class="link back" data-go="letters">${I.left}Letters</button>
     <article class="letter paper ${fresh ? 'reveal' : ''}" lang="${{ en: 'en', 'zh-hans': 'zh-Hans' }[c.language] || 'zh-Hant-HK'}">
       <span class="paper-moon" aria-hidden="true">${I.moon}${I.star}</span>
-      <div class="letter-meta" style="--i:0"><span>${fmtDay(L.date)}${L.sample ? ', sample' : ''}</span><span>From your ${esc(v.name)}</span></div>
+      <div class="letter-meta" style="--i:0"><span>${fmtDay(L.date)}${L.sample ? ', sample' : L.demo ? ', demo letter' : ''}</span><span>From your ${esc(v.name)}</span></div>
       ${c.safetyConcern ? `<div class="notice warn" style="--i:0"><b>Please don't carry this alone.</b><span>Beyond isn't watched by a person. If you're struggling, people can help right now.</span><button class="btn sm" data-go="support" style="justify-self:start">See who to talk to</button></div>` : ''}
       <header style="--i:1">${greet ? `<p class="greet">${esc(greet)}</p>` : ''}<h1 class="headline">${esc(c.headline)}</h1></header>
       <section class="ls" style="--i:2">${secLabel('recap')}<div class="ls-body"><p>${esc(c.recap)}</p></div></section>
@@ -961,7 +1281,7 @@ function drawSheet({ first = false, burst = null, celebrate = false } = {}) {
   const still = first ? '' : 'style="animation:none"';
   w.innerHTML = `<div class="sheet-bg" data-close ${still}></div>
     <div class="sheet paper" role="dialog" aria-modal="true" aria-labelledby="sheet-t" ${still}>
-      <div class="sheet-head">${ring(L, 52)}<div class="t"><span class="sheet-date">${fmtDay(L.date)}${L.sample ? ', sample' : ''}</span><h2 id="sheet-t">Today's 3 to-dos</h2></div><button class="x" data-close aria-label="Close">${I.x}</button></div>
+      <div class="sheet-head">${ring(L, 52)}<div class="t"><span class="sheet-date">${fmtDay(L.date)}${L.sample ? ', sample' : L.demo ? ', demo' : ''}</span><h2 id="sheet-t">Today's 3 to-dos</h2></div><button class="x" data-close aria-label="Close">${I.x}</button></div>
       ${p.complete ? `<div class="alldone">${celebrate ? goldSeal(76) : ''}<b>${celebrate ? 'All done.' : 'Completed'}</b><span class="fine">${celebrate ? 'Small steps, actually taken. This letter now has a gold seal.' : 'This letter has a gold seal.'}</span></div>` : ''}
       <ul class="todos">${c.steps.map((s, i) => { const st = L.actions?.[`step.${i}`]; return `<li class="todo ${st === 'tried' ? 'is-done' : ''} ${st === 'skipped' ? 'is-skipped' : ''}">
         <button class="check ${burst === i ? 'pop' : ''}" data-check="${i}" aria-pressed="${st === 'tried'}" aria-label="${st === 'tried' ? 'Mark not done' : 'Mark done'}: ${esc(s.text)}"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></button>
@@ -989,14 +1309,14 @@ function letterRow(l, extra = '') {
   const d = parse(l.date); const p = progress(l);
   return `<li class="lrow">
     <button class="lmain" data-open="${l.id}"><time>${d.getDate()}<small>${WD[d.getDay()]}</small></time>
-      <span class="head">${!l.readAt ? '<i class="new" aria-label="New"></i>' : ''}<span class="h">${extra && extra.head ? extra.head : esc(l.content.headline)}</span>${l.sample ? '<span class="smp">sample</span>' : ''}${extra && extra.snip ? `<span class="snip">${extra.snip}</span>` : ''}</span></button>
+      <span class="head">${!l.readAt ? '<i class="new" aria-label="New"></i>' : ''}<span class="h">${extra && extra.head ? extra.head : esc(l.content.headline)}</span>${l.sample ? '<span class="smp">sample</span>' : l.demo ? '<span class="smp">demo</span>' : ''}${extra && extra.snip ? `<span class="snip">${extra.snip}</span>` : ''}</span></button>
     <button class="ring-btn" data-todo="${l.id}" aria-label="To-dos for ${fmtDay(l.date)}: ${p.complete ? 'all done, gold seal' : `${p.done} of ${p.need} done`}">${ring(l, 40)}</button>
   </li>`;
 }
 function vLetters() {
   const list = allLetters();
   const ready = list.filter(delivered);
-  const pending = S.letters.filter((l) => !delivered(l));
+  const pending = [...S.letters, ...(demoOn() ? S.demoNights || [] : [])].filter((l) => !delivered(l));
   const nights = new Set(list.map((l) => l.date)).size;
   const firstNight = list.length ? list.reduce((m, l) => (l.date < m.date ? l : m)) : null;
   const seals = ready.filter((l) => progress(l).complete).length;
@@ -1013,7 +1333,7 @@ function vLetters() {
     <section class="cover-wrap" aria-label="Latest letter">
       <article class="cover paper">
         <span class="paper-moon" aria-hidden="true">${I.moon}${I.star}</span>
-        <p class="cover-k">${!cover.readAt ? 'New letter' : 'Latest letter'}, ${fmtDay(cover.date)}${cover.sample ? ', sample' : ''}</p>
+        <p class="cover-k">${!cover.readAt ? 'New letter' : 'Latest letter'}, ${fmtDay(cover.date)}${cover.sample ? ', sample' : cover.demo ? ', demo letter' : ''}</p>
         <button class="cover-h" data-open="${cover.id}">${esc(cover.content.headline)}</button>
         <p class="cover-r">${esc(clip(cover.content.recap, 240))}</p>
         <div class="row"><button class="btn sm" data-open="${cover.id}">Read the letter</button><button class="todo-cta cover-todo" data-todo="${cover.id}">${ring(cover, 40)}<span class="t"><b>Today's 3 to-dos</b><span>${progress(cover).complete ? 'Gold seal earned.' : `${progress(cover).done} of ${progress(cover).need} done`}</span></span></button></div>
@@ -1195,16 +1515,23 @@ function noteCard(key, title, n) {
   const sn = !S.notes[key] && sampleNote(key);
   const note = S.notes[key] || (sn ? { text: sn, n, by: 'sample' } : null); const busy = noteInflight === key;
   return `<section class="qcard note"><h3 class="k">${esc(title)}</h3>
-    ${note ? `<p>${esc(note.text)}</p><span class="fine">${note.by === 'sample' ? 'Kit’s sample note, pre-written for the demo.' : `Written by ${esc(note.by || 'Claude')} from ${plural(note.n, 'letter')}.`}</span>${note.n !== n ? `<button class="btn sm secondary" data-note="${key}" style="justify-self:start">Write it again</button>` : ''}`
+    ${note ? `<p>${esc(note.text)}</p><span class="fine">${note.by === 'sample' ? 'Kit’s sample note, pre-written for the demo.' : note.by === 'demo' ? `A pre-written sample note for demo mode, built from ${plural(note.n, 'letter')} and their own words.` : `Written by ${esc(note.by || 'Claude')} from ${plural(note.n, 'letter')}.`}</span>${note.n !== n ? `<button class="btn sm secondary" data-note="${key}">Write it again</button>` : ''}`
       : busy ? `<p class="writing">Reading your letters…</p>`
-      : claudeState === 'ready' ? `<p class="fine">A short note that quotes only your own words.</p><button class="btn sm amber" data-note="${key}" style="justify-self:start">Write this note</button>`
+      : claudeState === 'ready' || demoOn() ? `<p class="fine">A short note that quotes only your own words.</p><button class="btn sm amber" data-note="${key}">Write this note</button>`
       : `<p class="fine">Notes are written by Beyond’s letter writer, which isn’t switched on yet.</p>`}
     ${noteErr && !busy ? `<p class="fine" style="color:var(--rose)">${esc(noteErr)}</p>` : ''}
   </section>`;
 }
 let noteInflight = null; let noteErr = '';
 async function writeNote(key) {
-  if (claudeState !== 'ready' || noteInflight) return;
+  if (noteInflight) return;
+  if (demoOn()) {
+    noteInflight = key; noteErr = ''; render(); await sleep(reduceMotion() ? 200 : 1300);
+    const text = demoNote(key); const n = keptLetters().filter((l) => l.date.startsWith(key.startsWith('Y') ? key.slice(1) : key)).length;
+    if (text) S.notes[key] = { text, n, by: 'demo', at: new Date().toISOString() }; else noteErr = 'There are no kept letters here yet.';
+    noteInflight = null; if (route === 'patterns') render(); return;
+  }
+  if (claudeState !== 'ready') return;
   noteInflight = key; noteErr = ''; render();
   try {
     const n = await backend.writeNote(key);
@@ -1582,8 +1909,8 @@ function vSettings() {
       <div class="row"><label class="pick" for="ylang"><span>Write letters in</span><select id="ylang">${LANGS.map(([k, l]) => `<option value="${k}" ${(S.lang || 'auto') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
       <p class="fine">Auto writes back in the language you wrote in. Your own words are always quoted exactly as you wrote them.</p>
       <h3 class="qh">Demo mode</h3>
-      <button class="toggle" role="switch" aria-checked="${demoOn()}" data-act="toggle-sample"><span class="track"></span><span>Show Kit's sample journal and the Skip to morning button</span></button>
-      <p class="fine">For showing Beyond to others. Kit is fictional; the sample letters show what months of Beyond look like. Leave it off for your own journal.</p>
+      <button class="toggle" role="switch" aria-checked="${demoOn()}" data-act="toggle-sample"><span class="track"></span><span>Show Kit's sample journal, and give nights sealed here a pre-written sample letter</span></button>
+      <p class="fine">For showing Beyond to others, for example to judges. Kit is fictional; the sample letters show what months of Beyond look like. A night you seal in demo mode stays on this page only and gets a pre-written letter matched to what you wrote, with no AI and nothing saved. Leave it off for your own journal.</p>
     </div></section>
     <section class="spread" id="memory"><h2 class="sec">Memory and privacy</h2><div class="stack">
       <h3 class="qh">What Beyond remembers</h3>
@@ -1749,8 +2076,8 @@ document.addEventListener('click', async (ev) => {
     case 'toggle-sample': S.mode = S.mode === 'sample' ? 'own' : 'sample'; pMonth = null; save(); return render();
     case 'seal': el.disabled = true; return seal();
     case 'orb': return orbTap();
-    case 'readnow': { const L = S.letters.find((l) => !delivered(l)); if (L) { el.disabled = true; return overnight(L, { now: true }); } return; }
-    case 'skip': { const L = S.letters.find((l) => !delivered(l)); if (L) { el.disabled = true; return overnight(L); } return; }
+    case 'readnow': { const L = pendingNight(); if (L) { el.disabled = true; return overnight(L, { now: true }); } return; }
+    case 'skip': { const L = pendingNight(); if (L) { el.disabled = true; return overnight(L); } return; }
     case 'reveal': identVeiled = false; identRevealAt = performance.now(); return render();
     case 'delete': confirmDelete = true; return render();
     case 'delete-no': confirmDelete = false; return render();
@@ -1783,7 +2110,7 @@ document.addEventListener('change', async (ev) => {
   if (t.id === 'ylang') { S.lang = t.value; save(); }
   if (t.id === 'tdtime' || t.id === 'ltime') {
     S.deliverTime = t.value; save();
-    if (t.id === 'ltime') { const L = S.letters.find((l) => !delivered(l)); if (L) patchLetter(L.id, { deliverAt: deliverAtFor(L.date) }); }
+    if (t.id === 'ltime') { const L = pendingNight(); if (L) patchLetter(L.id, { deliverAt: deliverAtFor(L.date) }); }
     toast(`Your letter${t.id === 'ltime' ? '' : 's'} will arrive at ${t.value}.`); if (t.id === 'ltime') render();
   }
 });
@@ -1935,7 +2262,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 setInterval(() => {
   // A sealed letter arrives at its time even if nothing else happens.
   if (!AUTH.user || route !== 'tonight' || document.querySelector('.ascend, .overnight, .sheet-wrap')) return;
-  const sealed = S.letters.find((l) => !delivered(l));
+  const sealed = pendingNight();
   if (!sealed && $('.sealed')) render();
 }, 30000);
 
@@ -1976,7 +2303,7 @@ async function clearJournal() {
   try {
     await backend.clearAll();
     confirmDelete = false;
-    S.letters = []; S.memories = []; S.notes = {}; S.dirs = {}; S.draft = '';
+    S.letters = []; S.demoNights = []; S.memories = []; S.notes = {}; S.dirs = {}; S.draft = '';
     try { const fresh = await backend.settings(); synced = await backend.updateSettings(keep, fresh.revision); applySettings(synced); } catch (e) { /* defaults are fine */ }
     toast('Your journal was deleted.'); render();
   } catch (e) { confirmDelete = false; needFreshSignIn(e, 'clear'); }

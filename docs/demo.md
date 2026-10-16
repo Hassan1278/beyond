@@ -14,11 +14,12 @@ Kit's fictional letters (a few months of them) appear next to your own, labelled
 
 - **Skip to morning** plays the overnight animation and opens a sealed letter right away.
 - Kit's letters live only in the page. Turning demo mode off hides them.
-- Your own nights still go to your account and are written by the real letter service.
+- A night you seal while demo mode is on stays in the page too: it is not saved to the account and is not sent to the AI service. A few seconds later it gets a pre-written letter, labelled "demo letter", chosen from what was written (feeling alone, not knowing what's next, study pressure, family, tiredness, a good day or an ordinary day) and quoting the writer's own sentences. It notices interests such as helping others or building things, which also feed Identity. A night that sounds like a crisis gets a support letter with Hong Kong hotlines instead. English, 繁體 and 简体 are covered.
+- Month and year notes in Patterns are also pre-written in demo mode, built from the letters' own quotes.
 
 **Recording a demo.**
 
-- **Without AI keys:** sealing works and the letter waits. Use Kit's sample for the morning, Patterns and Identity views.
-- **With keys:** seal a night, wait about a minute for the scheduled writer (or use **Read it now**), and the real letter arrives.
+- **Without AI keys:** turn on demo mode. Kit's sample covers the morning, Patterns and Identity views, and any night you seal gets a demo letter.
+- **With keys:** turn demo mode off, seal a night, wait about a minute for the scheduled writer (or use **Read it now**), and the real letter arrives.
 
-Use a fictional account and fictional words when recording. Everything you seal in your own journal is saved to that account.
+Use a fictional account and fictional words when recording. With demo mode off, everything you seal is saved to that account.
