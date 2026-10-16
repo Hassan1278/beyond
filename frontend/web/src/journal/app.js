@@ -722,7 +722,7 @@ function vTonight() {
   const sealed = pendingNight();
   if (sealed) return vSealed(sealed);
   const unread = allLetters().find((l) => delivered(l) && !l.readAt);
-  const speak = S.inputMode === 'speak';
+  const speak = false; // one page: type, or tap the microphone and talk
   const words = countWords(S.draft); lastWords = words;
   after.push(() => {
     const ta = $('#entry'); if (!ta) return;
@@ -745,7 +745,7 @@ function vTonight() {
     });
     if (hasCrisis(ta.value)) $('#crisis').innerHTML = supportInline();
     $('#lang')?.addEventListener('change', (e) => { S.lang = e.target.value; save(); toast(`Your letter will be written in ${S.lang === 'auto' ? 'the language you use' : LANGS.find(([k]) => k === S.lang)[1]}.`); });
-    if (speak) { startVoice(); paintVoice(); }
+    paintVoice();
     const list = speak ? SPEAK_PROMPTS : PROMPTS; let i = 0;
     promptTimer = setInterval(() => {
       const p = $('#prompt'); if (!p || route !== 'tonight') return clearInterval(promptTimer);
@@ -755,21 +755,15 @@ function vTonight() {
   });
   return `<section class="tn ${speak ? 'is-speak' : ''}">
       ${unread ? `<p class="arrived">${I.mail}<span>A letter arrived for ${fmtDay(unread.date)}${unread.sample ? ' (sample)' : unread.demo ? ' (demo)' : ''}.</span> <button class="link" data-open="${unread.id}">Open it</button></p>` : ''}
-      <div class="switch mode-seg" role="group" aria-label="How do you want to say it tonight?">
-        <button data-imode="type" aria-pressed="${!speak}">Write</button>
-        <button data-imode="speak" aria-pressed="${speak}">Speak</button>
-      </div>
-      ${speak ? `<div class="voice-stage" id="vstage">
-          <canvas id="vcanvas" aria-hidden="true"></canvas>
-          <button class="voice-orb" id="orb" data-act="orb" type="button" aria-label="${RECORDS ? 'Start talking' : 'Start talking with your device’s dictation'}"><span class="lantern"></span><span class="glyph" id="glyph">${I.mic}</span></button>
-        </div>`
-        : `<div class="lantern-wrap" id="lantern-wrap" style="${lanternVars(words)}" aria-hidden="true"><div class="lantern"></div></div>`}
+      <div class="lantern-wrap" id="lantern-wrap" style="${lanternVars(words)}" aria-hidden="true"><div class="lantern"></div></div>
       <p class="tn-date">${fmtDay(journalDate())}, tonight</p>
       <h1 class="tn-prompt" id="prompt"><span>${esc((speak ? SPEAK_PROMPTS : PROMPTS)[0])}</span></h1>
-      ${speak ? `<div class="chips slang-chips" id="slang-chips" role="group" aria-label="I'm speaking"></div>
-        <p class="voice-hint" id="vhint" aria-live="polite"></p>` : ''}
       <label for="entry" class="sr-only">Tonight's entry</label>
-      <textarea id="entry" class="paper-in ${speak ? 'spoken' : ''}" placeholder="${speak ? 'Your words appear here as you talk. You can fix anything before sealing.' : 'Start anywhere. English, 中文, 廣東話, any mix.'}">${esc(S.draft)}</textarea>
+      <div class="entry-wrap">
+        <textarea id="entry" class="paper-in" placeholder="Start anywhere. English, 中文, 廣東話, any mix. Or tap the microphone and just talk.">${esc(S.draft)}</textarea>
+        <button class="mic" id="orb" data-act="orb" type="button" aria-label="Talk instead of typing"><span class="glyph" id="glyph">${I.mic}</span></button>
+      </div>
+      <p class="voice-hint" id="vhint" aria-live="polite"></p>
       <p class="fine tn-count" id="wc">${countLine(words, speak)}</p>
       <div id="crisis" style="width:100%"></div>
       <div class="tn-bar">
@@ -782,7 +776,6 @@ function vTonight() {
       <p class="tn-foot">Nothing replies tonight. Your letter comes from your <button class="link" data-go="settings">${esc((VOICES[S.voice] || VOICES.friend).name)}</button>.</p>
       ${isGuest() ? `<p class="fine">Judge preview · ${AUTH.user.left ?? 0} AI letters left today</p>` : ''}
       ${OFFLINE ? '<p class="fine">Offline trial · letters are simple templates. See START HERE for the online version with Claude.</p>' : ''}
-      ${speak ? `<p class="fine voice-privacy">${mixedOK() ? '粵 + 普 + EN: Beyond records, turns it into text, then deletes the audio. Single languages use your browser’s speech service (Chrome: Google, Safari: Apple) and show words live; you can switch mid-sentence.' : SR ? 'Your browser turns your voice into text (Chrome uses Google’s speech service, Safari uses Apple’s), one language at a time; tap a language to switch, even mid-sentence. Beyond keeps only the words.' : RECORDS && SERVER_STT ? 'Your recording is turned into text, then deleted. Only the words are kept.' : 'Your device turns your voice into text. Beyond never hears the audio.'}</p>` : ''}
       <p class="fine" id="claude-note">${claudeNote()}</p>
       ${identityGlance()}
     </section>`;
@@ -901,27 +894,46 @@ function supportInline() {
    the double-clicked file. If that isn't available, the local app records and
    its server transcribes. claude.ai doesn't let pages use the microphone at
    all, so there the light falls back to the device's own dictation. */
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+/* Some browsers have the speech API but no speech service behind it, so it
+   starts and then hears nothing: Brave, Opera, in-app browsers and desktop
+   app shells. There the light records for Beyond's server, or uses dictation. */
+const UA = navigator.userAgent;
+const SR_HOLLOW = !!navigator.brave || /Electron\/|OPR\/|; wv\)|FBA[NV]|Instagram|Line\/|MicroMessenger|WeChat/.test(UA);
+const SR = SR_HOLLOW ? null : window.SpeechRecognition || window.webkitSpeechRecognition;
 const IN_CLAUDE = !LOCAL && !OFFLINE && !!window.claude?.use;
 const MIC = LOCAL && !!(navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
 const RECORDS = MIC && window.isSecureContext;
 const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Mac/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
-const voice = { state: 'idle', raf: 0, lvl: 0, impulse: 0, an: null, buf: null, freq: null, ac: null, rec: null, sr: null, stream: null, t0: 0, tick: 0, blocked: false };
+const voice = { state: 'idle', raf: 0, lvl: 0, impulse: 0, an: null, buf: null, freq: null, ac: null, rec: null, sr: null, stream: null, t0: 0, tick: 0, blocked: false, down: '', words: false, peak: 0, metered: false };
 const SPEECH_LANGS = [['mixed', '粵 + 普 + EN'], ['yue-Hant-HK', '廣東話'], ['zh-CN', '普通话'], ['en-US', 'English']];
 const mixedOK = () => RECORDS && SERVER_STT;
 function speechLang() {
   const pick = S.speechLang;
-  if (pick === 'mixed') return mixedOK() ? 'mixed' : 'yue-Hant-HK';
-  if (pick && pick !== 'auto') return pick;
+  return pick && pick !== 'auto' && pick !== 'mixed' ? pick : autoSpeechLang();
+}
+function autoSpeechLang() {
   if (mixedOK()) return 'mixed';
   if (S.lang === 'zh-hans') return 'zh-CN'; if (S.lang === 'zh-hant') return 'yue-Hant-HK'; if (S.lang === 'en') return 'en-US';
   const prefs = (navigator.languages || [navigator.language || '']).join(',');
-  return /zh-(HK|TW|MO)|yue/i.test(prefs) ? 'yue-Hant-HK' : /zh/i.test(prefs) ? 'zh-CN' : 'yue-Hant-HK';
+  // A browser set to English listens in English; only a Chinese browser guesses a Chinese language.
+  return /zh-(HK|TW|MO)|yue/i.test(prefs) ? 'yue-Hant-HK' : /zh/i.test(prefs) ? 'zh-CN' : 'en-US';
 }
-const canListen = () => !!SR && !voice.blocked && speechLang() !== 'mixed';
+const canListen = () => !!SR && !voice.blocked && !voice.down && speechLang() !== 'mixed';
+const langName = (k) => (SPEECH_LANGS.find(([x]) => x === k) || [k, k])[1];
+function level() {
+  // How loud the microphone is right now, 0 to 1 (only while the light is metering).
+  if (!voice.an) return 0;
+  voice.an.getByteTimeDomainData(voice.buf); let s = 0; for (const v of voice.buf) { const x = (v - 128) / 128; s += x * x; }
+  return Math.min(1, Math.sqrt(s / voice.buf.length) * 5);
+}
 function langChips() {
   const cur = speechLang();
-  return SPEECH_LANGS.filter(([k]) => k !== 'mixed' || mixedOK()).map(([k, l]) => `<button class="chip lang-chip" data-slang="${k}" aria-pressed="${cur === k}">${l}</button>`).join('');
+  return '<span class="slang-k">I’m speaking</span>' + SPEECH_LANGS.filter(([k]) => k !== 'mixed' || mixedOK()).map(([k, l]) => `<button class="chip lang-chip" data-slang="${k}" aria-pressed="${cur === k}">${l}</button>`).join('');
+}
+function speechOptions() {
+  const cur = S.speechLang && S.speechLang !== 'mixed' ? S.speechLang : 'auto';
+  const auto = mixedOK() ? 'Auto (any mix of 粵語, 普通话, English)' : `Auto (${langName(autoSpeechLang())})`;
+  return [['auto', auto], ...SPEECH_LANGS.filter(([k]) => k !== 'mixed')].map(([k, l]) => `<option value="${k}" ${cur === k ? 'selected' : ''}>${esc(l)}</option>`).join('');
 }
 function dictationHint() {
   const ua = navigator.userAgent; const touch = window.matchMedia('(pointer: coarse)').matches;
@@ -933,17 +945,26 @@ function dictationHint() {
 function paintVoice() {
   const hint = $('#vhint'), orb = $('#orb'), glyph = $('#glyph'); if (!hint || !orb) return;
   orb.classList.toggle('is-rec', voice.state === 'rec'); orb.classList.toggle('is-busy', voice.state === 'busy');
+  $('.tn')?.classList.toggle('is-rec', voice.state === 'rec');
   glyph.innerHTML = voice.state === 'rec' ? I.stop : voice.state === 'busy' ? '<i class="dots"><i></i><i></i><i></i></i>' : I.mic;
-  orb.setAttribute('aria-label', voice.state === 'rec' ? 'Stop' : 'Start talking');
-  if (voice.state === 'rec') { const sec = Math.floor((Date.now() - voice.t0) / 1000); hint.innerHTML = `<span class="rec-dot"></span>Listening · ${Math.floor(sec / 60)}:${pad(sec % 60)} · tap the light when you’re done${voice.rec ? ', then your words appear' : ''}`; }
+  orb.setAttribute('aria-label', voice.state === 'rec' ? 'Stop talking' : 'Talk instead of typing');
+  if (voice.state === 'rec') {
+    const sec = Math.floor((Date.now() - voice.t0) / 1000);
+    if (voice.an) { voice.metered = true; voice.peak = Math.max(voice.peak, level()); }
+    // Nothing for a while: say whether it's the microphone or the language.
+    const stuck = voice.sr && !voice.words && sec >= 6;
+    hint.innerHTML = stuck && voice.metered && voice.peak < 0.05
+      ? '<span class="rec-dot"></span>No sound is coming in. Check your microphone.'
+      : stuck
+      ? `<span class="rec-dot"></span>No words yet. Listening in ${esc(langName(speechLang()))}; change it in <button class="link" data-go="settings">Settings</button>.`
+      : `<span class="rec-dot"></span>Listening ${Math.floor(sec / 60)}:${pad(sec % 60)}. Tap again to stop.`;
+  }
   else if (voice.state === 'busy') hint.textContent = 'Turning your voice into words…';
-  else if (voice.state === 'dictate') hint.innerHTML = voice.blocked && IN_CLAUDE
-    ? `claude.ai doesn’t let pages use the microphone, so here: ${dictationHint()} One-tap recording works in Beyond’s own app (on your computer or the online link).`
-    : `Your device’s dictation: ${dictationHint()}`;
-  else if (voice.blocked && !IN_CLAUDE) hint.innerHTML = `The microphone is blocked for this page. Allow it from the icon in the address bar, or ${dictationHint()}`;
-  else if (speechLang() === 'mixed') hint.innerHTML = 'Tap the light and just talk, in any mix of 粵語, 普通话 and English. Your words appear when you tap again.';
-  else hint.innerHTML = canListen() || (RECORDS && SERVER_STT) ? 'Tap the light and just talk. Your words appear as you speak.' : `Tap the light, then ${dictationHint()}`;
-  const chips = $('#slang-chips'); if (chips) { chips.hidden = !(SR || mixedOK()) || (voice.blocked && IN_CLAUDE); chips.innerHTML = langChips(); }
+  else if (voice.state === 'dictate') hint.innerHTML = voice.down || !SR
+    ? (voice.down ? `${voice.down} Or ${dictationHint()}` : `This browser can’t listen. Try Chrome, Edge or Safari, or ${dictationHint()}`)
+    : `Use your device’s dictation: ${dictationHint()}`;
+  else if (voice.blocked) hint.innerHTML = 'The microphone is blocked. Allow it from the icon in the address bar, then tap again.';
+  else hint.textContent = '';
 }
 function setEntry(text) {
   const ta = $('#entry'); S.draft = text;
@@ -977,7 +998,7 @@ function startListening(sameBreath = false) {
   r.onresult = (e) => {
     let interim = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
-      const t = e.results[i][0].transcript;
+      const t = e.results[i][0].transcript; if (t.trim()) voice.words = true;
       if (e.results[i].isFinal) finals += (spaced && finals && !/\s$/.test(finals) && !/^\s/.test(t) ? ' ' : '') + t;
       else interim += t;
     }
@@ -985,8 +1006,11 @@ function startListening(sameBreath = false) {
     voice.impulse = Math.min(1, voice.impulse + 0.45);
   };
   r.onerror = (e) => {
-    if (e.error === 'not-allowed' || e.error === 'service-not-allowed' || e.error === 'audio-capture') { voice.blocked = true; voice.stopping = true; }
-    else if (e.error === 'network') { voice.stopping = true; toast('Speech recognition needs an internet connection. You can type instead.'); }
+    // no-speech and aborted are normal pauses; the session restarts on its own.
+    if (e.error === 'not-allowed' || e.error === 'audio-capture') { voice.blocked = true; voice.stopping = true; }
+    else if (e.error === 'service-not-allowed') { voice.down = 'Speech recognition is switched off in this browser (on a Mac, Safari needs Dictation turned on in System Settings).'; voice.stopping = true; }
+    else if (e.error === 'network') { voice.down = 'This browser couldn’t reach its speech service (Chrome’s is Google’s, which needs a VPN in mainland China).'; voice.stopping = true; }
+    else if (e.error === 'language-not-supported') { voice.stopping = true; toast(`This browser can’t listen in ${langName(lang)}. Pick another language.`); }
   };
   r.onend = () => {
     // Browsers stop after a pause; keep listening until you tap again.
@@ -995,14 +1019,35 @@ function startListening(sameBreath = false) {
     setEntry(base + finals);
     if (voice.relisten) { voice.relisten = false; voice.state = 'idle'; voice.stopping = false; return canListen() ? startListening(true) : orbTap(); }
     if (voice.blocked) { if (IN_CLAUDE) useDictation(); else { voice.state = 'idle'; paintVoice(); } return; }
+    if (voice.down) {
+      // The speech service failed: record for Beyond's server if it can transcribe, otherwise dictation.
+      voice.state = 'idle'; voice.stopping = false;
+      if (RECORDS && SERVER_STT) { toast('Switched to recording. Tap the light again and talk; your words appear when you stop.'); return paintVoice(); }
+      return useDictation();
+    }
     voice.state = 'idle'; voice.stopping = false; paintVoice();
     if (finals.trim()) { const ta = $('#entry'); if (ta) { ta.classList.remove('arrive'); void ta.offsetWidth; ta.classList.add('arrive'); } }
+    else if (!voice.words && Date.now() - voice.t0 > 2500) toast(voice.metered && voice.peak < 0.05
+      ? 'No sound reached Beyond. Check that your microphone is on and is the one your browser uses.'
+      : `No words came back. Check the language (listening in ${langName(lang)}), or type instead.`);
   };
-  voice.sr = r; voice.state = 'rec'; voice.stopping = false; voice.t0 = Date.now();
+  voice.sr = r; voice.state = 'rec'; voice.stopping = false; voice.t0 = Date.now(); voice.words = false; voice.peak = 0; voice.metered = false;
   let heard = false; r.onstart = r.onaudiostart = () => { heard = true; };
   try { r.start(); } catch (e) { voice.state = 'idle'; voice.blocked = true; return IN_CLAUDE ? useDictation() : paintVoice(); }
-  // If the microphone never opens (a page that isn't allowed to use it can stay silent), fall back.
-  setTimeout(() => { if (voice.sr === r && !heard && !finals) { voice.blocked = true; voice.stopping = true; try { r.abort ? r.abort() : r.stop(); } catch (e) { /* gone */ } if (voice.sr === r) r.onend?.(); } }, 4000);
+  // If listening never starts, find out why. Still waiting on the browser's "Allow microphone?"
+  // question: keep waiting. Blocked: say so. Allowed but silent: the browser has no speech service
+  // behind its speech API, so record for Beyond's server or use dictation instead.
+  const watch = (waited) => setTimeout(async () => {
+    if (voice.sr !== r || heard || finals) return;
+    let perm = 'unknown';
+    try { perm = (await navigator.permissions.query({ name: 'microphone' })).state; } catch (e) { /* not supported */ }
+    if (voice.sr !== r || heard || finals) return;
+    if (perm === 'prompt' && waited < 60000) return watch(waited + 4000);
+    if (perm === 'denied' || IN_CLAUDE) voice.blocked = true;
+    else voice.down = 'Speech recognition didn’t start in this browser. Try Chrome, Edge or Safari.';
+    voice.stopping = true; try { r.abort ? r.abort() : r.stop(); } catch (e) { /* gone */ } if (voice.sr === r) r.onend?.();
+  }, 4000);
+  watch(4000);
   paintVoice(); voice.tick = setInterval(paintVoice, 500); meter();
 }
 async function orbTap() {
@@ -1908,6 +1953,8 @@ function vSettings() {
       <h3 class="qh">Language</h3>
       <div class="row"><label class="pick" for="ylang"><span>Write letters in</span><select id="ylang">${LANGS.map(([k, l]) => `<option value="${k}" ${(S.lang || 'auto') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
       <p class="fine">Auto writes back in the language you wrote in. Your own words are always quoted exactly as you wrote them.</p>
+      <div class="row"><label class="pick" for="slang"><span>When I talk</span><select id="slang">${speechOptions()}</select></label></div>
+      <p class="fine">${mixedOK() ? 'Auto understands any mix of 粵語, 普通话 and English. Beyond records, turns it into text, then deletes the audio.' : SR ? 'Your browser turns your voice into text (Chrome uses Google’s speech service, Safari uses Apple’s), one language at a time. Beyond keeps only the words.' : 'This browser can’t turn speech into text. Use Chrome, Edge or Safari, or your device’s dictation.'}</p>
       <h3 class="qh">Demo mode</h3>
       <button class="toggle" role="switch" aria-checked="${demoOn()}" data-act="toggle-sample"><span class="track"></span><span>Show Kit's sample journal, and give nights sealed here a pre-written sample letter</span></button>
       <p class="fine">For showing Beyond to others, for example to judges. Kit is fictional; the sample letters show what months of Beyond look like. A night you seal in demo mode stays on this page only and gets a pre-written letter matched to what you wrote, with no AI and nothing saved. Leave it off for your own journal.</p>
@@ -2108,6 +2155,7 @@ document.addEventListener('change', async (ev) => {
   if (t.id === 'arch-theme') { arch.theme = t.value; refreshArchive(); }
   if (t.id === 'dtime') { S.deliverTime = t.value; save(); toast(`New letters will arrive at ${t.value}.`); }
   if (t.id === 'ylang') { S.lang = t.value; save(); }
+  if (t.id === 'slang') { S.speechLang = t.value; save(); toast(`When you talk, Beyond listens in ${t.selectedOptions[0].textContent}.`); }
   if (t.id === 'tdtime' || t.id === 'ltime') {
     S.deliverTime = t.value; save();
     if (t.id === 'ltime') { const L = pendingNight(); if (L) patchLetter(L.id, { deliverAt: deliverAtFor(L.date) }); }

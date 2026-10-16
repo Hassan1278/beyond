@@ -222,6 +222,21 @@ label.btn { display: inline-flex; }
 .voice-orb.is-rec .glyph { color: rgba(110,30,20,.85); }
 .dots { display: inline-flex; gap: 4px; } .dots i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1s infinite; } .dots i:nth-child(2) { animation-delay: .15s; } .dots i:nth-child(3) { animation-delay: .3s; }
 .voice-hint { color: var(--mist); font-size: 15px; max-width: 46ch; min-height: 1.5em; }
+/* tonight: one writing page, with a microphone in the corner of the paper */
+.entry-wrap { position: relative; width: 100%; }
+.entry-wrap .paper-in { padding-bottom: 72px; }
+.mic { position: absolute; right: 16px; bottom: 16px; width: 52px; height: 52px; border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--ember); color: var(--ink); box-shadow: 0 8px 22px -10px rgba(227,149,90,.9); transition: transform .2s var(--ease), background .2s; }
+.mic:hover { background: var(--amber); transform: scale(1.06); }
+.mic:active { transform: scale(.94); }
+.mic:focus-visible { outline: 2px solid var(--amber); outline-offset: 4px; }
+.mic .glyph { display: grid; place-items: center; }
+.mic svg { width: 22px; height: 22px; }
+.mic.is-rec { background: var(--rose); color: #fff6ee; }
+.mic.is-rec::before { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--rose); animation: micring 1.4s ease-out infinite; }
+@keyframes micring { from { transform: scale(.9); opacity: .9; } to { transform: scale(1.35); opacity: 0; } }
+.mic.is-busy { background: var(--dusk); }
+.tn.is-rec .lantern-wrap .lantern { filter: brightness(1.25) drop-shadow(0 0 40px rgba(243,170,100,.7)); transition: filter .4s; }
+.tn .voice-hint:empty { display: none; }
 .voice-hint b { color: var(--cream); font-weight: 600; }
 .rec-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--rose); box-shadow: 0 0 10px var(--rose); margin-right: 8px; vertical-align: middle; animation: pulse 1.2s infinite; }
 .paper-in.spoken { min-height: 16svh; }
@@ -511,7 +526,8 @@ mark.is-flash { background: #e9b97b; box-shadow: 0 0 0 4px rgba(233,185,123,.35)
 .chip[aria-pressed="true"] { color: var(--fg); }
 .chip[aria-pressed="true"]::after { content: ""; position: absolute; left: -3px; right: -3px; bottom: 0; height: 7px; background: var(--hand-u) no-repeat center / 100% 100%;  animation: pen .5s var(--ease) both; }
 .chip small { color: var(--faint); font-size: 12px; margin-left: 5px; }
-.slang-chips { margin-top: -4px; }
+.slang-chips { margin-top: -4px; align-items: baseline; }
+.slang-k { font: italic 400 15px/1 var(--f-display); color: var(--faint); padding-bottom: 8px; }
 .qcards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px 64px; }
 @media (max-width: 760px) { .qcards { grid-template-columns: 1fr; gap: 40px; } }
 .qcard { display: grid; gap: 12px; align-content: start; }
