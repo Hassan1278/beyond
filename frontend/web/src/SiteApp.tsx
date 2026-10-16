@@ -12,6 +12,7 @@ import { useEffect, type ReactElement } from 'react';
 import { PAGES } from './data/site';
 import { DemoProvider } from './demo/store';
 import { SiteShell } from './site/SiteShell';
+import { LandingPage } from './site/LandingPage';
 import { HomePage } from './site/pages/HomePage';
 import { ProblemPage } from './site/pages/ProblemPage';
 import { HowPage } from './site/pages/HowPage';
@@ -23,7 +24,8 @@ import { useRoute } from './router';
 import { useRouteTransition, useRevealOnScroll } from './site/motion';
 
 const SITE: Record<string, () => ReactElement> = {
-  '/': HomePage,
+  '/': LandingPage,
+  '/old': HomePage,
   '/problem': ProblemPage,
   '/how': HowPage,
   '/why': WhyPage,

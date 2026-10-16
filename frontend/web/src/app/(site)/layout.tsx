@@ -8,6 +8,8 @@ import '../../styles/pages.css';
 import '../../styles/feed.css';
 import '../../styles/motion.css';
 import '../../styles/wrapped.css';
+import '../../styles/landing.css';
+import '../../site/landing/lifted.css';
 import '../../styles/app/themes.css';
 import '../../styles/app/controls.css';
 export const metadata = { title: 'Beyond', description: 'Say it tonight. Understand it tomorrow.' };
