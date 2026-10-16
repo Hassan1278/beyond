@@ -535,6 +535,7 @@ try {
   await page.locator('[data-act="toggle-sample"]').click();
   await page.locator('.tab[data-go="tonight"]').click();
   check(!(await page.locator('.samples').count()), 'Normal mode has no sample nights');
+  await page.locator('.tab[data-go="settings"]').click();
 
   console.log('sign out');
   await page.getByRole('button', { name: 'Sign out' }).click();
