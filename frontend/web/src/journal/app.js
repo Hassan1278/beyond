@@ -5,17 +5,20 @@
    writing go through Beyond's backend. Journal text is kept in memory only,
    never in browser storage.
    PC redesign: ink on night, letters on paper, hand-drawn marks instead of
-   boxes. Tabs: Tonight, Letters, Identity, Patterns, centred; Settings is the gear at the top right.
+   boxes. Tabs: Identity, Journal (the tonight page), Letters, Patterns, centred; language and
+   Settings sit at the top right.
    Identity is home: the app opens on it and the Beyond mark returns to it.
    Letters holds every letter, Settings holds memories.
    ====================================================================== */
 /* eslint-disable */
 import SAMPLE_DATA from './sample.json';
+import { uiLang, setUiLang, startTranslating } from './i18n';
 
 let started = false;
 export function startJournal(backend) {
 if (started) return;
 started = true;
+startTranslating();
 const SAMPLE = SAMPLE_DATA;
 
 /* ---------- vocab ---------- */
@@ -194,29 +197,6 @@ const usableMemories = () => (S.memoryPaused ? [] : allMemories().filter(memoryI
 /* Learning happens on the server when a letter is stored (at most two small,
    checked things, never something you told Beyond to forget). */
 
-/* Demo mode: fictional nights ready to seal, so the AI's letter can be tried in
-   one tap. Each sits on one of Beyond's themes. They are only typed into the
-   box; sealing one saves it to the account like any other night. */
-const DEMO_NIGHTS = [
-  { title: 'Lunch alone again', tag: 'EN', text: 'First month at uni and I still eat lunch alone most days. Everyone in my tutorial seems to have found their group in week one. Today someone asked if the seat next to me was free and I said yes too fast. We didn’t really talk, but I liked that someone sat there. I keep refreshing the class group chat like something will happen.' },
-  { title: 'Still deciding', tag: 'EN', text: 'Everyone keeps asking what I’m majoring in and I keep saying “still deciding”. I picked engineering because my grades fit, not because I wanted it. Today in the design workshop I lost track of time building a tiny cardboard prototype, and it was the first class that didn’t feel like homework. Is that a sign, or am I just tired of maths?' },
-  { title: '期中成绩', tag: '简', text: '期中考试成绩出来了，比我预期的低很多。室友们都考得很好，她们晚上还有时间去社团，我却每天学到凌晨一点。我开始怀疑自己是不是不够聪明。不过今天在图书馆，有个同学来问我一道题，我讲给她听的时候，突然觉得自己其实是懂的。' },
-  { title: '阿媽嘅期望', tag: '粵', text: '阿媽今晚又問我點解唔揀醫科，話表姐而家幾好。我知佢係為我好，但我一講到想讀設計，佢就轉話題。食完飯我喺房度畫咗成個鐘，畫完先覺得自己透到氣。我唔想同佢嗌交，只係想佢見到我鍾意嘅嘢。' },
-  { title: 'Tuesdays at the centre', tag: 'EN', text: 'Volunteered at the community centre again. I help a group of primary school kids with homework every Tuesday. One boy who never talks finally asked me a question today, and then another one. Walking home I realised Tuesday is the only day this week I didn’t feel behind. Maybe I like teaching more than I thought.' },
-  { title: 'A quiet good day', tag: 'EN + 中', text: 'Nothing big happened today. Went for a run along the harbour after class, 天好靚, the sky was all orange. Called my grandma and she told me the same story about her village again, and I didn’t mind. Ate a pineapple bun on the way back. A quiet good day.' },
-];
-function sampleNights() {
-  if (!demoOn()) return '';
-  return `<div class="samples" role="group" aria-label="Sample nights">
-      <p class="samples-k">Demo mode: pick a sample night, or write your own.</p>
-      <div class="chips">${DEMO_NIGHTS.map((n, i) => `<button class="chip" data-sample-night="${i}" aria-pressed="${S.draft === n.text}">${esc(n.title)}<small>${esc(n.tag)}</small></button>`).join('')}</div>
-    </div>`;
-}
-function useSampleNight(i) {
-  const n = DEMO_NIGHTS[+i]; if (!n) return;
-  S.draft = n.text; save(); render();
-  const ta = $('#entry'); if (ta) { ta.classList.add('arrive'); ta.focus({ preventScroll: true }); }
-}
 /* The night waiting for its letter. */
 const pendingNight = () => S.letters.find((l) => !delivered(l));
 
@@ -289,6 +269,8 @@ const I = {
   sky: `<svg viewBox="0 0 24 24" ${HAND}><path d="M6 13.4c.3 1.6.9 2.4 2.4 2.7-1.5.4-2.1 1.1-2.4 2.8-.3-1.6-.9-2.4-2.5-2.7 1.6-.4 2.2-1.1 2.5-2.8Z"/><path d="M15.4 3.6c.5 2.6 1.6 3.9 4.1 4.4-2.5.6-3.6 1.9-4.1 4.6-.5-2.6-1.6-3.9-4.2-4.4 2.6-.6 3.7-1.9 4.2-4.6Z"/><path d="M8.7 15.4c2-1.4 3.6-2.9 5.2-4.6" stroke-dasharray="0.1 2.6"/></svg>`,
   you: `<svg viewBox="0 0 24 24" ${HAND}><path d="M12.1 4.6c1.9 0 3.4 1.6 3.3 3.5 0 1.9-1.6 3.4-3.5 3.3-1.8 0-3.3-1.6-3.2-3.5.1-1.8 1.5-3.3 3.4-3.3Z"/><path d="M5.2 19.8c.9-3.6 3.8-5.4 6.9-5.4 3.2 0 6 1.8 6.8 5.5"/></svg>`,
   star: `<svg viewBox="0 0 24 24" ${HAND}><path d="M12.2 3.2c.6 4.1 2.2 6.3 6.6 7.3-4.3.9-6 3-6.7 7.8-.7-4.5-2.4-6.8-6.9-7.6 4.4-1 6.3-3.2 7-7.5Z"/></svg>`,
+  // switch language: 文 and A swapping places
+  translate: `<svg viewBox="0 0 24 24" ${HAND}><rect x="1.8" y="1.8" width="10" height="10" rx="2.4"/><rect x="12.2" y="12.2" width="10" height="10" rx="2.4"/><text x="6.8" y="9.6" text-anchor="middle" font-size="7.2" fill="currentColor" stroke="none">文</text><text x="17.2" y="20" text-anchor="middle" font-size="7.4" font-weight="600" fill="currentColor" stroke="none">A</text><path d="M15 3.2c2.9 0 5 1.9 5.1 4.9"/><path d="M18.2 6.6l1.9 1.7 1.7-2"/><path d="M9 20.8c-2.9 0-5-1.9-5.1-4.9"/><path d="M5.8 17.4l-1.9-1.7-1.7 2"/></svg>`,
   // the Settings cog: eight square teeth around a ring
   gear: `<svg viewBox="0 0 24 24" ${HAND}><path d="M19.1 9.8L21.8 10.3L21.8 13.7L19.1 14.2L18.5 15.5L20.2 17.7L17.7 20.2L15.5 18.5L14.2 19.1L13.7 21.8L10.3 21.8L9.8 19.1L8.5 18.5L6.3 20.2L3.8 17.7L5.5 15.5L4.9 14.2L2.2 13.7L2.2 10.3L4.9 9.8L5.5 8.5L3.8 6.3L6.3 3.8L8.5 5.5L9.8 4.9L10.3 2.2L13.7 2.2L14.2 4.9L15.5 5.5L17.7 3.8L20.2 6.3L18.5 8.5Z"/><circle cx="12" cy="12" r="3.4"/></svg>`,
   search: `<svg viewBox="0 0 24 24" ${HAND}><path d="M10.6 4.2c3.6 0 6.4 2.8 6.3 6.3-.1 3.5-3 6.2-6.4 6.1-3.4-.1-6.1-2.9-6-6.3.1-3.3 2.8-6.1 6.1-6.1Z"/><path d="M15.4 15.6c1.6 1.5 3.2 3 4.9 4.6"/></svg>`,
@@ -356,10 +338,13 @@ function render() {
     <header class="topbar">
       <button class="brand" data-go="identity" aria-label="Beyond, Identity">${I.moon}<span>Beyond</span></button>
       <nav class="tabs" aria-label="Main">
-        ${[['tonight', 'Tonight', I.moon], ['letters', 'Letters', I.mail], ['identity', 'Identity', I.bubbles], ['patterns', 'Patterns', I.sky]].map(([r, l, ic]) =>
+        ${[['identity', 'Identity', I.bubbles], ['tonight', 'Journal', I.moon], ['letters', 'Letters', I.mail], ['patterns', 'Patterns', I.sky]].map(([r, l, ic]) =>
           `<button class="tab" data-go="${r}" ${here(r) ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${r === 'letters' && unread ? '<i class="dot" aria-label="Unread letter"></i>' : ''}</button>`).join('')}
       </nav>
-      <button class="gear-btn" data-go="settings" aria-label="Settings" ${here('settings') ? 'aria-current="page"' : ''}>${I.gear}</button>
+      <div class="top-actions">
+        <button class="gear-btn lang-btn" data-act="ui-lang" data-i18n-skip lang="${uiLang() === 'zh' ? 'en' : 'zh-Hans'}" aria-label="${uiLang() === 'zh' ? 'Switch to English' : '切换到中文'}" title="${uiLang() === 'zh' ? 'English' : '中文'}">${I.translate}</button>
+        <button class="gear-btn" data-go="settings" aria-label="Settings" ${here('settings') ? 'aria-current="page"' : ''}>${I.gear}</button>
+      </div>
     </header>`;
   $('#app').innerHTML = `${nav}<main id="main" class="v-${route}${entering && stateReady ? ' is-entering' : ''}">${html}</main>`;
   after.forEach((f) => f()); after = [];
@@ -405,12 +390,12 @@ function vWelcome() {
       <p class="brand-line">${I.moon}<span>Beyond, a journal that writes back in the morning</span></p>
       <h1 class="display">Write tonight. Nothing replies. A letter arrives in the morning.</h1>
       <ol class="how">
-        <li><b>Tonight</b>Write or just talk about whatever is on your mind. No feed, no likes, no reply.</li>
+        <li><b>Journal</b>Write or just talk about whatever is on your mind. No feed, no likes, no reply.</li>
         <li><b>Overnight</b>It's sealed. Claude reads it next to your earlier nights.</li>
         <li><b>Morning</b>A short letter, and three small to-dos you can tick off.</li>
       </ol>
       <div class="row"><button class="btn amber" data-act="start-own">Start my journal</button></div>
-      ${demoOn() ? `<p class="mode-note">You’re in <b>Demo mode</b>: sample nights to try, and Kit’s fictional letters next to yours. To use Beyond just for yourself, switch to Normal mode in Settings.</p>` : ''}
+      ${demoOn() ? `<p class="mode-note">You’re in <b>Demo mode</b>: Kit’s fictional letters are shown next to yours. To use Beyond just for yourself, switch to Normal mode in Settings.</p>` : ''}
       <p class="fine">${OFFLINE ? 'Offline trial: letters here are simple templates. The online version writes them with Claude.' : LOCAL ? (isGuest() ? 'Judge preview: you have your own empty journal, and Claude writes your letters.' : 'Letters are written by Claude. Your journal is saved to your Beyond account, private to you.') : 'Letters are written by Claude on your own claude.ai account. Your journal stays in this browser.'}</p>
     </section>`;
   }
@@ -429,19 +414,16 @@ function voiceCards() {
 /* ----- tonight: open and write ----- */
 let promptTimer = null; let lastWords = 0;
 const SPEAK_PROMPTS = ['Just say it. Nothing replies.', 'Start with how today felt.', '今日發生咗咩？慢慢講。', 'What’s still on your mind?', 'Say it the way you’d say it to yourself.', '今天怎么样？想到哪说到哪。'];
-function lanternVars(words) { const t = Math.min(1, words / 120); return `--k:${(0.55 + 0.5 * t).toFixed(3)};--b:${(0.75 + 0.5 * t).toFixed(3)}`; }
-const countLine = (n, speak) => (n ? `${plural(n, 'word')} · ${speak ? 'keep going, or seal it when you’re done' : 'the light grows as you write'}` : speak ? 'Your words will appear below as you talk' : 'The light grows as you write');
 function vTonight() {
   clearInterval(promptTimer); cancelAnimationFrame(voice.raf);
   const sealed = pendingNight();
   if (sealed) return vSealed(sealed);
-  const unread = allLetters().find((l) => delivered(l) && !l.readAt);
   const speak = false; // one page: type, or tap the microphone and talk
   const words = countWords(S.draft); lastWords = words;
   after.push(() => {
     const ta = $('#entry'); if (!ta) return;
     // Speak: a fixed window that follows the newest words, so they stay in view under the light.
-    const grow = () => { ta.style.height = 'auto'; const h = Math.max(ta.scrollHeight, window.innerHeight * (speak ? 0.16 : 0.34)); ta.style.height = `${speak ? Math.min(h, window.innerHeight * 0.22) : h}px`; if (speak) ta.scrollTop = ta.scrollHeight; };
+    const grow = () => { ta.style.height = 'auto'; const h = Math.max(ta.scrollHeight, window.innerHeight * (speak ? 0.16 : 0.58)); ta.style.height = `${speak ? Math.min(h, window.innerHeight * 0.22) : h}px`; if (speak) ta.scrollTop = ta.scrollHeight; };
     grow();
     if (!speak && window.matchMedia('(pointer: fine)').matches) ta.focus({ preventScroll: true });
     let lastLen = ta.value.length;
@@ -449,16 +431,11 @@ function vTonight() {
       S.draft = ta.value; save(); grow();
       const added = ta.value.length - lastLen; lastLen = ta.value.length;
       if (added > 0) voice.impulse = Math.min(1, voice.impulse + 0.25 + added * 0.03);
-      const n = countWords(ta.value);
-      const lw = $('#lantern-wrap'); if (lw) lw.setAttribute('style', lanternVars(n));
-      if (n > lastWords && lw && !reduceMotion()) { const r = document.createElement('i'); r.className = 'ripple'; lw.appendChild(r); setTimeout(() => r.remove(), 1400); }
-      lastWords = n;
-      $('#wc').textContent = countLine(n, speak);
+      lastWords = countWords(ta.value);
       $('#b-seal').disabled = !ta.value.trim();
       if (hasCrisis(ta.value) && !$('#crisis').childElementCount) $('#crisis').innerHTML = supportInline();
     });
     if (hasCrisis(ta.value)) $('#crisis').innerHTML = supportInline();
-    $('#lang')?.addEventListener('change', (e) => { S.lang = e.target.value; save(); toast(`Your letter will be written in ${S.lang === 'auto' ? 'the language you use' : LANGS.find(([k]) => k === S.lang)[1]}.`); });
     paintVoice();
     const list = speak ? SPEAK_PROMPTS : PROMPTS; let i = 0;
     promptTimer = setInterval(() => {
@@ -467,35 +444,25 @@ function vTonight() {
       i = (i + 1) % list.length; p.innerHTML = `<span>${esc(list[i])}</span>`;
     }, 5200);
   });
+  // Journal: a blank page. The date and one quiet question, then room to write.
   return `<section class="tn ${speak ? 'is-speak' : ''}">
-      ${unread ? `<p class="arrived">${I.mail}<span>A letter arrived for ${fmtDay(unread.date)}${unread.sample ? ' (sample)' : unread.demo ? ' (demo)' : ''}.</span> <button class="link" data-open="${unread.id}">Open it</button></p>` : ''}
-      <div class="lantern-wrap" id="lantern-wrap" style="${lanternVars(words)}" aria-hidden="true"><div class="lantern"></div></div>
-      <p class="tn-date">${fmtDay(journalDate())}, tonight</p>
-      <h1 class="tn-prompt" id="prompt"><span>${esc((speak ? SPEAK_PROMPTS : PROMPTS)[0])}</span></h1>
-      ${sampleNights()}
+      <header class="tn-head">
+        <p class="tn-date">${fmtDay(journalDate())}</p>
+        <h1 class="tn-prompt" id="prompt"><span>${esc((speak ? SPEAK_PROMPTS : PROMPTS)[0])}</span></h1>
+      </header>
       <label for="entry" class="sr-only">Tonight's entry</label>
       <div class="entry-wrap">
-        <textarea id="entry" class="paper-in" placeholder="Start anywhere. English, 中文, 廣東話, any mix. Or tap the microphone and just talk.">${esc(S.draft)}</textarea>
+        <textarea id="entry" class="paper-in" placeholder="Start anywhere">${esc(S.draft)}</textarea>
         <button class="mic" id="orb" data-act="orb" type="button" aria-label="Talk instead of typing"><span class="glyph" id="glyph">${I.mic}</span></button>
       </div>
       <p class="voice-hint" id="vhint" aria-live="polite"></p>
-      <p class="fine tn-count" id="wc">${countLine(words, speak)}</p>
       <div id="crisis" style="width:100%"></div>
       <div class="tn-bar">
-        <div class="tn-tools">
-          <label class="pick" for="lang"><span>Letter in</span><select id="lang">${LANGS.map(([k, l]) => `<option value="${k}" ${(S.lang || 'auto') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-          <label class="pick" for="tdtime"><span>Arrives</span><select id="tdtime">${timeOptions(deliverTime())}</select></label>
-        </div>
         <button class="btn amber" data-act="seal" id="b-seal" ${S.draft.trim() ? '' : 'disabled'}>Seal tonight</button>
       </div>
-      <p class="tn-foot">Nothing replies tonight. Your letter comes from your <button class="link" data-go="settings">${esc((VOICES[S.voice] || VOICES.friend).name)}</button>.</p>
-      ${isGuest() ? `<p class="fine">Judge preview · ${AUTH.user.left ?? 0} AI letters left today</p>` : ''}
-      ${OFFLINE ? '<p class="fine">Offline trial · letters are simple templates. See START HERE for the online version with Claude.</p>' : ''}
-      <p class="fine" id="claude-note">${claudeNote()}</p>
-      ${identityGlance()}
     </section>`;
 }
-/* Identity at a glance, under the writing area: quiet, and one tap from the map. */
+/* Directions that are showing, strongest first. */
 function visibleDirections(all = directions()) {
   return all.filter((d) => (d.status === 'confirmed' && d.evidence.length) || (d.status === 'suggested' && d.sufficient))
     .sort((a, b) => b.days - a.days || b.evidence.length - a.evidence.length || a.key.localeCompare(b.key));
@@ -511,21 +478,6 @@ function miniMap(list, W = 112, H = 72) {
     return `<path d="${wobble(d ? d.key : `empty${i}`, x, y, r, .07)}" class="${d ? (d.status === 'confirmed' ? 'is-confirmed' : '') : 'is-empty'}"/>`;
   }).join('');
   return `<svg class="mini-map" viewBox="0 0 112 72" width="${W}" height="${H}" aria-hidden="true">${circles}</svg>`;
-}
-function identityGlance() {
-  const all = directions(); const vis = visibleDirections(all);
-  const most = Math.max(0, ...all.map((d) => d.days));
-  after.push(() => startOrrery($('.orrery canvas'), vis, most));
-  if (vis.length) {
-    const top = vis[0];
-    return `<button class="glance" data-go="identity" aria-label="Identity: your strongest direction is ${esc(top.name)}, across ${plural(top.days, 'night')}. Open Identity">
-      <span class="orrery" aria-hidden="true"><canvas></canvas></span>
-      <span class="glance-t"><span class="glance-k">Strongest direction</span><b>${esc(top.name)}</b><span>${plural(top.days, 'night')}${vis.length > 1 ? `, and ${plural(vis.length - 1, 'other direction')}` : ''}</span><span class="glance-go">See your map</span></span></button>`;
-  }
-  const n = nightsToFirst(all); const lit = Math.min(2, most);
-  return `<button class="glance is-empty" data-go="identity" aria-label="Identity: write ${plural(n, 'more night')} to see your first direction. Open Identity">
-    <span class="orrery" aria-hidden="true"><canvas></canvas></span>
-    <span class="glance-t"><span class="glance-k">${lit ? `${lit} of 3 nights point the same way` : 'Your first direction'}</span><b>Write ${plural(n, 'more night')} to see your first direction</b><span>A direction appears when letters from three nights point the same way.</span><span class="glance-go">How Identity works</span></span></button>`;
 }
 /* A small orrery: you in the middle, each direction circling on a tilted orbit,
    passing behind and in front of you, joined by a thread of light. New
@@ -846,8 +798,8 @@ async function seal() {
   const ta = $('#entry'); const text = (ta?.value || '').trim();
   if (!text) return;
   const date = journalDate();
-  window.scrollTo(0, 0); // the light must be on screen for the words to float into it
-  const rect = ta.getBoundingClientRect(); const lrect = $('.lantern').getBoundingClientRect();
+  window.scrollTo(0, 0); // the words float up into a light above the page
+  const rect = ta.getBoundingClientRect(); const lrect = { left: window.innerWidth / 2 - 48, top: Math.max(72, rect.top - 120), width: 96, height: 96 };
   let L;
   try { L = await sealNight(text, date); }
   catch (e) {
@@ -975,7 +927,7 @@ const secLabel = (k) => { const [en, zh, c, hans] = SECTIONS[k]; return `<h2 cla
 function vLetter() {
   const L = findLetter(param);
   if (!L) return `<p class="lead">This letter isn't here anymore.</p><button class="btn" data-go="letters">All letters</button>`;
-  if (!delivered(L)) return `<p class="lead">This letter arrives at ${atTime(L)}.</p><button class="btn" data-go="tonight">Back to tonight</button>`;
+  if (!delivered(L)) return `<p class="lead">This letter arrives at ${atTime(L)}.</p><button class="btn" data-go="tonight">Back to Journal</button>`;
   const c = L.content; const v = VOICES[c.voice || 'friend'] || VOICES.friend;
   const lang = c.language === 'en' ? 'en' : c.language === 'zh-hans' ? 'hans' : 'zh';
   secHans = c.language === 'zh-hans' || (c.language === 'en' && S.lang === 'zh-hans');
@@ -1086,7 +1038,7 @@ function vLetters() {
       <p class="lead">${nights ? `<span class="count-up" data-n="${nights}">${nights}</span> ${nights === 1 ? 'night' : 'nights'} written since ${fmtLong(firstNight.date)}. ${plural(ready.length, 'letter')} arrived, ${seals} with a gold seal.` : 'Your morning letters collect here.'}</p>
     </header>
     ${sampleBanner()}
-    ${pending.length ? `<p class="arrived">${I.mail}<span>Your letter for ${fmtDay(pending[0].date)} arrives at ${atTime(pending[0])}.</span> <button class="link" data-go="tonight">See tonight</button></p>` : ''}
+    ${pending.length ? `<p class="arrived">${I.mail}<span>Your letter for ${fmtDay(pending[0].date)} arrives at ${atTime(pending[0])}.</span> <button class="link" data-go="tonight">Open Journal</button></p>` : ''}
     ${!cover ? `<section class="empty"><span class="empty-mark" aria-hidden="true">${I.moon}${I.star}</span><p class="lead">No letters yet. Write tonight and the first one arrives tomorrow morning.</p><button class="btn amber" data-go="tonight">Write tonight</button></section>` : `
     <section class="cover-wrap" aria-label="Latest letter">
       <article class="cover paper">
@@ -1360,20 +1312,20 @@ function bubbleLayout(items, W, H, cx0 = W * .5, cy0 = H * .5) {
       for (let k = 0; k < 1400; k++) {
         const a = k * 2.399963 + rnd() * .6 + i * 1.7; const dist = short * .16 + Math.sqrt(k) * 9.5;
         const x = cx0 + Math.cos(a) * dist * 1.45, y = cy0 + Math.sin(a) * dist * .82;
-        if (x - r < 14 || x + r > W - 14 || y - r < 44 || y + r > H - 14) continue;
+        if (x - r < 14 || x + r > W - 14 || y - r < 14 || y + r > H - 14) continue;
         if (placed.every((p) => Math.hypot(p.x - x, p.y - y) > p.r + r + gap)) { best = { x, y }; break; }
       }
       if (!best) size *= .82;
     }
     const r = size / 2;
-    if (!best) best = { x: Math.min(W - r - 14, Math.max(r + 14, cx0 + (rnd() - .5) * W * .6)), y: Math.min(H - r - 14, Math.max(r + 44, cy0 + (rnd() - .5) * H * .6)) };
+    if (!best) best = { x: Math.min(W - r - 14, Math.max(r + 14, cx0 + (rnd() - .5) * W * .6)), y: Math.min(H - r - 14, Math.max(r + 14, cy0 + (rnd() - .5) * H * .6)) };
     placed.push({ ...best, r }); lastSize = size;
     out[d.id] = { ...best, size, amp: 5 + rnd() * 8, ampY: 6 + rnd() * 9, period: 9000 + rnd() * 7000, phase: rnd() * Math.PI * 2 };
   });
   // centre the whole constellation (you included) in the stage
   const box = placed.reduce((b, p) => ({ x0: Math.min(b.x0, p.x - p.r), x1: Math.max(b.x1, p.x + p.r), y0: Math.min(b.y0, p.y - p.r), y1: Math.max(b.y1, p.y + p.r) }), { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity });
   const dx = Math.max(14 - box.x0, Math.min(W - 14 - box.x1, W / 2 - (box.x0 + box.x1) / 2));
-  const dy = Math.max(44 - box.y0, Math.min(H - 14 - box.y1, (H + 30) / 2 - (box.y0 + box.y1) / 2));
+  const dy = Math.max(14 - box.y0, Math.min(H - 14 - box.y1, H / 2 - (box.y0 + box.y1) / 2));
   for (const id of Object.keys(out)) { out[id].x += dx; out[id].y += dy; }
   out.__core = { x: cx0 + dx, y: cy0 + dy };
   return out;
@@ -1437,7 +1389,7 @@ function startBubbles(visible) {
   cancelAnimationFrame(identRaf);
   const stage = $('#stage'); if (!stage || !visible.length) return;
   const W = stage.clientWidth, H = stage.clientHeight;
-  const geo = bubbleLayout(visible, W, H, W * .5, H * .54); const cx = geo.__core.x, cy = geo.__core.y;
+  const geo = bubbleLayout(visible, W, H, W * .5, H * .5); const cx = geo.__core.x, cy = geo.__core.y;
   const par = stage.querySelector('.parallax'); const layer = stage.querySelector('.stage-layer'); const svg = stage.querySelector('.stage-links');
   const still = reduceMotion(); const fine = window.matchMedia('(pointer: fine)').matches;
   const max = Math.max(1, ...visible.map((d) => d.days));
@@ -1645,7 +1597,7 @@ function vSettings() {
       <p class="lead">How your letters are written, what Beyond remembers, your data, and where to find help.</p>
     </header>
     <section class="spread" id="mode"><h2 class="sec">Mode</h2><div class="stack">
-      <button class="toggle" role="switch" aria-checked="${demoOn()}" data-act="toggle-sample"><span class="track"></span><span>Demo mode: sample nights to try, and Kit’s sample letters next to yours</span></button>
+      <button class="toggle" role="switch" aria-checked="${demoOn()}" data-act="toggle-sample"><span class="track"></span><span>Demo mode: Kit’s sample letters next to yours</span></button>
       <p class="fine">Beyond starts in Demo mode, for showing it to others such as judges. Kit is fictional; the sample letters show what months of Beyond look like. A night you seal is saved to your account and its letter is written by the AI, in both modes. Turn Demo mode off for Normal mode, just your own journal.</p>
     </div></section>
     <section class="spread" id="letters-settings"><h2 class="sec">Letters</h2><div class="stack">
@@ -1715,7 +1667,7 @@ function vLogin() {
       <div class="lantern-wrap" style="--k:.85;--b:1.05" aria-hidden="true"><div class="lantern"></div></div>
       <p class="brand-line">${I.moon}<span>Beyond</span></p>
       <h1 class="display">${title}</h1>
-      ${demoOn() && m === 'signin' ? `<p class="mode-note">You’re in <b>Demo mode</b>: after signing in you’ll find sample nights to try, and Kit’s fictional letters. To use Beyond just for yourself, switch to Normal mode in Settings.</p>` : ''}
+      ${demoOn() && m === 'signin' ? `<p class="mode-note">You’re in <b>Demo mode</b>: after signing in you’ll see Kit’s fictional letters next to yours. To use Beyond just for yourself, switch to Normal mode in Settings.</p>` : ''}
       ${m === 'sent' ? `<p class="lead" style="max-width:36ch">${esc(loginNote)}</p>` : `<form class="login-form" id="login-form">${fields}<button class="btn amber" type="submit">${submit}</button>${google}</form>
       <p class="fine" id="login-err" role="alert">${esc(loginNote)}</p>`}
       <p class="fine">${switches}</p>
@@ -1779,7 +1731,6 @@ document.addEventListener('click', async (ev) => {
     else return forgetMemory(m);
     save(); toast('Forgotten.'); return render();
   }
-  if (d.sampleNight !== undefined) return useSampleNight(d.sampleNight);
   if (d.slang) {
     S.speechLang = d.slang; save(); paintVoice();
     if (voice.state === 'rec') { voice.relisten = true; stopRecording(); }
@@ -1821,6 +1772,7 @@ document.addEventListener('click', async (ev) => {
     case 'delete-account-no': confirmAccount = false; return render();
     case 'delete-account-yes': el.disabled = true; return deleteAccount();
     case 'finish-welcome': S.onboarded = true; save(); return go('tonight');
+    case 'ui-lang': setUiLang(uiLang() === 'zh' ? 'en' : 'zh'); return render();
     case 'own': S.mode = 'own'; save(); toast('Normal mode: just your own journal. Demo mode is in Settings.'); pMonth = null; return render();
     case 'arch-gold': arch.gold = !arch.gold; return refreshArchive();
     case 'arch-clear': Object.assign(arch, { q: '', month: '', theme: '', gold: false }); return render();

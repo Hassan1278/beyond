@@ -371,8 +371,14 @@ try {
     'voice and onboarding are saved to the account',
   );
   check(
-    await page.getByText('Write 3 more nights to see your first direction').isVisible(),
-    'Tonight shows how far away the first Identity direction is',
+    (await page.locator('.tn-head .tn-date').isVisible()) &&
+      (await page.locator('.tn-head #prompt').isVisible()) &&
+      (await page.locator('#entry').getAttribute('placeholder')) === 'Start anywhere',
+    'Journal shows the date and one question above a blank page',
+  );
+  check(
+    !(await page.locator('.tn .lantern-wrap, .tn .samples, .tn .glance, .tn .arrived').count()),
+    'Journal keeps nothing else around the writing',
   );
   await shot(page, '03-tonight');
 
@@ -485,6 +491,15 @@ try {
   await page.locator('.brand').click();
   await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
   check(true, 'the Beyond mark returns to Identity, the home page');
+  await page.locator('.lang-btn').click();
+  await page.locator('.tab[data-go="tonight"]').getByText('日记').waitFor();
+  check(
+    (await page.locator('.gear-btn[data-go="settings"]').getAttribute('aria-label')) === '设置',
+    'the language button switches the app to Chinese',
+  );
+  await page.locator('.lang-btn').click();
+  await page.locator('.tab[data-go="tonight"]').getByText('Journal').waitFor();
+  check(true, 'and back to English');
 
   console.log('settings and memory');
   await page.locator('.gear-btn[data-go="settings"]').click();
@@ -520,10 +535,13 @@ try {
   await page.locator('[data-act="toggle-sample"]').click();
   const entriesBefore = db.entries.length;
   await page.locator('.tab[data-go="tonight"]').click();
-  await page.locator('[data-sample-night="0"]').click();
   check(
-    (await page.locator('#entry').inputValue()).startsWith('First month at uni'),
-    'demo mode offers sample nights that fill the page in one tap',
+    !(await page.locator('[data-sample-night]').count()),
+    'demo mode keeps the Journal page blank too',
+  );
+  await page.fill(
+    '#entry',
+    'Fictional demo night: first month at uni and I still eat lunch alone.',
   );
   await page.getByRole('button', { name: 'Seal tonight' }).click();
   await page.getByText('Sealed for the night.').waitFor();
