@@ -79,6 +79,12 @@ export async function runBrowserAcceptance({
     await group('browser sign-in, onboarding and sealing a night on the real backend', async () => {
       await page.goto(origin + '/app');
       await page.getByText('Write tonight. A letter by morning.', { exact: true }).waitFor();
+      // Beyond starts in Demo mode; this run checks Normal mode.
+      await page.evaluate(() =>
+        localStorage.setItem('beyond.prefs.v1', JSON.stringify({ mode: 'own' })),
+      );
+      await page.reload();
+      await page.getByText('Write tonight. A letter by morning.', { exact: true }).waitFor();
       await signin(first);
       await page.getByRole('button', { name: 'Start my journal', exact: true }).click();
       await page.getByRole('button', { name: 'Start writing', exact: true }).click();
