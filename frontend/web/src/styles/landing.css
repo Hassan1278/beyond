@@ -110,6 +110,61 @@
 .landing .wrap,
 .landing .yr { all: revert; }
 
+/* The same collision as the reset above, one level in: 110 of the class names
+   the app's own components use are also the site's - .qcard, .letter, .film,
+   .k, .quote and the rest - and the site's rules were reaching inside them.
+   The site's .qcard is a 142px flex card; the app's is a ledger row.
+
+   :where() is load-bearing. It contributes nothing to specificity, so this
+   block weighs exactly `.landing .bui`: heavier than the site's own rules,
+   which it is here to block, and no heavier than the components' own rules,
+   which still win on source order. Raise it and the components lose their
+   styling.
+
+   Elements leak the same way - `.sec h2` was sizing the letter's section
+   labels at 68px - so headings and text blocks inside a component hand back
+   their defaults and let the component decide.
+   Regenerate when either side gains a class. */
+.landing .bui :where(
+    .b1, .b2, .b3, .back, .band, .big, .btn, .btn-dark, .btn-ghost,
+    .btn-light, .btn-sm, .center, .chips, .clock, .crisis, .ctas, .danger,
+    .demo-note, .dots, .down, .era, .eras, .eyebrow, .feed-col, .feed-copy,
+    .feed-layout, .feed-run, .feed-sec, .feed-wall, .film, .fine, .foot,
+    .foot-in, .ghost, .go, .greet, .help, .hero, .hint, .join, .k, .lead,
+    .lede, .letter, .line, .lines, .link, .logo, .m-hide, .mem, .mem-card,
+    .mem-card-head, .mem-grid, .mem-list, .mem-points, .msg, .n, .nav,
+    .nav-in, .nav-links, .night, .noise, .note, .now, .overnight,
+    .paused-msg, .post, .post-ad, .post-art, .post-cap, .post-foot,
+    .post-num, .post-ring, .post-top, .post-who, .pri, .qcard, .quiet-line,
+    .quiet-state, .quote, .row, .sec, .sec-head, .sheet, .sheet-bg,
+    .sky-moon, .sky-stars, .sky-sun, .sm, .sr, .stars, .step-actions,
+    .step-note, .sub, .swap-stack, .switch, .symptoms, .t, .tick, .track,
+    .try-grid, .voice, .voices, .when, .who-grid, .who-head, .who-note,
+    .word, .wrap, .yr),
+.landing :where(
+    .b1, .b2, .b3, .back, .band, .big, .btn, .btn-dark, .btn-ghost,
+    .btn-light, .btn-sm, .center, .chips, .clock, .crisis, .ctas, .danger,
+    .demo-note, .dots, .down, .era, .eras, .eyebrow, .feed-col, .feed-copy,
+    .feed-layout, .feed-run, .feed-sec, .feed-wall, .film, .fine, .foot,
+    .foot-in, .ghost, .go, .greet, .help, .hero, .hint, .join, .k, .lead,
+    .lede, .letter, .line, .lines, .link, .logo, .m-hide, .mem, .mem-card,
+    .mem-card-head, .mem-grid, .mem-list, .mem-points, .msg, .n, .nav,
+    .nav-in, .nav-links, .night, .noise, .note, .now, .overnight,
+    .paused-msg, .post, .post-ad, .post-art, .post-cap, .post-foot,
+    .post-num, .post-ring, .post-top, .post-who, .pri, .qcard, .quiet-line,
+    .quiet-state, .quote, .row, .sec, .sec-head, .sheet, .sheet-bg,
+    .sky-moon, .sky-stars, .sky-sun, .sm, .sr, .stars, .step-actions,
+    .step-note, .sub, .swap-stack, .switch, .symptoms, .t, .tick, .track,
+    .try-grid, .voice, .voices, .when, .who-grid, .who-head, .who-note,
+    .word, .wrap, .yr).bui { all: revert; box-sizing: border-box; }
+
+.landing .bui :where(h1, h2, h3, h4, h5, h6) {
+  font-size: inherit; font-weight: inherit; line-height: inherit;
+  letter-spacing: normal; margin: 0;
+}
+.landing .bui :where(p, ul, ol, dl, figure, blockquote, pre) { margin: 0; }
+
+
 .landing * {box-sizing:border-box}
 .landing {scroll-behavior:smooth;scroll-padding-top:72px}
 .landing {background:var(--zenith);color:var(--paper);font-family:var(--f-display);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
@@ -123,10 +178,10 @@
 .landing .wrap {max-width:var(--max);margin-inline:auto}
 .landing .mono {font-variant-numeric:tabular-nums}
 .landing .eyebrow {font-size:14px;margin:0;color:var(--moon)}
-.landing h1, .landing h2, .landing h3 {text-wrap:balance;margin:0}
-.landing h2 {font-size:clamp(38px,5.4vw,70px);line-height:1;letter-spacing:-.032em;font-weight:600}
-.landing h3 {font-size:20px;line-height:1.3;letter-spacing:-.012em;font-weight:600}
-.landing p {margin:0}
+.landing h1:not(.bui *), .landing h2:not(.bui *), .landing h3:not(.bui *) {text-wrap:balance;margin:0}
+.landing h2:not(.bui *) {font-size:clamp(38px,5.4vw,70px);line-height:1;letter-spacing:-.032em;font-weight:600}
+.landing h3:not(.bui *) {font-size:20px;line-height:1.3;letter-spacing:-.012em;font-weight:600}
+.landing p:not(.bui *) {margin:0}
 .landing .sec {padding-inline:var(--gutter);padding-block:clamp(80px,10vw,140px);overflow-x:clip}
 .landing .night {background:none;color:var(--paper)}
 .landing .night .sub {color:var(--mist)}
@@ -319,12 +374,7 @@
 .landing .price b {font-size:30px;font-weight:800;letter-spacing:-.04em;line-height:1}
 .landing .price span {color:var(--dim);font-size:14px}
 .landing .price.is-soon {color:var(--dim);font-size:14px;letter-spacing:.01em}
-.landing .tier-more {align-self:flex-start;background:none;border:0;padding:0;margin-top:auto;padding-top:4px;font:inherit;font-size:14px;color:var(--lantern);cursor:pointer;display:inline-flex;align-items:center;gap:8px}
-.landing .tier-more::after {content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .18s ease}
-.landing .tier-more[aria-expanded="true"]::after {transform:rotate(-135deg) translateY(1px)}
-.landing .tier-more:hover {color:var(--morning)}
-.landing .tier-more:focus-visible {outline:2px solid var(--lantern);outline-offset:3px;border-radius:3px}
-.landing .tier-detail {display:grid;gap:9px;margin:0;padding:15px 0 0;list-style:none;border-top:1px solid var(--night-line)}
+.landing .tier-detail {display:grid;gap:9px;margin:auto 0 0;padding:15px 0 0;list-style:none;border-top:1px solid var(--night-line)}
 .landing .tier-detail li {position:relative;padding-left:16px;color:var(--mist);font-size:14.5px;line-height:1.5}
 .landing .tier-detail li::before {content:"";position:absolute;left:0;top:.6em;width:5px;height:5px;border-radius:50%;background:var(--tick)}
 .landing .tier-note {margin:20px 0 0;max-width:74ch;color:var(--dim);font-size:13.5px;line-height:1.6}
@@ -398,22 +448,246 @@
   --focus:var(--lantern);--mark:rgba(243,198,142,.32);
   color:var(--fg);font-family:var(--f-ui);
 }
-.landing .bui h1, .landing .bui h2, .landing .bui h3, .landing .bui h4 {font-size:inherit;font-weight:inherit;line-height:inherit;letter-spacing:normal;margin:0}
-.landing .bui p, .landing .bui ul, .landing .bui ol, .landing .bui figure, .landing .bui blockquote {margin:0}
 .landing .bui#sky-bg .ambient, .landing #sky-bg.bui {position:fixed;inset:0}
 .landing .bui .letter {border-radius:var(--r-sheet)}
 .landing .bui.scr h4 {font-size:18px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
 .landing .bui.scr .ph-head {font-size:17px;letter-spacing:-.022em}
 .landing .bui#sky-bg .st {box-shadow:0 0 calc(var(--z) * 2.2) rgba(246,236,223,.45)}
 
-/* The star field behind the whole site. page.js places each star with left/top
-   and sizes it through --z, so without a rule to position them the sky is 260
-   zero-size inline elements stacked at the origin, carrying nothing but their
-   glow. The id keeps them clear of .st and .band elsewhere on the site.
-   twinkle comes from the journal's own stylesheet, through lifted.css. */
-.landing #sky-bg .st {position:absolute;display:block;width:var(--z);height:var(--z);border-radius:50%;background:rgba(246,236,223,var(--o))}
-.landing #sky-bg .st.tw {animation:twinkle var(--t,6s) ease-in-out var(--dl,0s) infinite}
-.landing #sky-bg .band {display:none}  /* a Milky Way band drawn for a viewport-high sky; this one is the page's height */
-@media (prefers-reduced-motion: reduce) {
-  .landing #sky-bg .st.tw {animation:none}
+
+/* ---------------------------------------------------------------------------
+   The app components as the standalone page drew them.
+
+   This page is lifted from Hassan's journal, but the journal and the prototype
+   the page was designed against have drifted: different lantern, different
+   small-label font, different chart furniture. These rules are the prototype's
+   own, copied once from the standalone build, so the sections keep the look
+   they were designed with.
+
+   They are deliberately NOT generated. Editing the journal will not change
+   them. The star map is left out on purpose, so the chart itself still comes
+   from the journal and still tracks it.
+   --------------------------------------------------------------------------- */
+.landing .bui {--zenith:#0e0a09;
+  --sky:var(--night);--limb:var(--night-2);--raised:var(--night-3);
+  --rule:var(--night-line);--rule-strong:#584739;
+  --light:#f6ecdf;--mag:var(--moon);--tick:#8d7b6a;
+  --lantern:#f3c68e;--lantern-deep:#dba565;--morning:#f6e3c8;
+  --chart:var(--paper);--chart-2:var(--paper-2);--chart-line:var(--paper-line);
+  --engrave:var(--ink);--engrave-soft:var(--ink-soft);--engrave-faint:var(--ink-faint);
+  
+  --m1:#ead9c0;--m2:#d6c2a4;--m3:#c0a98a;--m4:#a98f71;
+  --alert:#d2765c;
+  --f-display:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,'PingFang HK','Noto Sans HK',sans-serif;--f-ui:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,'PingFang HK','Noto Sans HK',sans-serif;--f-text:'Newsreader','Iowan Old Style','Palatino Linotype',Georgia,'Songti TC','Noto Serif HK',serif;
+  --ease:cubic-bezier(.2,.7,.2,1);
+  --r-flat:0px;--r-panel:6px;--r-input:6px;--r-sheet:10px;--r-action:999px;
+  
+  --bg:var(--night);--fg:var(--light);--soft:var(--moon);--faint:var(--dim);
+  --line:var(--night-line);--card:var(--night-2);--card-2:var(--night-3);
+  --btn-bg:var(--light);--btn-fg:var(--night);--btn2-bg:var(--night-3);--btn2-fg:var(--light);
+  --focus:var(--lantern);--mark:rgba(243,198,142,.32);
+  color:var(--fg);font-family:var(--f-ui);}
+
+@keyframes flicker { 50% { opacity: calc(var(--o) * .35); } }
+@keyframes fadeup { from { opacity: 0; transform: translateY(8px); filter: blur(4px); } }
+@keyframes turn { to { background-position: 0 0, -180px 0, 0 0, 0 0, 0 0, 0 0, 0 0; } }
+@keyframes pulse { 50% { opacity: .35; transform: scale(1.5); } }
+@keyframes arrive { 0% { box-shadow: 0 0 0 0 rgba(247,203,149,.45); } 100% { box-shadow: 0 0 0 18px rgba(247,203,149,0); } }
+.landing .bui#sky-bg .ambient,
+.landing #sky-bg.bui {position:fixed;inset:0}
+.landing .bui .k {font: 500 13px/1.35 var(--f-ui); color: var(--soft);}
+.landing .bui .title {font-size: clamp(30px, 6vw, 44px); font-weight: 800; letter-spacing: -.035em; line-height: 1.05;}
+.landing .bui .h2 {font-size: 22px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2;}
+.landing .bui .lead {color: var(--soft); font-size: 17px; max-width: 58ch;}
+.landing .bui .fine {font-size: 13px; color: var(--faint);}
+.landing .bui .row {display: flex; flex-wrap: wrap; gap: 10px; align-items: center;}
+.landing .bui .stack {display: grid; gap: 14px;}
+.landing .bui .btn {display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 22px; border-radius: var(--r-action); border: 0; background: var(--btn-bg); color: var(--btn-fg); font-weight: 600; font-size: 15px; text-decoration: none; transition: filter .2s, opacity .2s, box-shadow .3s;}
+.landing .bui .btn:hover {filter: brightness(1.08);}
+.landing .bui .btn:disabled {opacity: .4; cursor: not-allowed; transform: none; box-shadow: none;}
+.landing .bui .btn.secondary {background: none; color: var(--fg); box-shadow: inset 0 0 0 1px var(--line); border-radius: var(--r-panel);}
+.landing .bui .btn.ghost {background: none; color: var(--soft); padding: 0 12px;}
+.landing .bui .btn.sm {min-height: 36px; padding: 0 15px; font-size: 13.5px;}
+.landing .bui .btn.amber {background: linear-gradient(140deg, var(--lantern), var(--lantern-deep)); color: var(--sky); box-shadow: 0 10px 34px -14px rgba(247,203,149,.55);}
+.landing .bui .link {background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--faint); font-size: inherit;}
+.landing .bui .notice {border-radius: var(--r-panel); padding: 14px 16px; background: var(--card-2); font-size: 14.5px; display: grid; gap: 8px;}
+.landing .bui .notice.warn {background: color-mix(in srgb, var(--alert) 14%, var(--card));}
+.landing .bui .ambient {position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  background: radial-gradient(130% 80% at 50% -20%, var(--limb) 0%, var(--sky) 42%, var(--zenith) 100%);}
+.landing .bui .ambient .band {position: absolute; inset: -20% -10%; opacity: .5; transition: opacity 1.2s;
+  background: linear-gradient(102deg, transparent 34%, rgba(178,174,168,.07) 46%, rgba(231,228,224,.09) 50%, rgba(178,174,168,.06) 54%, transparent 66%);
+  filter: blur(22px);}
+.landing .bui .ambient .st {position: absolute; width: var(--z); height: var(--z); border-radius: 50%;
+  background: var(--light); opacity: var(--o); transition: opacity 1.2s;}
+.landing .bui .ambient .st.tw {animation: flicker var(--t) ease-in-out var(--dl) infinite;}
+.landing .bui .ambient.soft {opacity: .55;}
+.landing .bui .ambient.soft .band {opacity: .22;}
+.landing .bui .welcome .title {font-size: clamp(36px, 8vw, 60px); max-width: 14ch;}
+.landing .bui .pill {display: inline-flex; align-items: center; gap: 10px; border: 1px solid color-mix(in srgb, var(--lantern) 42%, transparent); background: color-mix(in srgb, var(--lantern) 10%, transparent); color: var(--light); border-radius: var(--r-action); padding: 7px 8px 7px 14px; font-size: 14px; animation: fadeup .8s var(--ease) both; max-width: 100%;}
+.landing .bui .pill b {font-weight: 600;}
+.landing .bui .pill span.go {background: var(--lantern); color: var(--sky); border-radius: var(--r-panel); padding: 3px 10px; font-weight: 600; font-size: 13px;}
+.landing .bui .pill svg {width: 16px; height: 16px; color: var(--lantern); flex: none;}
+.landing .bui .lantern-wrap {position: relative; width: 150px; height: 150px; display: grid; place-items: center; margin-top: 4px;}
+.landing .bui .lantern {position: relative; width: 96px; height: 96px; border-radius: 50%; overflow: hidden;
+  transform: scale(var(--k, .55)); transition: transform 1.2s var(--ease), filter 1.2s;
+  background:
+    radial-gradient(circle at 33% 27%, rgba(255,252,245,.9) 0%, rgba(255,252,245,0) 14%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='120'%3E%3Cdefs%3E%3CradialGradient id='d'%3E%3Cstop offset='0' stop-color='%23562e0e' stop-opacity='.55'/%3E%3Cstop offset='1' stop-color='%23562e0e' stop-opacity='0'/%3E%3C/radialGradient%3E%3CradialGradient id='l'%3E%3Cstop offset='0' stop-color='%23ffe8c4' stop-opacity='.38'/%3E%3Cstop offset='1' stop-color='%23ffe8c4' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='38' cy='40' rx='24' ry='13' fill='url(%23d)'/%3E%3Cellipse cx='98' cy='73' rx='17' ry='10' fill='url(%23d)'/%3E%3Cellipse cx='142' cy='51' rx='27' ry='12' fill='url(%23l)'/%3E%3Cellipse cx='68' cy='97' rx='14' ry='8' fill='url(%23d)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E"),
+    radial-gradient(135% 28% at 50% 29%, rgba(255,233,198,.5), transparent 72%),
+    radial-gradient(145% 24% at 50% 56%, rgba(126,74,32,.5), transparent 74%),
+    radial-gradient(120% 20% at 50% 79%, rgba(255,228,186,.32), transparent 76%),
+    radial-gradient(circle at 31% 26%, #fff6e4 0%, #ffdcab 19%, var(--lantern) 36%, #d4974f 57%, #94602e 75%, #4a2a11 91%, #2a1608 100%);
+  background-size: 100% 100%, 180px 100%, 160px 160px, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+  background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
+  background-blend-mode: screen, soft-light, soft-light, soft-light, soft-light, soft-light, normal;
+  filter: brightness(var(--b, .8)) drop-shadow(-5px 4px 28px rgba(247,203,149,.4));
+  animation: turn 110s linear infinite;}
+.landing .bui .lantern::after {content: ""; position: absolute; top: 50%; left: var(--sx, 20%); width: var(--sw, 170%); aspect-ratio: 1;
+  transform: translateY(-50%); border-radius: 50%;
+  background: radial-gradient(circle closest-side, #050403 0%, #050403 calc(100% - 3px), rgba(5,4,3,.45) 100%);
+  box-shadow: inset 4px 0 8px -2px rgba(247,203,149,.55);
+  transition: left 1.4s var(--ease), width 1.4s var(--ease);}
+.landing .bui .lantern-wrap::before {content: ""; position: absolute; inset: -30px; border-radius: 50%; background: radial-gradient(circle at 42% 38%, rgba(247,203,149,.22), transparent 58%); opacity: calc(var(--b, .8) - .3); transition: opacity 1.2s;}
+.landing .bui .paper-in {width: 100%; text-align: left; min-height: 34svh; resize: none; border: 1px solid color-mix(in srgb, var(--light) 12%, transparent); border-radius: var(--r-sheet); background: color-mix(in srgb, var(--limb) 72%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: var(--light); font: 400 clamp(19px, 3.2vw, 22px)/1.6 var(--f-text); padding: 20px 22px; outline: none; transition: border-color .4s, box-shadow .4s; box-shadow: inset 0 1px 0 rgba(244,242,239,.05);}
+.landing .bui .paper-in:focus {border-color: color-mix(in srgb, var(--lantern) 45%, transparent); box-shadow: 0 0 0 4px rgba(247,203,149,.1), inset 0 1px 0 rgba(244,242,239,.05);}
+.landing .bui .paper-in::placeholder {color: rgba(244,242,239,.36);}
+.landing .bui .tn-bar .fine {text-align: left;}
+@media (max-width: 520px) {
+  .landing .bui .tn-bar > .btn {flex: 1 1 100%;}
 }
+.landing .bui .voice-orb .lantern {--k: 1; --sx: 100%; --sw: 330%; display: block; width: 100%; height: 100%; transition: none; filter: brightness(calc(.85 + var(--lv, 0) * .55)) drop-shadow(0 0 34px rgba(247,203,149,.55));}
+.landing .bui .dots {display: inline-flex; gap: 4px;}
+.landing .bui .dots i {width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1s infinite;}
+.landing .bui .dots i:nth-child(2) {animation-delay: .15s;}
+.landing .bui .dots i:nth-child(3) {animation-delay: .3s;}
+.landing .bui .paper-in.spoken {min-height: 16svh; font-size: clamp(19px, 3vw, 21px);}
+.landing .bui .paper-in.arrive {animation: arrive 1.2s var(--ease);}
+.landing .bui .ascend .words {display: block; position: absolute; font: 400 clamp(19px, 3.2vw, 22px)/1.6 var(--f-text); color: var(--light); text-align: left;}
+.landing .bui .ascend .lantern {position: absolute; margin: 0;}
+.landing .bui .letter {--fg: var(--engrave); --soft: var(--engrave-soft); --faint: var(--engrave-faint);
+  --line: var(--chart-line); --card: var(--chart-2); --card-2: var(--chart-2);
+  --btn-bg: var(--engrave); --btn-fg: var(--chart); --btn2-bg: var(--chart-2); --btn2-fg: var(--engrave);
+  --mark: rgba(247, 203, 149, .5); --tick: #95918a;
+  background: var(--chart); color: var(--fg); border: 1px solid var(--chart-line);
+  border-radius: var(--r-sheet) var(--r-sheet) 2px 2px; padding: clamp(24px, 5vw, 48px);
+  display: grid; gap: 26px; box-shadow: 0 34px 70px -44px rgba(0,0,0,.75);
+  color-scheme: light;}
+.landing .bui .letter .ls-label b::before {filter: brightness(.55) saturate(1.15);}
+.landing .bui .letter .ring .rp {stroke: var(--engrave);}
+.landing .bui .letter .ring.is-done .n {color: #512f08;}
+.landing .bui .letter-meta {display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px;}
+.landing .bui .greet {font: italic 400 20px/1.4 var(--f-text); color: var(--soft);}
+.landing .bui .headline {font: 500 clamp(27px, 5.2vw, 38px)/1.14 var(--f-text); letter-spacing: -.01em; margin-top: 6px;}
+.landing .bui .ls {display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 10px 20px; border-top: 1px solid var(--line); padding-top: 18px;}
+@media (max-width: 600px) {
+  .landing .bui .ls {grid-template-columns: 1fr;}
+}
+.landing .bui .ls-label {display: flex; flex-direction: column; gap: 2px; align-self: start;}
+.landing .bui .ls-label b {display: inline-flex; align-items: center; gap: 8px; font: 600 13px/1.2 var(--f-ui); color: var(--fg);}
+.landing .bui .ls-label b::before {content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none;}
+.landing .bui .ls-label span {font-size: 13px; color: var(--faint); padding-left: 16px;}
+@media (max-width: 600px) {
+  .landing .bui .ls-label {flex-direction: row; align-items: baseline; gap: 8px;}
+  .landing .bui .ls-label span {padding-left: 0;}
+}
+.landing .bui .ls-body {display: grid; gap: 14px; min-width: 0;}
+.landing .bui .ls-body > p {font: 400 19px/1.6 var(--f-text); max-width: 60ch;}
+.landing .bui .insight {display: grid; gap: 5px;}
+.landing .bui .insight b {font-size: 16px; letter-spacing: -.01em;}
+.landing .bui .insight p {font: 400 17.5px/1.55 var(--f-text);}
+.landing .bui .quote {justify-self: start; text-align: left; border: 0; border-left: 1px solid var(--tick); background: none; padding: 2px 0 2px 12px; font: italic 400 16px/1.5 var(--f-text); color: var(--soft);}
+.landing .bui .quote:hover {color: var(--fg);}
+.landing .bui .ls-body > p.issue {font: 500 21px/1.35 var(--f-text);}
+.landing .bui .ls-body > p.cause {display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; font: 400 17.5px/1.55 var(--f-text);}
+.landing .bui .cause > b {font: 600 13px/1.9 var(--f-ui); color: var(--m4);}
+.landing .bui .ls-body > p.signoff {font: italic 400 19px/1.45 var(--f-text); white-space: pre-line; color: var(--soft);}
+.landing .bui .todo-cta {display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--card-2); border-radius: var(--r-panel); padding: 14px 16px; transition: border-color .3s, transform .2s var(--ease); color: var(--fg);}
+.landing .bui .todo-cta:hover {border-color: var(--tick);}
+.landing .bui .todo-cta .t {display: grid; gap: 2px; flex: 1;}
+.landing .bui .todo-cta .t b {font-size: 16px;}
+.landing .bui .todo-cta .t span {font-size: 13.5px; color: var(--soft);}
+.landing .bui .words {display: grid; gap: 12px; margin-top: 12px;}
+.landing .bui .words li {display: grid; gap: 4px;}
+.landing .bui .words p {font: 400 17px/1.6 var(--f-text); color: var(--soft); white-space: pre-wrap;}
+.landing .bui .provenance {display: grid; gap: 10px; font-size: 13px; color: var(--faint);}
+.landing .bui .smp,
+.landing .bui .lmain .smp {font: 400 12px/1.5 var(--f-ui); color: var(--soft); border: 1px solid var(--line); border-radius: 3px; padding: 0 5px; margin-left: 6px; white-space: nowrap;}
+.landing .bui .month-nav .h2 {font-size: 26px;}
+.landing .bui .ns-tip .k {color: var(--faint);}
+.landing .bui .ns-tip .link {color: var(--light); justify-self: start; font-weight: 600;}
+.landing .bui .sky-head .k {color: var(--mag);}
+.landing .bui .qcards {display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; border-bottom: 1px solid var(--rule-strong);}
+@media (max-width: 560px) {
+  .landing .bui .qcards {grid-template-columns: 1fr;}
+}
+.landing .bui .qcard {background: none; border: 0; border-top: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong); border-radius: 0; padding: 18px 20px 22px; display: grid; gap: 10px; align-content: start;}
+.landing .bui .qcards > .qcard {border-bottom: 0;}
+.landing .bui .qcards > .qcard:nth-child(2n) {border-left: 1px solid var(--rule-strong); padding-left: 24px;}
+@media (max-width: 640px) {
+  .landing .bui .qcards {grid-template-columns: 1fr;}
+  .landing .bui .qcards > .qcard:nth-child(2n) {border-left: 0; padding-left: 20px;}
+}
+.landing .bui .qcard .big {font-size: 32px; font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums;}
+.landing .bui .qh {font: 500 15px/1.3 var(--f-ui); color: var(--fg);}
+.landing .bui .qcard blockquote {font: italic 400 16.5px/1.45 var(--f-text); color: var(--soft); border-left: 1px solid var(--tick); padding-left: 12px;}
+.landing .bui .theme-line {display: grid; gap: 6px; padding-block: 11px; border-top: 1px solid var(--line);}
+.landing .bui .theme-line:first-of-type {border-top: 0; padding-top: 0;}
+.landing .bui .mag {display: grid; grid-template-columns: minmax(0, auto) 1fr auto; gap: 10px; align-items: baseline;}
+.landing .bui .qcards .note {grid-column: 1 / -1;}
+.landing .bui .theme-line .quote {font-size: 15.5px; margin-top: 4px;}
+.landing .bui .changes,
+.landing .bui .done-list,
+.landing .bui .open-list,
+.landing .bui .dir-list,
+.landing .bui .ev-list {display: grid; gap: 10px;}
+.landing .bui .changes li {display: grid; gap: 4px;}
+.landing .bui .dots {display: flex; align-items: center; gap: 18px; flex-wrap: wrap;}
+.landing .bui .dots > span {display: inline-flex; align-items: center; gap: 3px;}
+.landing .bui .dots i {display: inline-block; width: 5px; height: 5px; border-radius: 50%;}
+.landing .bui .dots .was i {background: var(--faint); opacity: .6;}
+.landing .bui .dots .now i {background: var(--light); box-shadow: 0 0 7px rgba(244,242,239,.55);}
+.landing .bui .dots em {font-size: 12.5px; color: var(--faint); font-style: normal; margin-left: 5px;}
+.landing .bui .qcard .big small {font-size: 15px; font-weight: 500; color: var(--faint);}
+.landing .bui .done-list li {display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: start; font-size: 14.5px;}
+.landing .bui .done-list .link {text-align: left; text-decoration: none;}
+.landing .bui .open-list li {display: grid; gap: 2px;}
+.landing .bui .film-head {display: grid; gap: 4px;}
+.landing .bui .film {display: flex; gap: 2px; overflow-x: auto; padding: 22px 0; scroll-snap-type: x mandatory; scrollbar-width: thin;
+  background-image:
+    repeating-linear-gradient(90deg, #000 0 10px, transparent 10px 22px),
+    repeating-linear-gradient(90deg, #000 0 10px, transparent 10px 22px),
+    linear-gradient(#211f1c, #211f1c);
+  background-size: 100% 12px, 100% 12px, 100% 100%;
+  background-position: 6px 5px, 6px calc(100% - 5px), 0 0;
+  background-repeat: repeat-x, repeat-x, no-repeat;
+  background-attachment: local, local, local;}
+.landing .bui .frame {flex: 0 0 176px; min-height: 206px; scroll-snap-align: start; display: grid; grid-template-rows: auto 1fr auto; gap: 10px; text-align: left; padding: 15px 14px; border: 0; border-radius: 0; background: var(--zenith); color: var(--light); box-shadow: none; transition: background .3s;}
+.landing .bui .frame:hover {background: #121210;}
+.landing .bui .frame p {font: italic 400 17px/1.4 var(--f-text); align-self: center;}
+.landing .bui .frame .k {color: var(--mag);}
+.landing .bui .frame.is-blank {background: #191714;}
+.landing .bui .frame.is-blank p {color: var(--faint); font-style: normal; font-size: 14px;}
+.landing .bui .ev-list .link,
+.landing .bui .dir-list .link {text-align: left; font: 400 17px/1.35 var(--f-text); text-decoration: none;}
+.landing .bui .welcome.login .title {font-size: clamp(30px, 6vw, 44px); max-width: 16ch;}
+.landing .bui .remembers {display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 14px;}
+.landing .bui .remembers ul {display: grid; gap: 4px;}
+.landing .bui .remembers li {font: italic 400 16px/1.45 var(--f-text); color: var(--soft);}
+.landing .bui .remembers li::before {content: "";}
+.landing .bui .remembers .link {justify-self: start; font-size: 13px; color: var(--faint);}
+.landing .bui .booting .lantern {--k: .6;}
+.landing .bui label.btn {display: inline-flex;}
+.landing .bui .help .btn {grid-row: 1 / span 3; grid-column: 2;}
+@media (prefers-reduced-motion: reduce) {
+  .landing .bui .ambient .st.tw {animation: none;}
+}
+.landing .bui .letter {border-radius:var(--r-sheet)}
+.landing .bui#sky-bg .st {box-shadow:0 0 calc(var(--z) * 2.2) rgba(246,236,223,.45)}
+
+/* The journal centres its film heading and reaches for the display face
+   through a `font:` shorthand; the prototype did neither, so a copied rule
+   had nothing to override. */
+.landing .bui .film-head {text-align: start; justify-items: normal;}
+.landing .bui .qh {letter-spacing: normal;}
+.landing .bui .ls-label {padding: 0;}

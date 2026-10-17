@@ -61,8 +61,11 @@ function Routes(): ReactElement | null {
   );
   // The landing page arrives whole: its own tabs, its own footer. In the shell
   // the page would carry two of each, and the shell's nav would sit on top of
-  // the page's own.
-  if (shown === '/') return body;
+  // the page's own. It skips the transition wrapper too: that div is
+  // transformed, which would make it the containing block for the page's fixed
+  // star layer, and the sky would stretch to the height of the document
+  // instead of the window.
+  if (shown === '/') return <LandingPage key={shown} />;
   const navMeta = PAGES.find((p) => p.path === resolved) ?? PAGES[0];
   return (
     <SiteShell path={navMeta.path} time={navMeta.time}>

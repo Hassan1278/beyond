@@ -306,8 +306,7 @@ export const LANDING_MARKUP = String.raw`</head>
         <h3 class="big">Personal</h3>
         <p class="price is-soon">Pricing soon</p>
         <p>One journal, for one person. Write at night, read your letter in the morning.</p>
-        <button class="tier-more" type="button" aria-expanded="false" aria-controls="tier-personal">See more</button>
-        <ul class="tier-detail" id="tier-personal" hidden>
+        <ul class="tier-detail" id="tier-personal">
           <li>One letter each morning, in the voice and the language you choose</li>
           <li>Patterns and a Life Film built from your own nights, with nobody to compare against</li>
           <li>Memory you can read, correct or forget, line by line</li>
@@ -318,8 +317,7 @@ export const LANDING_MARKUP = String.raw`</head>
         <h3 class="big">Team</h3>
         <p class="price is-soon">Pricing soon</p>
         <p>A group that shares an invoice, not a journal. A department, a small company, a class.</p>
-        <button class="tier-more" type="button" aria-expanded="false" aria-controls="tier-team">See more</button>
-        <ul class="tier-detail" id="tier-team" hidden>
+        <ul class="tier-detail" id="tier-team">
           <li>Everything in Personal, for everyone you cover</li>
           <li>Each person writes in their own account, behind their own sign-in</li>
           <li>Whoever pays never sees an entry, a letter or a memory</li>
@@ -330,8 +328,7 @@ export const LANDING_MARKUP = String.raw`</head>
         <h3 class="big">Enterprise</h3>
         <p class="price is-soon">Pricing soon</p>
         <p>Universities, schools and larger employers, offering Beyond as part of what they already provide.</p>
-        <button class="tier-more" type="button" aria-expanded="false" aria-controls="tier-enterprise">See more</button>
-        <ul class="tier-detail" id="tier-enterprise" hidden>
+        <ul class="tier-detail" id="tier-enterprise">
           <li>Everything in Team, at any number of people</li>
           <li>For students facing big choices, or staff with a week to put down</li>
           <li>The same privacy for each person, whatever the size</li>

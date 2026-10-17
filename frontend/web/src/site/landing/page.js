@@ -128,8 +128,16 @@ export function runLanding() {
     $('#wc').textContent=n?APP.plural(n,'word')+'. Seal it when you are done.':'The light grows as you write';
     /* The app's own phase maths, with a floor under it: someone arriving at
        this section should see a lit planet rather than a crescent that reads
-       as a fault. It still fills out to full as the entry grows. */
-    if(lw)lw.setAttribute('style',APP.lanternVars(Math.max(n,96)));
+       as a fault. It still fills out to full as the entry grows.
+
+       The journal returns the brightness pair but not the terminator pair,
+       because its own lantern does not have a night side. This page draws the
+       prototype's lit body, whose ::after needs both, and without them it
+       falls back to a 20% terminator and reads as a sliver. Same curve the
+       brightness comes off, so the two stay in step. */
+    const t=Math.min(1,Math.max(n,96)/120);
+    if(lw)lw.setAttribute('style',APP.lanternVars(Math.max(n,96))
+      +';--sx:'+((0.2+0.8*t)*100).toFixed(1)+'%;--sw:'+(170+160*t).toFixed(0)+'%');
   };
   ta.addEventListener('input',()=>{wc();$('#entryWarn').hidden=true});wc();
   /* The same five parts, in the same order, with the same labels the app
@@ -283,18 +291,6 @@ export function runLanding() {
     const on=this.getAttribute('aria-checked')!=='true';this.setAttribute('aria-checked',on);
     $('#memLabel').textContent=on?'Memory on':'Memory paused';list.classList.toggle('paused',!on);$('#pausedMsg').hidden=on;
   });
-
-  /* Beyond for you: each tier can open to show what is in it */
-  for (const b of $$('.tier-more')) {
-    const panel = document.getElementById(b.getAttribute('aria-controls'));
-    if (!panel) continue;
-    on(b, 'click', () => {
-      const open = b.getAttribute('aria-expanded') === 'true';
-      b.setAttribute('aria-expanded', String(!open));
-      panel.hidden = open;
-      b.textContent = open ? 'See more' : 'See less';
-    });
-  }
 
   /* Join (demo) */
   $('#joinForm').addEventListener('submit',e=>{e.preventDefault();

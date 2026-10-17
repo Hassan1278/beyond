@@ -50,6 +50,57 @@ reaching into it and supplying properties its own stylesheet never mentions.
 elements back the blank slate the page was drawn against. If either side adds a
 class that the other already uses, regenerate it.
 
+
+## Why some of it is copied rather than lifted
+
+The page was drawn against the standalone prototype, and the journal has moved
+on from it: a lantern with no night side, a different display face, its own
+chart furniture. Lifting alone gave a page that was *nearly* the prototype,
+which reads worse than either.
+
+So the end of `landing.css` carries a block of the prototype's own rules,
+copied once from the standalone build. The star map is deliberately left out:
+the chart is still the journal's, drawing the journal's sample, and still
+tracks it. Everything else in `#try` and under the chart is the prototype's.
+
+**That block is not generated.** Editing the journal will not change it. If the
+app's letter or chart furniture is redesigned and the page should follow, the
+rules have to be brought across again.
+
+One thing it cannot carry is behaviour: the journal's `lanternVars` returns the
+brightness pair but not the terminator pair, because its lantern has no night
+side. `page.js` adds the missing two off the same curve, or the planet draws as
+a sliver.
+
+## Two resets, and why they are `:where()`
+
+`landing.css` opens with two blocks that look like dead weight and are not.
+
+The first hands the page's own elements back their defaults, because the page
+and the site share 92 class names.
+
+The second does the same one level in: **110 of the class names the app's
+components use are also the site's**. The site's `.qcard` is a 142px flex card;
+the app's is a ledger row. Elements leak too - `.sec h2` was sizing the letter's
+section labels at 68px.
+
+Both use `:where()`, which contributes nothing to specificity. That is the whole
+trick: the blocks weigh exactly `.landing` and `.landing .bui`, heavy enough to
+block the site's rules and no heavier than the components' own, which still win
+on source order. **Raising their specificity breaks the components**, and an
+earlier attempt at this with a plain selector flattened every heading inside
+every component.
+
+## The landing page does not go through SiteShell
+
+`/` returns `<LandingPage />` on its own. The shell would wrap it in a second
+nav and a second footer, and the shell's nav sits on top of the page's own tabs.
+
+It skips the route-transition wrapper for a second reason: that div is
+transformed, which makes it the containing block for anything `position: fixed`,
+and the page's star layer would stretch to the height of the document instead of
+the window - the same 260 stars spread thin enough to look like a bug.
+
 ## The phone screenshots
 
 The three phones in "Beyond, in your pocket" are **photographs of this app**,
@@ -85,9 +136,9 @@ holds, and drop `is-soon`:
 <p class="price"><b>HK$38</b><span>per month</span></p>
 ```
 
-**See more** is a disclosure, not a link: the button toggles `aria-expanded` and
-the panel's `hidden`, wired at the end of `runLanding()`. Three independent
-panels, nothing to route.
+Each tier lists what it covers directly. There is no disclosure to open: three
+short lists read faster than three buttons, and nothing is hidden behind a
+click.
 
 Two things in there are load-bearing rather than decorative:
 
