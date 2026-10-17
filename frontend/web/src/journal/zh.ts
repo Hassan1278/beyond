@@ -250,6 +250,7 @@ const PHRASES: Record<string, string> = {
   'Only the tone changes. You can switch anytime in Settings.':
     '只有口吻会不同，随时可以在设置里切换。',
   'What you write stays yours.': '你写下的，始终属于你。',
+  'We value your privacy': '我们重视你的隐私',
   'Private to your account.': '只属于你的账户。',
   'Only you can read your journal.': '只有你能读你的日记。',
   'Nothing leaves until you seal it.': '封存之前，什么都不会送出去。',

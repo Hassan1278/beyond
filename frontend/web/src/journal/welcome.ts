@@ -68,7 +68,8 @@ export const WELCOME_VOICES: {
 
 /** Screen 4: the privacy lines. */
 export const WELCOME_PRIVACY = {
-  title: 'What you write stays yours.',
+  heading: 'Privacy',
+  subtitle: 'We value your privacy',
   items: [
     { icon: 'lock', title: 'Private to your account.', text: 'Only you can read your journal.' },
     {

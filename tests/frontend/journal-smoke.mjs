@@ -423,10 +423,21 @@ try {
       (await page.getByText('Just the notes').isVisible()),
     'screen 3 has the new wording',
   );
+  check(!(await page.locator('.onb[data-step="0"] .onb-back').count()), 'screen 1 has no Back');
+  await page.locator('.onb-back').click();
+  await page.getByRole('heading', { name: 'What brings you here?' }).waitFor();
+  check(
+    (await step()).label === '2 of 4' &&
+      (await page.locator('.onb-opt[aria-checked="true"]').count()) === 3 &&
+      (await page.locator('#onb-other').inputValue()) === 'Fictional: a new city',
+    'Back returns to the last screen with every answer kept',
+  );
+  await next.click();
+  await page.getByRole('heading', { name: 'Who writes back each morning?' }).waitFor();
   await page.locator('[data-onb-voice="mentor"]').click();
   check(!(await next.isDisabled()), 'choosing a voice lights up Next');
   await next.click();
-  await page.getByRole('heading', { name: 'What you write stays yours.' }).waitFor();
+  await page.getByRole('heading', { name: 'Privacy', exact: true }).waitFor();
   at = await step();
   check(at.label === '4 of 4' && at.bar === '4', 'screen 4 of 4');
   check(!(await page.locator('.onb-next').count()), 'the last screen has no Next');

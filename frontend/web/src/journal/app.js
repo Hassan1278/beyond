@@ -403,12 +403,18 @@ const DEV = process.env.NODE_ENV !== 'production';
 let replayWelcome = DEV && new URLSearchParams(location.search).get('onboarding') === '1';
 let welcomeSupported = false; // the account can store welcome_seen and the answers
 const needsWelcome = () => replayWelcome || (welcomeSupported ? !S.welcomeSeen : !S.onboarded);
-const W = { step: 0, shown: -1, reasons: new Set(), other: '', voice: null, ready: false, timer: 0 };
+const W = { step: 0, shown: -1, reasons: new Set(), other: '', voice: null, ready: false, timer: 0, seenFirst: false };
 const ART = {
   write: `<svg viewBox="0 0 120 90" ${HAND}><path d="M88 13c-5 1.5-8 6.5-6.6 11.5 1.3 4.9 6.3 7.8 11.3 6.7-3 3-8 4-12.2 2-6-2.9-8.3-10-5.2-15.5 2.2-4 6.7-6 11-5.2"/><path d="M60 41c-10-6-24-7.4-38-4.2v32c14-3.2 28-1.8 38 4.2 10-6 24-7.4 38-4.2v-32c-14-3.2-28-1.8-38 4.2Z"/><path d="M60 41v32"/><path d="M29 47.5c7.5-1.2 15-.9 22.6 1M29 54.5c7.5-1.2 15-.9 22.6 1M29 61.5c5-.8 10-.7 15 .3"/><path d="M71 62l19-23.5 4.4 3.4-19 23.5-6.6 2.3Z"/><path d="M104 32l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1Z"/><path d="M18 22l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7Z"/></svg>`,
   letter: `<svg viewBox="0 0 120 90" ${HAND}><path d="M14 72h92"/><path d="M30 72a30 30 0 0 1 60 0" stroke-dasharray="2 5"/><path d="M60 33v-9M37 41l-6-6M83 41l6-6M24 58h-8M96 58h8"/><path d="M39 47.5c14-.6 28-.6 42 0 .5 8 .4 16-.2 24.3-13.8.5-27.6.5-41.4 0-.6-8.2-.8-16.2-.4-24.3Z"/><path d="M39.6 48.6c6.6 5 13.4 9.6 20.4 13.7 7-4.1 13.8-8.7 20.3-13.8"/><path d="M60 57.6c2.5 0 4.4 2 4.3 4.4 0 2.4-2 4.3-4.4 4.3-2.4 0-4.3-2-4.2-4.4 0-2.4 2-4.3 4.3-4.3Z"/></svg>`,
   grow: `<svg viewBox="0 0 120 90" ${HAND}><path d="M60 40.5c4.4 0 8 3.6 7.9 8 0 4.4-3.7 7.9-8.1 7.8-4.3-.1-7.8-3.7-7.7-8 .1-4.3 3.6-7.8 7.9-7.8Z"/><path d="M31 26.5c2.6 0 4.7 2.1 4.6 4.7 0 2.6-2.2 4.6-4.8 4.6-2.5 0-4.6-2.2-4.5-4.7.1-2.5 2.2-4.6 4.7-4.6ZM93 23c3.1 0 5.6 2.5 5.5 5.6 0 3.1-2.6 5.5-5.7 5.5-3 0-5.5-2.6-5.4-5.6.1-3 2.6-5.5 5.6-5.5ZM97 63c2.2 0 4 1.8 3.9 4 0 2.2-1.8 3.9-4 3.9-2.1 0-3.9-1.8-3.8-4 0-2.1 1.8-3.9 3.9-3.9ZM26 63.5c2.8 0 5 2.3 4.9 5 0 2.8-2.3 5-5.1 4.9-2.7 0-4.9-2.3-4.8-5 .1-2.7 2.3-4.9 5-4.9Z"/><path d="M53.5 44.5 35.5 33.5M66.8 44l21.4-12.6M67 53l25.5 12M53 53.5 30.5 65.5" stroke-dasharray="2 4"/><path d="M75 13l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9Z"/></svg>`,
-  shield: `<svg viewBox="0 0 64 64" ${HAND}><path d="M32 6.5c6.6 2.9 13.3 5 20.2 6.4.6 6 .5 11.6-.3 16.9-2 12.3-9.2 21.3-19.9 27.7-10.7-6.4-17.9-15.4-19.9-27.7-.8-5.3-.9-10.9-.3-16.9 6.9-1.4 13.6-3.5 20.2-6.4Z"/><path d="M32 23.5c3 0 5.4 2.4 5.3 5.4 0 2.9-2.4 5.3-5.4 5.2-2.9 0-5.2-2.4-5.2-5.3.1-2.9 2.4-5.3 5.3-5.3Z"/><path d="M32 34.2v9.6"/></svg>`,
+  shield: `<svg viewBox="0 0 120 124"><defs>
+    <linearGradient id="onb-sh" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" style="stop-color:var(--light-1)"/><stop offset=".5" style="stop-color:var(--light-2)"/><stop offset="1" style="stop-color:var(--ember-deep)"/></linearGradient>
+    <linearGradient id="onb-shine" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="onb-tick" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".98"/><stop offset="1" stop-color="#fff" stop-opacity=".7"/></linearGradient></defs>
+    <path d="M60 8c13 7.5 27 11.6 41.5 13.4 3 .4 5.2 3 5.1 6.1-.9 36.6-15.4 63.6-43.6 81.7a5.6 5.6 0 0 1-6 0C28.8 91.1 14.3 64.1 13.4 27.5c-.1-3.1 2.1-5.7 5.1-6.1C33 19.6 47 15.5 60 8Z" fill="url(#onb-sh)"/>
+    <path d="M60 8c13 7.5 27 11.6 41.5 13.4 3 .4 5.2 3 5.1 6.1-.9 36.6-15.4 63.6-43.6 81.7a5.6 5.6 0 0 1-6 0C28.8 91.1 14.3 64.1 13.4 27.5c-.1-3.1 2.1-5.7 5.1-6.1C33 19.6 47 15.5 60 8Z" fill="url(#onb-shine)"/>
+    <path d="M40 62.5 54 76.5 82 46" fill="none" stroke="url(#onb-tick)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   lock: `<svg viewBox="0 0 24 24" ${HAND}><path d="M6.4 10.6c3.7-.3 7.5-.3 11.2 0 .3 3.2.3 6.4 0 9.6-3.7.3-7.5.3-11.2 0-.3-3.2-.3-6.4 0-9.6Z"/><path d="M8.6 10.4V8c0-2 1.5-3.6 3.4-3.6 1.9 0 3.4 1.6 3.4 3.6v2.4"/></svg>`,
   seal: `<svg viewBox="0 0 24 24" ${HAND}><path d="M3.4 6.2c5.8-.5 11.5-.6 17.3-.1.4 4 .3 8 .1 11.9-5.8.4-11.5.4-17.2 0-.4-3.9-.5-7.9-.2-11.8Z"/><path d="M3.8 6.7c2.6 2.3 5.3 4.4 8.3 6.3 2.9-1.9 5.6-4 8.2-6.4"/></svg>`,
   memory: `<svg viewBox="0 0 24 24" ${HAND}><path d="M12.2 3.2c.6 4.1 2.2 6.3 6.6 7.3-4.3.9-6 3-6.7 7.8-.7-4.5-2.4-6.8-6.9-7.6 4.4-1 6.3-3.2 7-7.5Z"/></svg>`,
@@ -423,7 +429,8 @@ function welcomeOk() {
 function vWelcome() {
   const n = W.step; const pct = (n + 1) * 25; const from = W.shown >= 0 && W.shown !== n ? (W.shown + 1) * 25 : pct;
   const entering = W.shown !== n; W.shown = n;
-  if (entering) { clearTimeout(W.timer); W.ready = false; if (n === 0 || n === 3) W.timer = setTimeout(() => { W.ready = true; paintWelcome(); }, 3000); }
+  const again = n === 0 && W.seenFirst;
+  if (entering) { clearTimeout(W.timer); W.ready = again; if ((n === 0 && !again) || n === 3) W.timer = setTimeout(() => { W.ready = true; if (n === 0) W.seenFirst = true; paintWelcome(); }, 3000); }
   after.push(() => {
     const bar = $('.onb-bar i'); if (bar) requestAnimationFrame(() => { bar.style.width = `${pct}%`; });
     if (n === 1) $('#onb-other')?.addEventListener('input', (e) => { W.other = e.target.value; paintWelcome(); });
@@ -432,7 +439,7 @@ function vWelcome() {
   let body = '';
   if (n === 0) {
     body = `<h1 class="onb-t" tabindex="-1">How Beyond works</h1>
-      <ol class="onb-steps">${WELCOME_STEPS.map((st, i) => `<li style="--d:${(0.25 + i * 1).toFixed(2)}s"><span class="onb-art" aria-hidden="true">${[ART.write, ART.letter, ART.grow][i]}</span><span class="onb-num">${i + 1}</span><b>${st.title}</b><span>${st.text}</span></li>`).join('')}</ol>`;
+      <ol class="onb-steps ${again ? 'is-seen' : ''}">${WELCOME_STEPS.map((st, i) => `<li class="onb-card" style="--i:${i};--d:${(0.25 + i * 1).toFixed(2)}s"><span class="onb-num" aria-hidden="true">${i + 1}</span><span class="onb-card-t"><b><span class="sr-only">${i + 1}. </span>${st.title}</b><span>${st.text}</span></span><span class="onb-art" aria-hidden="true">${[ART.write, ART.letter, ART.grow][i]}</span></li>`).join('')}</ol>`;
   } else if (n === 1) {
     body = `<h1 class="onb-t" tabindex="-1">What brings you here?</h1><p class="onb-sub">Choose any that fit.</p>
       <div class="onb-opts" role="group" aria-label="What brings you here?">${WELCOME_REASONS.map((r) => `<button class="onb-opt" data-onb-reason="${r.key}" role="checkbox" aria-checked="${W.reasons.has(r.key)}"><i aria-hidden="true">${I.check}</i><span>${r.label}</span></button>`).join('')}</div>
@@ -443,18 +450,21 @@ function vWelcome() {
       <p class="fine onb-foot-note">Only the tone changes. You can switch anytime in Settings.</p>`;
   } else {
     body = `<span class="onb-shield" aria-hidden="true">${ART.shield}</span>
-      <h1 class="onb-t" tabindex="-1">${WELCOME_PRIVACY.title}</h1>
+      <h1 class="onb-t onb-t-big" tabindex="-1">${WELCOME_PRIVACY.heading}</h1>
+      <p class="onb-sub">${WELCOME_PRIVACY.subtitle}</p>
       <ul class="onb-privacy">${WELCOME_PRIVACY.items.map((it) => `<li><span class="onb-ico" aria-hidden="true">${ART[it.icon]}</span><span><b>${it.title}</b> ${it.text}</span></li>`).join('')}</ul>
-      <p class="fine onb-note">${WELCOME_PRIVACY.note}</p>`;
+      <p class="fine onb-note">${WELCOME_PRIVACY.note}</p>
+      <button class="btn amber onb-ready ${welcomeOk() ? 'is-shown' : ''}" data-act="onb-done" ${welcomeOk() ? '' : 'disabled aria-disabled="true" tabindex="-1"'}>I’m ready</button>`;
   }
   const ok = welcomeOk();
   return `<section class="onb" data-step="${n}">
       <div class="onb-bar" role="progressbar" aria-label="Welcome progress" aria-valuemin="1" aria-valuemax="4" aria-valuenow="${n + 1}"><i style="width:${from}%"></i></div>
       <p class="onb-count">${n + 1} of 4</p>
       <div class="onb-body">${body}</div>
-      <div class="onb-actions">${n < 3
-        ? `<button class="btn amber onb-next" data-act="onb-next" ${ok ? '' : 'disabled aria-disabled="true"'}>Next${I.right}</button>`
-        : `<button class="btn amber onb-ready ${ok ? 'is-shown' : ''}" data-act="onb-done" ${ok ? '' : 'disabled aria-disabled="true" tabindex="-1"'}>I’m ready</button>`}</div>
+      <div class="onb-actions">
+        ${n > 0 ? `<button class="btn onb-back" data-act="onb-back">${I.left}Back</button>` : ''}
+        ${n < 3 ? `<button class="btn amber onb-next" data-act="onb-next" ${ok ? '' : 'disabled aria-disabled="true"'}>Next${I.right}</button>` : ''}
+      </div>
     </section>`;
 }
 /* Light the Next (or I'm ready) button without redrawing the screen, so nothing replays. */
@@ -479,7 +489,7 @@ function finishWelcome() {
   }
   save();
   if (replayWelcome) { replayWelcome = false; try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* fine */ } }
-  W.step = 0; W.shown = -1; W.reasons = new Set(); W.other = ''; W.voice = null;
+  W.step = 0; W.shown = -1; W.reasons = new Set(); W.other = ''; W.voice = null; W.seenFirst = false;
   identArrive = true;
   go('identity');
 }
@@ -1867,6 +1877,7 @@ document.addEventListener('click', async (ev) => {
   switch (d.act) {
     case 'onb-next': if (!welcomeOk()) return; W.step = Math.min(3, W.step + 1); render(); window.scrollTo(0, 0); return;
     case 'onb-done': if (!welcomeOk()) return; return finishWelcome();
+    case 'onb-back': W.step = Math.max(0, W.step - 1); render(); window.scrollTo(0, 0); return;
     case 'toggle-early': S.allowEarly = S.allowEarly === false; save(); toast(S.allowEarly ? '“Read it now” is on.' : 'Letters will wait for the morning.'); return render();
     case 'mem-pause': S.memoryPaused = !S.memoryPaused; save(); toast(S.memoryPaused ? 'Memory paused. Letters won’t use it.' : 'Memory is on again.'); return render();
     case 'export': return exportJournal();

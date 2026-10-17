@@ -894,27 +894,38 @@ main.is-entering > :nth-child(n+5) { animation-delay: .28s; }
 
 /* ---------- welcome: four calm screens on first sign-in ---------- */
 .onb { min-height: 100svh; display: grid; }
-.onb-bar { position: fixed; z-index: 30; top: env(safe-area-inset-top, 0px); left: 0; right: 0; height: 3px; background: color-mix(in srgb, var(--fg) 10%, transparent); }
-.onb-bar i { display: block; height: 100%; background: var(--ember); box-shadow: 0 0 10px rgba(var(--ember-rgb), .55); border-radius: 0 2px 2px 0; transition: width .7s var(--ease); }
-.onb-count { position: fixed; z-index: 30; top: calc(16px + env(safe-area-inset-top, 0px)); left: var(--gutter); font-size: 13px; letter-spacing: .04em; color: var(--faint); }
+.onb-bar { position: fixed; z-index: 30; top: env(safe-area-inset-top, 0px); left: 0; right: 0; height: 6px; background: color-mix(in srgb, var(--fg) 12%, transparent); }
+.onb-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--ember-deep), var(--ember) 70%, var(--amber)); box-shadow: 0 0 14px rgba(var(--ember-rgb), .75), 0 0 2px rgba(var(--amber-rgb), .9); border-radius: 0 4px 4px 0; transition: width .7s var(--ease); }
+.onb-count { position: fixed; z-index: 30; top: calc(20px + env(safe-area-inset-top, 0px)); left: var(--gutter); font-size: 14.5px; font-weight: 500; letter-spacing: .04em; color: var(--soft); }
 .onb-body { display: grid; justify-items: center; align-content: center; gap: 16px; text-align: center; padding: 72px 0 132px; animation: onb-in .55s var(--ease) both; }
 .onb-t { font: 400 clamp(30px, 4.4vw, 46px)/1.1 var(--f-display); letter-spacing: -.015em; outline: none; }
 .onb-sub { color: var(--soft); margin-top: -6px; }
-.onb-actions { position: fixed; z-index: 30; right: var(--gutter); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
-.onb-next, .onb-ready { min-width: 132px; transition: opacity .4s, filter .4s, box-shadow .4s, transform .3s var(--ease); }
+.onb-actions { position: fixed; z-index: 30; left: var(--gutter); right: var(--gutter); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 12px; pointer-events: none; }
+.onb-actions > * { pointer-events: auto; }
+.onb-next { margin-left: auto; }
+.onb-back { min-width: 112px; background: transparent; color: var(--soft); border: 1px solid transparent; transition: background .25s, color .25s, border-color .25s; }
+.onb-back svg { width: 16px; height: 16px; }
+.onb-back:hover, .onb-back:focus-visible { background: var(--ember); color: var(--ink); }
+.onb-next { min-width: 132px; transition: opacity .4s, filter .4s, box-shadow .4s, transform .3s var(--ease); }
 .onb-next svg { width: 16px; height: 16px; }
 .onb-next:not(:disabled) { box-shadow: 0 10px 28px -12px rgba(var(--ember-rgb), .9); }
 .onb-next:disabled { opacity: .32; filter: saturate(.3); }
 @keyframes onb-in { from { opacity: 0; transform: translateY(14px); } }
 
-/* 1: how Beyond works */
-.onb-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(18px, 3.4vw, 44px); width: 100%; margin-top: 18px; }
-.onb-steps li { display: grid; justify-items: center; align-content: start; gap: 6px; animation: onb-step .8s var(--ease) var(--d) both; }
-.onb-art svg { display: block; width: clamp(104px, 13vw, 140px); height: auto; color: var(--amber); stroke-width: 1.4; filter: drop-shadow(0 0 6px rgba(var(--amber-rgb), .45)); }
-.onb-num { font: italic 400 15px/1 var(--f-display); color: var(--amber); margin-top: 6px; }
-.onb-steps b { font: 400 20px/1.25 var(--f-display); max-width: 13em; text-wrap: balance; }
-.onb-steps li > span:last-child { color: var(--soft); font-size: 14.5px; max-width: 30ch; }
-@keyframes onb-step { from { opacity: 0; transform: translateY(18px); } }
+/* 1: how Beyond works, three cards that cascade down and slide into place */
+.onb-steps { display: grid; gap: 16px; width: min(800px, 100%); margin-top: 20px; }
+.onb-card { --w: min(500px, 100%); width: var(--w); margin-left: calc(var(--i) * (100% - var(--w)) / 2); display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 18px; padding: 18px 22px; border-radius: 16px; text-align: left;
+  border: 1px solid color-mix(in srgb, var(--amber) 22%, var(--line));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--night-3) 90%, transparent), color-mix(in srgb, var(--night-2) 75%, transparent));
+  box-shadow: 0 20px 44px -26px rgba(0,0,0,.75), inset 0 1px 0 rgba(var(--cream-rgb), .07);
+  animation: onb-card .85s var(--ease) var(--d) both; }
+.onb-num { font: 400 46px/1 var(--f-display); color: var(--amber); min-width: 1.1ch; text-align: center; text-shadow: 0 0 18px rgba(var(--amber-rgb), .55); }
+.onb-card-t { display: grid; gap: 4px; }
+.onb-card-t b { font: 400 22px/1.25 var(--f-display); color: var(--fg); text-wrap: balance; }
+.onb-card-t > span { color: var(--soft); font-size: 14.5px; line-height: 1.45; }
+.onb-art svg { display: block; width: 76px; height: auto; color: var(--amber); stroke-width: 1.5; filter: drop-shadow(0 0 6px rgba(var(--amber-rgb), .45)); }
+.onb-steps.is-seen .onb-card { animation: none; }
+@keyframes onb-card { from { opacity: 0; transform: translateX(-56px); } }
 
 /* 2: what brings you here */
 .onb-opts, .onb-other { display: grid; gap: 10px; width: min(520px, 100%); }
@@ -937,31 +948,33 @@ main.is-entering > :nth-child(n+5) { animation-delay: .28s; }
 .onb-foot-note { margin-top: 4px; }
 
 /* 4: privacy */
-.onb-shield svg { display: block; width: 64px; height: 64px; color: var(--amber); animation: onb-glow 3.6s ease-in-out infinite; }
-@keyframes onb-glow { 0%, 100% { filter: drop-shadow(0 0 4px rgba(var(--amber-rgb), .35)); } 50% { filter: drop-shadow(0 0 14px rgba(var(--amber-rgb), .7)); } }
+.onb-shield svg { display: block; width: 128px; height: auto; animation: onb-glow 4s ease-in-out infinite, onb-float 6s ease-in-out infinite; }
+.onb-t-big { font-size: clamp(42px, 6vw, 64px); margin-top: 4px; }
+@keyframes onb-float { 50% { transform: translateY(-5px); } }
+@keyframes onb-glow { 0%, 100% { filter: drop-shadow(0 0 10px rgba(var(--ember-rgb), .45)) drop-shadow(0 14px 30px rgba(var(--ember-rgb), .25)); } 50% { filter: drop-shadow(0 0 22px rgba(var(--ember-rgb), .75)) drop-shadow(0 14px 36px rgba(var(--ember-rgb), .35)); } }
 .onb-privacy { display: grid; gap: 16px; width: min(560px, 100%); margin-top: 8px; text-align: left; }
 .onb-privacy li { display: grid; grid-template-columns: 26px 1fr; gap: 14px; align-items: start; color: var(--soft); font-size: 15.5px; line-height: 1.5; }
 .onb-ico svg { display: block; width: 22px; height: 22px; margin-top: 1px; color: var(--amber); }
 .onb-privacy b { color: var(--fg); font-weight: 600; }
 .onb-note { max-width: 54ch; margin-top: 10px; font-style: italic; }
-.onb-ready { opacity: 0; transform: translateY(8px); pointer-events: none; }
-.onb-ready.is-shown { opacity: 1; transform: none; pointer-events: auto; }
+.onb-ready { min-width: 220px; min-height: 52px; margin-top: 18px; font-size: 16px; opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .7s, transform .7s var(--ease); }
+.onb-ready.is-shown { opacity: 1; transform: none; pointer-events: auto; box-shadow: 0 0 28px rgba(var(--ember-rgb), .55), 0 14px 34px -12px rgba(var(--ember-rgb), .9); animation: onb-ready-glow 3s ease-in-out .7s infinite; }
+@keyframes onb-ready-glow { 50% { box-shadow: 0 0 44px rgba(var(--ember-rgb), .75), 0 14px 38px -12px rgba(var(--ember-rgb), 1); } }
 
 @media (max-width: 720px) {
   .onb-body { padding: 64px 0 120px; gap: 14px; }
-  .onb-steps { grid-template-columns: 1fr; gap: 18px; }
-  .onb-steps li { grid-template-columns: 84px 1fr; grid-template-rows: auto auto auto; column-gap: 14px; row-gap: 2px; justify-items: start; text-align: left; }
-  .onb-steps .onb-art { grid-row: 1 / 4; align-self: center; }
-  .onb-art svg { width: 84px; }
-  .onb-num { margin-top: 0; }
-  .onb-steps b { max-width: none; }
   .onb-voices { grid-template-columns: 1fr; }
-  .onb-actions { left: var(--gutter); display: flex; justify-content: flex-end; }
+  .onb-steps { gap: 12px; }
+  .onb-card { --w: calc(100% - 28px); margin-left: calc(var(--i) * 14px); grid-template-columns: auto 1fr; gap: 14px; padding: 14px 16px; }
+  .onb-card .onb-art { display: none; }
+  .onb-num { font-size: 38px; }
+  .onb-card-t b { font-size: 19px; }
+  .onb-card-t > span { font-size: 14px; }
+  .onb-shield svg { width: 104px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .onb-body, .onb-steps li { animation: none; }
-  .onb-bar i, .onb-ready, .onb-next { transition: none; }
-  .onb-shield svg { animation: none; }
+  .onb-body, .onb-card, .onb-ready.is-shown, .onb-shield svg { animation: none; }
+  .onb-bar i, .onb-ready, .onb-next, .onb-back { transition: none; }
 }
 
 /* Identity, straight after the welcome: the centre glows first, then the directions arrive */
