@@ -64,6 +64,42 @@ app's design changes, retake them.**
 `/app`, in three places: the nav, the pocket section, and the beta line. Same
 project, so nothing to configure.
 
+## Beyond for you, and the prices that are not there yet
+
+`#for-you` holds three tiers — Personal, Team, Enterprise. It replaced the
+schools-and-teams section so that one person has a place in it too, and the nav
+tab is "For you".
+
+The tiers are **display only**. Nothing links out, because there is nowhere
+honest to link yet: the app is free to open and no plan is priced. Each card
+carries a placeholder instead:
+
+```html
+<p class="price is-soon">Pricing soon</p>
+```
+
+When a price exists, swap that one line for the shape the stylesheet already
+holds, and drop `is-soon`:
+
+```html
+<p class="price"><b>HK$38</b><span>per month</span></p>
+```
+
+**See more** is a disclosure, not a link: the button toggles `aria-expanded` and
+the panel's `hidden`, wired at the end of `runLanding()`. Three independent
+panels, nothing to route.
+
+Two things in there are load-bearing rather than decorative:
+
+- `.tier-grid` uses `repeat(3,minmax(0,1fr))`, not `repeat(3,1fr)`. Plain `1fr`
+  is `minmax(auto,1fr)`, so "Enterprise" at full size widened its own column and
+  the three stopped matching at around 830px.
+- `.tier .big` is `clamp(30px,3.4vw,42px)`. At 42px the word is 196px wide, which
+  is more than a third-width card has to give once the gutters close in.
+
+The copy claims only what the privacy section already claims — whoever pays for
+access cannot read what someone writes. Keep those two in step.
+
 ## Known rough edges
 
 - The small labels inside lifted components use the journal's caps monospace,

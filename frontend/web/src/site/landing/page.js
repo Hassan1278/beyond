@@ -284,6 +284,18 @@ export function runLanding() {
     $('#memLabel').textContent=on?'Memory on':'Memory paused';list.classList.toggle('paused',!on);$('#pausedMsg').hidden=on;
   });
 
+  /* Beyond for you: each tier can open to show what is in it */
+  for (const b of $$('.tier-more')) {
+    const panel = document.getElementById(b.getAttribute('aria-controls'));
+    if (!panel) continue;
+    on(b, 'click', () => {
+      const open = b.getAttribute('aria-expanded') === 'true';
+      b.setAttribute('aria-expanded', String(!open));
+      panel.hidden = open;
+      b.textContent = open ? 'See more' : 'See less';
+    });
+  }
+
   /* Join (demo) */
   $('#joinForm').addEventListener('submit',e=>{e.preventDefault();
     const v=$('#email').value.trim(), msg=$('#joinMsg');

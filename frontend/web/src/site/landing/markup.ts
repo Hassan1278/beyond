@@ -14,7 +14,7 @@ export const LANDING_MARKUP = String.raw`</head>
       <a href="#try">Try one night</a>
       <a href="#memory">Memory</a>
       <a href="#app">App</a>
-      <a href="#schools">For schools</a>
+      <a href="#for-you">For you</a>
     </div>
     <span class="clock" id="clock" title="The page moves from night to morning as you scroll"><i></i><span id="clockT">23:41</span></span>
     <a class="btn btn-light btn-sm" href="/app">Enter Beyond</a>
@@ -227,9 +227,6 @@ export const LANDING_MARKUP = String.raw`</head>
   </div>
 </section>
 
-<section class="sec night" id="memory"  </div>
-</section>
-
 <section class="sec night" id="memory" data-time="15:05">
   <div class="wrap mem-grid">
     <div>
@@ -296,17 +293,53 @@ export const LANDING_MARKUP = String.raw`</head>
   </div>
 </section>
 
-<section class="sec night" id="schools" data-time="21:30" style="padding-top:0">
+<section class="sec night" id="for-you" data-time="21:30" style="padding-top:0">
   <div class="wrap">
     <div class="sec-head">
-            <h2>Beyond for schools and teams.</h2>
-      <p class="sub">Universities, schools and employers can offer Beyond to the people they look after. Each person gets their own private space.</p>
+      <h2>Beyond for you.</h2>
+      <p class="sub">One person, a team, or a whole institution. However Beyond reaches you, your nights sit in your own account: whoever pays for the access cannot read them.</p>
     </div>
-    <div class="school-grid">
-      <article><span class="big">Schools</span><h3>Universities &amp; high schools</h3><p>A daily reflection habit for students facing big choices about subjects, careers and who they want to be.</p></article>
-      <article><span class="big">Teams</span><h3>Employers</h3><p>A quiet place for staff to process their week and set one realistic next step, away from performance reviews.</p></article>
-      <article><span class="big">Private</span><h3>Entries stay personal</h3><p>Institutions pay for access. They never see anyone's entries, letters or memories.</p></article>
+    <!-- No prices yet. To add one, swap the placeholder for
+         <p class="price"><b>HK$38</b><span>per month</span></p> -->
+    <div class="tier-grid">
+      <article class="tier">
+        <h3 class="big">Personal</h3>
+        <p class="price is-soon">Pricing soon</p>
+        <p>One journal, for one person. Write at night, read your letter in the morning.</p>
+        <button class="tier-more" type="button" aria-expanded="false" aria-controls="tier-personal">See more</button>
+        <ul class="tier-detail" id="tier-personal" hidden>
+          <li>One letter each morning, in the voice and the language you choose</li>
+          <li>Patterns and a Life Film built from your own nights, with nobody to compare against</li>
+          <li>Memory you can read, correct or forget, line by line</li>
+          <li>Download a copy or delete all of it, whenever you decide to</li>
+        </ul>
+      </article>
+      <article class="tier">
+        <h3 class="big">Team</h3>
+        <p class="price is-soon">Pricing soon</p>
+        <p>A group that shares an invoice, not a journal. A department, a small company, a class.</p>
+        <button class="tier-more" type="button" aria-expanded="false" aria-controls="tier-team">See more</button>
+        <ul class="tier-detail" id="tier-team" hidden>
+          <li>Everything in Personal, for everyone you cover</li>
+          <li>Each person writes in their own account, behind their own sign-in</li>
+          <li>Whoever pays never sees an entry, a letter or a memory</li>
+          <li>One invoice, instead of one for each person</li>
+        </ul>
+      </article>
+      <article class="tier">
+        <h3 class="big">Enterprise</h3>
+        <p class="price is-soon">Pricing soon</p>
+        <p>Universities, schools and larger employers, offering Beyond as part of what they already provide.</p>
+        <button class="tier-more" type="button" aria-expanded="false" aria-controls="tier-enterprise">See more</button>
+        <ul class="tier-detail" id="tier-enterprise" hidden>
+          <li>Everything in Team, at any number of people</li>
+          <li>For students facing big choices, or staff with a week to put down</li>
+          <li>The same privacy for each person, whatever the size</li>
+          <li>Rollout and billing settled once, not per person</li>
+        </ul>
+      </article>
     </div>
+    <p class="tier-note">Beyond is in beta and free to open tonight, so none of this is priced yet. Whichever way you arrive, it is a journal that answers you once in the morning &mdash; not therapy, and not something an institution can read over your shoulder.</p>
   </div>
 </section>
 

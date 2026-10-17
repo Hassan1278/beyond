@@ -54,12 +54,19 @@ function Routes(): ReactElement | null {
 
   if (isApp) return null;
   const Page = SITE[shown] ?? HomePage;
+  const body = (
+    <div className={`page${leaving ? ' is-leaving' : ''}`} key={shown}>
+      <Page />
+    </div>
+  );
+  // The landing page arrives whole: its own tabs, its own footer. In the shell
+  // the page would carry two of each, and the shell's nav would sit on top of
+  // the page's own.
+  if (shown === '/') return body;
   const navMeta = PAGES.find((p) => p.path === resolved) ?? PAGES[0];
   return (
     <SiteShell path={navMeta.path} time={navMeta.time}>
-      <div className={`page${leaving ? ' is-leaving' : ''}`} key={shown}>
-        <Page />
-      </div>
+      {body}
     </SiteShell>
   );
 }

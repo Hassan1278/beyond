@@ -309,10 +309,25 @@
 .landing .crisis .line {display:grid;gap:2px}
 .landing .crisis .line b {font:600 26px/1 var(--f-display);font-variant-numeric:tabular-nums;letter-spacing:-.02em;user-select:all}
 .landing .crisis .line span {font-size:12.5px;color:var(--mist)}
-.landing .school-grid {display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.landing .school-grid article {background:var(--night-2);border:1px solid var(--night-line);border-radius:8px;padding:26px;display:grid;gap:12px;align-content:start}
-.landing .school-grid p {color:var(--mist);font-size:15px;line-height:1.55}
-.landing .school-grid .big {font-size:42px;font-weight:800;letter-spacing:-.05em;line-height:1}
+/* Beyond for you: the three tiers. Nothing here is priced yet, so .price
+   carries a placeholder; .price b/span are the shape a real one drops into. */
+.landing .tier-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.landing .tier {min-width:0;background:var(--night-2);border:1px solid var(--night-line);border-radius:8px;padding:26px;display:flex;flex-direction:column;gap:12px}
+.landing .tier p {color:var(--mist);font-size:15px;line-height:1.55}
+.landing .tier .big {font-size:clamp(30px,3.4vw,42px);font-weight:800;letter-spacing:-.05em;line-height:1}
+.landing .price {display:flex;align-items:baseline;gap:7px;margin:0;color:var(--paper)}
+.landing .price b {font-size:30px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.landing .price span {color:var(--dim);font-size:14px}
+.landing .price.is-soon {color:var(--dim);font-size:14px;letter-spacing:.01em}
+.landing .tier-more {align-self:flex-start;background:none;border:0;padding:0;margin-top:auto;padding-top:4px;font:inherit;font-size:14px;color:var(--lantern);cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.landing .tier-more::after {content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .18s ease}
+.landing .tier-more[aria-expanded="true"]::after {transform:rotate(-135deg) translateY(1px)}
+.landing .tier-more:hover {color:var(--morning)}
+.landing .tier-more:focus-visible {outline:2px solid var(--lantern);outline-offset:3px;border-radius:3px}
+.landing .tier-detail {display:grid;gap:9px;margin:0;padding:15px 0 0;list-style:none;border-top:1px solid var(--night-line)}
+.landing .tier-detail li {position:relative;padding-left:16px;color:var(--mist);font-size:14.5px;line-height:1.5}
+.landing .tier-detail li::before {content:"";position:absolute;left:0;top:.6em;width:5px;height:5px;border-radius:50%;background:var(--tick)}
+.landing .tier-note {margin:20px 0 0;max-width:74ch;color:var(--dim);font-size:13.5px;line-height:1.6}
 .landing .join {text-align:center;padding-block:clamp(110px,14vw,190px)}
 .landing .join h2 {font-size:clamp(48px,7.6vw,108px);letter-spacing:-.065em;line-height:.9;max-width:12ch;margin-inline:auto}
 .landing .join .sub {margin:26px auto 0;text-align:center}
@@ -335,7 +350,7 @@
   .landing .great-grid, .landing .try-grid, .landing .pat-grid, .landing .mem-grid, .landing .cmp-intro {grid-template-columns:1fr}
   .landing .band {grid-template-columns:1fr}
   .landing .band li {min-height:0;padding-top:96px}
-  .landing .school-grid {grid-template-columns:1fr}
+  .landing .tier-grid {grid-template-columns:1fr}
   .landing .entry {position:static}
   .landing .phones {justify-content:flex-start}
   .landing .mock.mid {margin-bottom:0}
@@ -390,3 +405,15 @@
 .landing .bui.scr h4 {font-size:18px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
 .landing .bui.scr .ph-head {font-size:17px;letter-spacing:-.022em}
 .landing .bui#sky-bg .st {box-shadow:0 0 calc(var(--z) * 2.2) rgba(246,236,223,.45)}
+
+/* The star field behind the whole site. page.js places each star with left/top
+   and sizes it through --z, so without a rule to position them the sky is 260
+   zero-size inline elements stacked at the origin, carrying nothing but their
+   glow. The id keeps them clear of .st and .band elsewhere on the site.
+   twinkle comes from the journal's own stylesheet, through lifted.css. */
+.landing #sky-bg .st {position:absolute;display:block;width:var(--z);height:var(--z);border-radius:50%;background:rgba(246,236,223,var(--o))}
+.landing #sky-bg .st.tw {animation:twinkle var(--t,6s) ease-in-out var(--dl,0s) infinite}
+.landing #sky-bg .band {display:none}  /* a Milky Way band drawn for a viewport-high sky; this one is the page's height */
+@media (prefers-reduced-motion: reduce) {
+  .landing #sky-bg .st.tw {animation:none}
+}
