@@ -628,7 +628,9 @@ function autoSpeechLang() {
   // A browser set to English listens in English; only a Chinese browser guesses a Chinese language.
   return /zh-(HK|TW|MO)|yue/i.test(prefs) ? 'yue-Hant-HK' : /zh/i.test(prefs) ? 'zh-CN' : 'en-US';
 }
-const canListen = () => !!SR && !voice.blocked && !voice.down && speechLang() !== 'mixed';
+/* Beyond's server transcribes more reliably than a browser's speech service, so
+   when it is on, every recording goes there (in the chosen language, or mixed). */
+const canListen = () => !!SR && !voice.blocked && !voice.down && !mixedOK();
 const langName = (k) => (SPEECH_LANGS.find(([x]) => x === k) || [k, k])[1];
 function level() {
   // How loud the microphone is right now, 0 to 1 (only while the light is metering).
@@ -763,6 +765,8 @@ function startListening(sameBreath = false) {
 async function orbTap() {
   if (voice.state === 'rec') return stopRecording();
   if (voice.state === 'busy') return;
+  // The page may have opened before server transcription was switched on: ask again.
+  if (RECORDS && !SERVER_STT) { await checkAI(); if (voice.state !== 'idle') return; }
   if (canListen()) return startListening();
   if (!RECORDS || !SERVER_STT || (SR && speechLang() !== 'mixed' && voice.blocked && IN_CLAUDE)) return useDictation();
   let stream;
