@@ -25,6 +25,7 @@ const API = 'https://api.example.test';
 const SHOTS = process.env.SMOKE_SHOTS ?? '';
 const USER = { id: '11111111-1111-4111-8111-111111111111', email: 'kit.fictional@example.test' };
 const SECRET_WORDS = 'Fictional night: I walked along the harbour after class and felt calm.';
+const LATER_WORDS = 'Fictional, later: I called my grandma before bed.';
 
 let failures = 0;
 const check = (ok, message) => {
@@ -169,6 +170,18 @@ async function api(route) {
       updated_at: now(),
     };
     db.entries.push(e);
+    return ok(route, e);
+  }
+  const em = path.match(/^\/entries\/([0-9a-f-]{36})$/);
+  if (em) {
+    const e = db.entries.find((x) => x.id === em[1]);
+    if (!e) return err(route, 'not_found', 404);
+    if (req.method() === 'PATCH') {
+      if (body.expected_revision !== e.revision) return err(route, 'conflict', 409);
+      Object.assign(e, { text: body.text, revision: e.revision + 1, updated_at: now() });
+      // editing a night removes its letter, as the database's privacy cascade does
+      db.letters = db.letters.filter((l) => l.entry_id !== e.id);
+    }
     return ok(route, e);
   }
   if (path === '/letters' && req.method() === 'POST') {
@@ -385,7 +398,12 @@ try {
   console.log('seal');
   await page.fill('#entry', SECRET_WORDS);
   await page.getByRole('button', { name: 'Seal tonight' }).click();
-  await page.getByText('Sealed for the night.').waitFor();
+  await page.locator('.skip-morning').waitFor({ timeout: 20000 });
+  check(
+    (await page.locator('#entry').inputValue()) === '' &&
+      (await page.locator('.skip-morning').isVisible()),
+    'sealing goes back to a blank Journal page, ready for more writing',
+  );
   check(
     db.letters.length === 1 && db.letters[0].entry.text === SECRET_WORDS,
     'sealing saves the night and asks for one letter',
@@ -394,20 +412,35 @@ try {
     db.calls.includes('POST /entries') && db.calls.includes('POST /letters'),
     'the entry is saved before the letter is requested',
   );
-  await page.getByText('Claude is writing quietly').waitFor();
   await shot(page, '04-sealed');
   const stored = await page.evaluate(
     () => JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }),
   );
   check(!stored.includes('harbour'), 'nothing the person wrote is in browser storage');
 
+  console.log('write again the same night');
+  await page.fill('#entry', LATER_WORDS);
+  await page.getByRole('button', { name: 'Seal tonight' }).click();
+  await page.waitForFunction(() => !document.querySelector('.ascend'), null, { timeout: 20000 });
+  await page.locator('.skip-morning').waitFor();
+  check(
+    db.letters.length === 1 &&
+      db.entries.length === 1 &&
+      db.letters[0].entry.text === `${SECRET_WORDS}\n\n${LATER_WORDS}`,
+    'writing again the same night adds to it: one letter over everything written',
+  );
+
   console.log('letter arrives');
   finishLetter(db.letters[0]);
-  await page.getByRole('button', { name: 'Read it now' }).click();
-  await page.getByRole('button', { name: 'Open the letter' }).waitFor({ timeout: 20000 });
-  check(db.letters[0].early === true, 'reading early is recorded');
+  await page.locator('.skip-morning').click();
+  await page.getByRole('button', { name: 'Open it' }).waitFor({ timeout: 20000 });
+  check(db.letters[0].early === true, 'Skip to morning delivers the letter early');
+  check(
+    await page.locator('.present').getByText('A letter arrived for you').isVisible(),
+    'the letter arrives as a present',
+  );
   await shot(page, '05-envelope');
-  await page.getByRole('button', { name: 'Open the letter' }).click();
+  await page.getByRole('button', { name: 'Open it' }).click();
   await page.getByText('A calm walk by the harbour').first().waitFor();
   await sleep(400);
   check(db.letters[0].read_at !== null, 'opening the letter marks it read');
@@ -500,6 +533,17 @@ try {
   await page.locator('.lang-btn').click();
   await page.locator('.tab[data-go="tonight"]').getByText('Journal').waitFor();
   check(true, 'and back to English');
+  await page.locator('.gear-btn[data-go="settings"]').click();
+  await page.locator('[data-jtheme-pick="paper"]').click();
+  check(
+    (await page.evaluate(() => document.documentElement.dataset.jtheme)) === 'paper',
+    'Settings switches the colour theme',
+  );
+  await page.locator('[data-jtheme-pick="midnight"]').click();
+  check(
+    (await page.evaluate(() => document.documentElement.dataset.jtheme)) === undefined,
+    'Midnight is the default theme',
+  );
 
   console.log('settings and memory');
   await page.locator('.gear-btn[data-go="settings"]').click();
@@ -544,14 +588,14 @@ try {
     'Fictional demo night: first month at uni and I still eat lunch alone.',
   );
   await page.getByRole('button', { name: 'Seal tonight' }).click();
-  await page.getByText('Sealed for the night.').waitFor();
+  await page.locator('.skip-morning').waitFor({ timeout: 20000 });
   check(
     db.entries.length === entriesBefore + 1 && db.letters.length === 2,
     'a demo night is saved and its letter is asked of the AI, like any other night',
   );
   finishLetter(db.letters[1]);
-  await page.getByRole('button', { name: 'Skip to morning' }).click();
-  await page.getByRole('button', { name: 'Open the letter' }).click({ timeout: 20000 });
+  await page.locator('.skip-morning').click();
+  await page.getByRole('button', { name: 'Open it' }).click({ timeout: 20000 });
   await page.getByText('A calm walk by the harbour').first().waitFor();
   await sleep(400);
   check(db.letters[1].read_at !== null, 'the demo night’s AI letter opens');

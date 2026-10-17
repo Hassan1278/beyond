@@ -202,6 +202,23 @@ const PHRASES: Record<string, string> = {
   'Your words': '你写下的话',
   'Write it again': '重新写一遍',
 
+  /* ---- morning and colours ---- */
+  'Good morning.': '早上好。',
+  'A letter arrived for you': '你有一封信到了',
+  'Open it': '拆开看看',
+  Later: '稍后',
+  Colours: '配色',
+  'Colour theme': '配色方案',
+  Midnight: '午夜',
+  Candle: '烛光',
+  Ink: '墨',
+  Paper: '纸',
+  'Deep navy, a soft periwinkle light': '深海军蓝，透着柔和的淡紫蓝光',
+  'Warm charcoal and amber, the original': '温暖的炭黑与琥珀色，最初的配色',
+  'Black and white, dark': '黑白 · 深色',
+  'Black and white, light': '黑白 · 浅色',
+  'Only changes how Beyond looks on this device.': '只改变 Beyond 在这台设备上的外观。',
+
   /* ---- welcome and sign in ---- */
   'Beyond, a journal that writes back in the morning': 'Beyond，一本会在早上给你回信的日记',
   'Write tonight. Nothing replies. A letter arrives in the morning.':
@@ -645,6 +662,10 @@ export const ZH_PATTERNS: [RegExp, (...m: string[]) => string][] = [
     (w, d, m, t) => `你 ${day(w, d, m)} 的信将在 ${t} 送达。`,
   ],
   [/^This letter arrives at (\d\d:\d\d)\.$/, (t) => `这封信将在 ${t} 送达。`],
+  [
+    new RegExp(`^The letter for ${DAY} couldn't be written yet\\.$`),
+    (w, d, m) => `${day(w, d, m)} 的信暂时还写不出来。`,
+  ],
   [/^Written and sealed until (\d\d:\d\d)$/, (t) => `已写好并封存，${t} 送达`],
   [/^New letters will arrive at (\d\d:\d\d)\.$/, (t) => `新的信将在 ${t} 送达。`],
   [/^Your letters? will arrive at (\d\d:\d\d)\.$/, (t) => `你的信将在 ${t} 送达。`],
@@ -742,6 +763,10 @@ export const ZH_PATTERNS: [RegExp, (...m: string[]) => string][] = [
     /^(\d+) kept letters?, (?:across (\d+) months, )?touch on (.+), for example “(.+)”\. A possibility you might recognise in yourself, if it fits\. Not a label\.$/,
     (k, months, b, h) =>
       `${k} 封信${months ? `，跨越 ${months} 个月，` : ''}都谈到了${BLURBS[b] ?? b}，比如“${h}”。如果合适，这也许是你会在自己身上认出的一种可能，而不是标签。`,
+  ],
+  [
+    /^From your (.+) · (\d+) more letters? waiting$/,
+    (v, k) => `来自你的${VOICES[v] ?? v} · 还有 ${k} 封信在等你`,
   ],
   [/^From your (.+)$/, (v) => `来自你的${VOICES[v] ?? v}`],
   [/^Your next letter comes from your (.+)$/, (v) => `下一封信将来自你的${VOICES[v] ?? v}`],

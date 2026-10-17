@@ -46,6 +46,17 @@ export interface JournalBackend {
     journalDate: string,
     deliverAt: string,
   ): Promise<Letter>;
+  /**
+   * Adds more writing to a night that is already sealed, so the night keeps one
+   * letter. Editing the entry removes its unread letter (a privacy cascade);
+   * the letter is then asked for again over everything written that night.
+   */
+  addToNight(
+    entryId: string,
+    text: string,
+    journalDate: string,
+    deliverAt: string,
+  ): Promise<Letter>;
   updateLetter(id: string, patch: PatchLetter): Promise<Letter>;
   retryLetter(id: string): Promise<Letter>;
   memories(): Promise<Memory[]>;
@@ -266,6 +277,28 @@ export function journalBackend(): JournalBackend {
       const entry = await guard(() =>
         http().entries.create({ text, idempotency_key: idempotencyKey, reflection_opt_in: false }),
       );
+      return guard(() =>
+        http().letters.request({
+          entry_id: entry.id,
+          expected_revision: entry.revision,
+          journal_date: journalDate,
+          deliver_at: deliverAt,
+          consent: true,
+        }),
+      );
+    },
+    async addToNight(entryId, text, journalDate, deliverAt) {
+      let entry = await guard(() => http().entries.get(entryId));
+      // a retry after a dropped connection must not add the same words twice
+      if (!entry.text.endsWith(text)) {
+        const current = entry;
+        entry = await guard(() =>
+          http().entries.update(entryId, {
+            text: `${current.text}\n\n${text}`,
+            expected_revision: current.revision,
+          }),
+        );
+      }
       return guard(() =>
         http().letters.request({
           entry_id: entry.id,

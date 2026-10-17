@@ -13,11 +13,13 @@
 /* eslint-disable */
 import SAMPLE_DATA from './sample.json';
 import { uiLang, setUiLang, startTranslating } from './i18n';
+import { JOURNAL_THEMES, journalTheme, setJournalTheme, applyJournalTheme, themeSwatch } from './theme';
 
 let started = false;
 export function startJournal(backend) {
 if (started) return;
 started = true;
+applyJournalTheme();
 startTranslating();
 const SAMPLE = SAMPLE_DATA;
 
@@ -81,6 +83,8 @@ const atTime = (L) => (L?.deliverAt ? hhmm(new Date(L.deliverAt)) : deliverTime(
 const uid = (p) => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 const plural = (n, a, b = `${a}s`) => `${n} ${n === 1 ? a : b}`;
 const cap = (s) => s ? s[0].toUpperCase() + s.slice(1) : s;
+/* The active colour theme's tokens, for drawing on canvas (see journal.css). */
+const tone = (name) => getComputedStyle(document.documentElement).getPropertyValue(`--${name}`).trim();
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function seeded(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 10000) / 10000; }; }
@@ -214,7 +218,7 @@ let claudeReady = Promise.resolve();
 function checkAI() { return (claudeReady = (async () => {
   try { const j = await backend.aiStatus(); claudeState = j.letters ? 'ready' : 'off'; SERVER_STT = !!j.transcribe; } catch (e) { claudeState = 'off'; SERVER_STT = false; }
   if (route === 'login' || !AUTH.user) return;
-  if (route !== 'tonight') render(); else refreshTonightNote();
+  if (route !== 'tonight') render();
   watchLetters();
 })()); }
 let stateReady = false;
@@ -416,8 +420,6 @@ let promptTimer = null; let lastWords = 0;
 const SPEAK_PROMPTS = ['Just say it. Nothing replies.', 'Start with how today felt.', '今日發生咗咩？慢慢講。', 'What’s still on your mind?', 'Say it the way you’d say it to yourself.', '今天怎么样？想到哪说到哪。'];
 function vTonight() {
   clearInterval(promptTimer); cancelAnimationFrame(voice.raf);
-  const sealed = pendingNight();
-  if (sealed) return vSealed(sealed);
   const speak = false; // one page: type, or tap the microphone and talk
   const words = countWords(S.draft); lastWords = words;
   after.push(() => {
@@ -457,10 +459,18 @@ function vTonight() {
       </div>
       <p class="voice-hint" id="vhint" aria-live="polite"></p>
       <div id="crisis" style="width:100%"></div>
+      ${failedNights()}
       <div class="tn-bar">
         <button class="btn amber" data-act="seal" id="b-seal" ${S.draft.trim() ? '' : 'disabled'}>Seal tonight</button>
       </div>
+      ${S.letters.some((l) => !delivered(l) && l.status !== 'failed') && canSkip() ? `<button class="skip-morning" data-act="skip">Skip to morning${I.right}</button>` : ''}
     </section>`;
+}
+/* A letter that couldn't be written stays findable here, with a way to try again. */
+function failedNights() {
+  const L = S.letters.find((l) => l.status === 'failed');
+  if (!L) return '';
+  return `<p class="tn-failed"><span>The letter for ${fmtDay(L.date)} couldn't be written yet.</span> <button class="link" data-retry="${L.id}">Try again</button></p>`;
 }
 /* Directions that are showing, strongest first. */
 function visibleDirections(all = directions()) {
@@ -479,76 +489,6 @@ function miniMap(list, W = 112, H = 72) {
   }).join('');
   return `<svg class="mini-map" viewBox="0 0 112 72" width="${W}" height="${H}" aria-hidden="true">${circles}</svg>`;
 }
-/* A small orrery: you in the middle, each direction circling on a tilted orbit,
-   passing behind and in front of you, joined by a thread of light. New
-   journals show three seeds of light, lit one by one as nights point the same way. */
-function startOrrery(canvas, vis, most) {
-  if (!canvas) return;
-  const box = canvas.parentElement; const W = box.clientWidth, H = box.clientHeight; if (!W || !H) return;
-  const dpr = Math.min(2, window.devicePixelRatio || 1); canvas.width = W * dpr; canvas.height = H * dpr;
-  const g = canvas.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const still = reduceMotion(); const cx = W / 2, cy = H / 2; const tilt = -.2;
-  const empty = !vis.length; const max = Math.max(1, ...vis.map((d) => d.days));
-  const bodies = empty
-    ? [0, 1, 2].map((i) => ({ key: `seed${i}`, orbit: 0, phase: (i / 3) * Math.PI * 2, size: 3.2, lit: i < Math.min(2, most), confirmed: false }))
-    : vis.slice(0, 4).map((d, i) => ({ key: d.key, orbit: i, phase: seeded(d.key)() * Math.PI * 2, size: 3 + 4.6 * Math.sqrt(d.days / max), lit: true, confirmed: d.status === 'confirmed' }));
-  const orbits = empty ? [{ rx: W * .3, ry: W * .3 * .34 }] : [0, 1, 2, 3].slice(0, Math.max(1, bodies.length)).map((i) => { const rx = W * (.21 + i * .075); return { rx, ry: rx * .36 }; });
-  const rs = seeded('orrery-sky'); const stars = Array.from({ length: 26 }, () => ({ x: rs() * W, y: rs() * H, r: .3 + rs() * .9, a: .2 + rs() * .5, p: 1500 + rs() * 3000, ph: rs() * 6.3 }));
-  let hot = 0, hotT = 0; const glance = canvas.closest('.glance');
-  glance?.addEventListener('pointerenter', () => { hotT = 1; }); glance?.addEventListener('pointerleave', () => { hotT = 0; });
-  glance?.addEventListener('focus', () => { hotT = 1; }); glance?.addEventListener('blur', () => { hotT = 0; });
-  const t0 = performance.now(); let angle = 0; let last = t0;
-  const at = (o, a) => { const x = Math.cos(a) * o.rx, y = Math.sin(a) * o.ry; return { x: cx + x * Math.cos(tilt) - y * Math.sin(tilt), y: cy + x * Math.sin(tilt) + y * Math.cos(tilt), depth: Math.sin(a) }; };
-  const ease = (k) => 1 - (1 - k) ** 3;
-  function orb(b, p, k) {
-    const s = (.7 + .42 * (p.depth + 1) / 2) * (empty ? 1 : k) * (1 + hot * .12); const r = b.size * s; const a = (.55 + .45 * (p.depth + 1) / 2) * (b.lit ? 1 : .35);
-    g.save(); g.globalAlpha = a;
-    if (b.lit) { g.shadowColor = b.confirmed ? 'rgba(243,198,142,.95)' : 'rgba(243,190,130,.75)'; g.shadowBlur = 10 + hot * 10; }
-    const grd = g.createRadialGradient(p.x - r * .35, p.y - r * .4, r * .1, p.x, p.y, r);
-    grd.addColorStop(0, b.lit ? '#fff3dc' : '#c9b8a4'); grd.addColorStop(.55, b.lit ? (b.confirmed ? '#f3c68e' : '#e8b07a') : '#7d6a58'); grd.addColorStop(1, b.lit ? 'rgba(227,149,90,.35)' : 'rgba(125,106,88,.2)');
-    g.fillStyle = grd; g.beginPath(); g.arc(p.x, p.y, r, 0, Math.PI * 2); g.fill(); g.restore();
-  }
-  const frame = (now) => {
-    if (!document.body.contains(canvas)) return;
-    const dt = Math.min(50, now - last); last = now;
-    hot += (hotT - hot) * .08; angle += dt * (0.00018 + hot * 0.0006);
-    const since = now - t0;
-    g.clearRect(0, 0, W, H);
-    for (const st of stars) { g.globalAlpha = still ? st.a : st.a * (.5 + .5 * Math.sin(now / st.p + st.ph)); g.fillStyle = '#fbe9d2'; g.beginPath(); g.arc(st.x, st.y, st.r, 0, 6.283); g.fill(); }
-    g.globalAlpha = 1;
-    // orbits, drawn as tilted rings
-    orbits.forEach((o, i) => { g.save(); g.translate(cx, cy); g.rotate(tilt); g.beginPath(); g.ellipse(0, 0, o.rx, o.ry, 0, 0, Math.PI * 2); g.strokeStyle = `rgba(243,230,211,${(.1 + hot * .08).toFixed(3)})`; g.lineWidth = 1; g.stroke(); g.restore(); });
-    const placed = bodies.map((b, i) => { const k = still ? 1 : ease(Math.min(1, Math.max(0, (since - 150 - i * 160) / 1100))); const o = orbits[b.orbit]; const sp = 1 / (1 + b.orbit * .45); const a = b.phase + angle * sp * 6 + (1 - k) * -2.2; const p = at({ rx: o.rx * (empty ? 1 : k), ry: o.ry * (empty ? 1 : k) }, a); return { b, p, k, a, o }; });
-    // comet tails along the orbit behind each lit body
-    for (const { b, k, a, o } of placed) {
-      if (!b.lit || still) continue;
-      for (let j = 1; j <= 14; j++) { const q = at({ rx: o.rx * (empty ? 1 : k), ry: o.ry * (empty ? 1 : k) }, a - j * .045); g.globalAlpha = (1 - j / 14) * .28 * (.6 + .4 * (q.depth + 1) / 2) * (1 + hot); g.fillStyle = '#f3c68e'; g.beginPath(); g.arc(q.x, q.y, Math.max(.4, b.size * .32 * (1 - j / 14)), 0, 6.283); g.fill(); }
-    }
-    g.globalAlpha = 1;
-    // threads of light from you to each direction
-    if (!empty) for (const { p, k } of placed) {
-      g.save(); g.globalAlpha = (.28 + hot * .5) * k; g.strokeStyle = '#f3c68e'; g.lineWidth = 1; g.setLineDash([2, 5]); g.lineDashOffset = still ? 0 : -now / 60;
-      g.beginPath(); g.moveTo(cx, cy); g.lineTo(p.x, p.y); g.stroke(); g.restore();
-    }
-    // behind you, then you, then in front of you
-    placed.filter((x) => x.p.depth < 0).forEach(({ b, p, k }) => orb(b, p, k));
-    const pulse = still ? 0 : (Math.sin(now / 700) + 1) / 2; const flare = still ? 0 : Math.max(0, 1 - since / 900);
-    const R = (empty ? 8 : 11) + pulse * 1.3 + hot * 2 + flare * 6;
-    const halo = g.createRadialGradient(cx, cy, 0, cx, cy, R * 4.2); halo.addColorStop(0, `rgba(255,224,170,${(.42 + hot * .2 + flare * .3).toFixed(3)})`); halo.addColorStop(1, 'rgba(227,149,90,0)');
-    g.fillStyle = halo; g.beginPath(); g.arc(cx, cy, R * 4.2, 0, 6.283); g.fill();
-    const core = g.createRadialGradient(cx - R * .25, cy - R * .3, 0, cx, cy, R); core.addColorStop(0, '#fff8ec'); core.addColorStop(.45, '#ffd9a0'); core.addColorStop(1, '#e8945a');
-    g.fillStyle = core; g.beginPath(); g.arc(cx, cy, R, 0, 6.283); g.fill();
-    if (!still) { const ph = (now % 3200) / 3200; g.globalAlpha = (1 - ph) * .5; g.strokeStyle = '#f3c68e'; g.lineWidth = 1; g.beginPath(); g.arc(cx, cy, R + ph * 26, 0, 6.283); g.stroke(); g.globalAlpha = 1; }
-    placed.filter((x) => x.p.depth >= 0).forEach(({ b, p, k }) => orb(b, p, k));
-    if (!still) requestAnimationFrame(frame);
-  };
-  requestAnimationFrame(frame);
-}
-function claudeNote() {
-  if (claudeState !== 'off') return demoOn() ? 'Demo mode: seal a night and Claude writes its letter, usually within a minute. Then tap Skip to morning.' : '';
-  return 'Beyond’s letter writer isn’t switched on yet. Seal tonight anyway: your letter is kept safe and written as soon as it is.';
-}
-function refreshTonightNote() { const n = $('#claude-note'); if (n) n.textContent = claudeNote(); }
 function supportInline() {
   return `<div class="support-inline" role="note"><b>You don't have to wait for the morning.</b><span class="fine" style="color:var(--mist)">Beyond isn't watched by a person and can't help in an emergency. If you're struggling or in danger, people can help right now, free and confidential.</span><div class="row"><button class="btn sm amber" data-go="support">See who to talk to</button></div></div>`;
 }
@@ -774,11 +714,11 @@ function drawVoice(g, W, ts, L, bins) {
   const cx = W / 2, cy = W / 2, r0 = W * 0.2;
   g.clearRect(0, 0, W, W);
   const h = g.createRadialGradient(cx, cy, r0 * 0.5, cx, cy, W / 2);
-  h.addColorStop(0, `rgba(243,198,142,${(0.14 + 0.3 * L).toFixed(3)})`); h.addColorStop(0.55, `rgba(227,149,90,${(0.05 + 0.12 * L).toFixed(3)})`); h.addColorStop(1, 'rgba(227,149,90,0)');
+  h.addColorStop(0, `rgba(${tone('amber-rgb')},${(0.14 + 0.3 * L).toFixed(3)})`); h.addColorStop(0.55, `rgba(${tone('ember-rgb')},${(0.05 + 0.12 * L).toFixed(3)})`); h.addColorStop(1, `rgba(${tone('ember-rgb')},0)`);
   g.fillStyle = h; g.fillRect(0, 0, W, W);
   for (let k = 0; k < 3; k++) {
     const ph = ((ts / 3400) + k / 3) % 1; const rr = r0 * (1.08 + ph * (0.85 + L * 0.9));
-    g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI * 2); g.strokeStyle = `rgba(243,198,142,${((1 - ph) * (0.14 + 0.36 * L)).toFixed(3)})`; g.lineWidth = 1; g.stroke();
+    g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI * 2); g.strokeStyle = `rgba(${tone('amber-rgb')},${((1 - ph) * (0.14 + 0.36 * L)).toFixed(3)})`; g.lineWidth = 1; g.stroke();
   }
   const N = 72; g.lineCap = 'round'; g.lineWidth = Math.max(1.6, W / 190);
   for (let i = 0; i < N; i++) {
@@ -840,7 +780,7 @@ async function ascend(text, id, rect, lrect) {
       return s.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${tx * .6}px, ${ty * .6}px) scale(.6)`, opacity: .8, offset: .6 }, { transform: `translate(${tx}px, ${ty}px) scale(.1)`, opacity: 0 }],
         { duration: 1100, delay: i * step, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' }).finished;
     });
-    lantern.animate([{ filter: 'brightness(1) drop-shadow(0 0 30px rgba(243,170,100,.55))' }, { filter: 'brightness(1.6) drop-shadow(0 0 70px rgba(243,170,100,.9))' }], { duration: 1100 + spans.length * step, fill: 'forwards' });
+    const glow = tone('glow-rgb'); lantern.animate([{ filter: `brightness(1) drop-shadow(0 0 30px rgba(${glow},.55))` }, { filter: `brightness(1.6) drop-shadow(0 0 70px rgba(${glow},.9))` }], { duration: 1100 + spans.length * step, fill: 'forwards' });
     await Promise.all(anims);
     await lantern.animate([{ transform: 'translate(0,0) scale(1)' }, { transform: `translate(${window.innerWidth * .18}px, ${-(ly - window.innerHeight * .08)}px) scale(.3)` }], { duration: 1800, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished;
     starPositions(id, 26).forEach((st, i) => { const d = document.createElement('i'); d.className = 's'; d.style.left = `${st.x}%`; d.style.top = `${st.y}%`; ov.appendChild(d); d.animate([{ opacity: 0, transform: 'scale(0)' }, { opacity: 1, transform: 'scale(1.6)' }, { opacity: .9, transform: 'scale(1)' }], { duration: 700, delay: i * 40, fill: 'forwards' }); });
@@ -851,32 +791,14 @@ async function ascend(text, id, rect, lrect) {
   ov.remove();
 }
 
-function vSealed(L) {
-  const n = L.entries.reduce((a, e) => a + countWords(e.text), 0);
-  const stars = starPositions(L.id, 26);
-  const status = L.status === 'writing' ? `<p class="status"><i></i>${L.demo ? 'Preparing your sample letter' : claudeState === 'off' ? 'Sealed and waiting for the letter writer' : 'Claude is writing quietly'}</p>`
-    : L.status === 'failed' ? `<p class="status err"><i></i>The letter couldn't be written yet</p>`
-    : `<p class="status ok"><i></i>Written and sealed until ${atTime(L)}</p>`;
-  return `<section class="sealed">
-      ${stars.map((s) => `<i class="s" style="left:${s.x}%;top:${s.y * 0.7}%;--tw:${s.tw}s;--dl:${s.dl}s"></i>`).join('')}
-      <span class="mini-lantern" aria-hidden="true"></span>
-      <div class="env" aria-hidden="true"><div class="env-back"></div><div class="env-paper"><i></i><i style="width:80%"></i><i style="width:60%"></i></div><div class="env-pocket"></div><div class="env-flap"></div><div class="env-seal">${I.crescent}</div></div>
-      <h1 class="display sm">Sealed for the night.</h1>
-      <p class="lead">${plural(n, 'word')} written at ${L.sealedAt || '—'}. Sleep well. It will be waiting here.</p>
-      <label class="pick" for="ltime"><span>Arrives at</span><select id="ltime">${timeOptions(atTime(L))}</select></label>
-      ${status}
-      ${L.status === 'failed' ? `<p class="notice warn">${esc(L.error)}</p><div class="row"><button class="btn sm" data-retry="${L.id}">Try again</button></div>` : ''}
-      ${!canSkip() ? '' : isDemoSkip() ? `<button class="btn amber" data-act="skip" ${L.status === 'failed' ? 'disabled' : ''}>Skip to morning</button>
-      <p class="fine">Demo: Skip to morning shows the letter now. It doesn't change your device's clock.</p>`
-        : `<button class="link" data-act="readnow" ${L.status === 'failed' ? 'disabled' : ''}>Read it now</button>
-      <p class="fine">Can’t wait? That’s fine. You can turn this off in Settings.</p>`}
-    </section>`;
-}
-
 /* ----- overnight: the night passes while Claude finishes ----- */
 const toMin = (s) => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
 const fmtMin = (m) => { m = ((Math.round(m) % 1440) + 1440) % 1440; return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`; };
-async function overnight(L, { now: readNow = false } = {}) {
+/* Skip to morning (demo): the night passes on screen, every sealed night's
+   letter is finished and marked early, then they arrive as a present. */
+async function skipToMorning() {
+  const pending = S.letters.filter((l) => !delivered(l) && l.status !== 'failed');
+  if (!pending.length) return;
   const layer = $('#layer');
   const ov = document.createElement('div'); ov.className = 'overnight'; ov.setAttribute('role', 'status'); ov.setAttribute('aria-live', 'polite');
   ov.innerHTML = `<div class="ov-sky ov-night"></div><div class="ov-sky ov-dawn"></div><span class="stars" aria-hidden="true"></span><span class="ov-moon" aria-hidden="true"></span><span class="ov-sun" aria-hidden="true"></span>
@@ -890,35 +812,65 @@ async function overnight(L, { now: readNow = false } = {}) {
     requestAnimationFrame(tick);
   });
   const fast = reduceMotion();
-  if (readNow) {
-    const task = L.status !== 'writing' ? null : claudeState === 'ready' ? waitForLetter(L.id) : null;
-    clock.textContent = hhmm(); txt.textContent = task ? (L.demo ? 'Finishing your sample letter…' : 'Claude is finishing your letter…') : 'Opening your letter…'; ov.querySelector('.ov-note').textContent = '';
-    if (task) await task; else await sleep(fast ? 50 : 900);
-    const done = findLetter(L.id);
-    if (!done || done.status !== 'ready') { await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'forwards' }).finished; ov.remove(); render(); if (done?.status === 'writing') toast(claudeState === 'ready' ? 'Still being written. It will be here soon.' : 'Your letter is sealed and waiting for the letter writer.'); return; }
-    patchLetter(L.id, { early: true }); go('letter', L.id);
-    await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: 'forwards' }).finished; ov.remove(); return;
-  }
+  const leave = async () => { await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: 'forwards' }).finished; ov.remove(); };
   requestAnimationFrame(() => ov.classList.add('is-late'));
-  const at = toMin(atTime(L)); const before = fmtMin(at - 20);
+  const at = toMin(atTime(pending[0])); const before = fmtMin(at - 20);
   await roll(toMin(hhmm()), toMin(before), fast ? 200 : 2600);
-  const task = L.status !== 'writing' ? null : claudeState === 'ready' ? waitForLetter(L.id) : null;
-  if (task) {
-    txt.textContent = L.demo ? 'Finishing your sample letter…' : 'Claude is still writing your letter…';
+  const tasks = claudeState === 'ready' ? pending.filter((l) => l.status === 'writing').map((l) => waitForLetter(l.id)) : [];
+  if (tasks.length) {
+    txt.textContent = pending.some((l) => l.demo) ? 'Finishing your sample letter…' : 'Claude is still writing your letter…';
     const slow = setTimeout(() => { txt.textContent = 'Still writing. This can take up to a minute.'; }, 9000);
-    await task; clearTimeout(slow);
+    await Promise.all(tasks); clearTimeout(slow);
   }
-  const now = findLetter(L.id);
-  if (!now || now.status !== 'ready') {
-    await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'forwards' }).finished; ov.remove(); render(); return;
+  const ready = pending.map((l) => findLetter(l.id)).filter((l) => l && l.status === 'ready');
+  if (!ready.length) {
+    await leave(); render();
+    toast(claudeState === 'ready' ? 'Still being written. It will be here soon.' : 'Your letter is sealed and waiting for the letter writer.');
+    return;
   }
-  ov.classList.add('is-dawn'); txt.textContent = 'Good morning. Your letter is here.';
+  ov.classList.add('is-dawn'); txt.textContent = 'Good morning.';
   await roll(toMin(before), at, fast ? 100 : 1500);
-  await sleep(fast ? 100 : 900);
-  patchLetter(L.id, { early: true });
-  go('letter', L.id);
-  await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: 'forwards' }).finished; ov.remove();
+  await sleep(fast ? 100 : 700);
+  ready.forEach((l) => patchLetter(l.id, { early: true }));
+  await leave(); render();
+  presentLetters();
 }
+
+/* A letter that has arrived opens as a present: once per letter, the next time
+   Beyond is open after it's delivered (or straight after Skip to morning). */
+const presented = new Set();
+function presentLetters() {
+  if (!AUTH.user || ['welcome', 'login'].includes(route) || document.querySelector('.present, .overnight, .ascend, .sheet-wrap')) return;
+  const list = S.letters.filter((l) => delivered(l) && !l.readAt && !presented.has(l.id)).sort((a, b) => b.date.localeCompare(a.date));
+  if (!list.length) return;
+  list.forEach((l) => presented.add(l.id));
+  const L = list[0]; const v = VOICES[L.content?.voice || S.voice] || VOICES.friend; const more = list.length - 1;
+  const w = document.createElement('div'); w.className = 'present';
+  w.innerHTML = `<button class="present-bg" data-present-later tabindex="-1" aria-label="Later"></button>
+    <div class="present-card" role="dialog" aria-modal="true" aria-labelledby="present-t">
+      <span class="present-glow" aria-hidden="true"></span>
+      <div class="env" id="present-env" aria-hidden="true"><div class="env-back"></div><div class="env-paper"><i></i><i style="width:80%"></i><i style="width:60%"></i></div><div class="env-pocket"></div><div class="env-flap"></div><div class="env-seal">${I.crescent}</div></div>
+      <p class="present-k">${fmtDay(L.date)}</p>
+      <h2 class="present-t" id="present-t">A letter arrived for you</h2>
+      <p class="present-sub">From your ${esc(v.name)}${more ? ` · ${plural(more, 'more letter')} waiting` : ''}</p>
+      <div class="row"><button class="btn amber" data-present-open="${L.id}">Open it</button><button class="link" data-present-later>Later</button></div>
+    </div>`;
+  $('#layer').appendChild(w);
+  setTimeout(() => w.querySelector('[data-present-open]')?.focus({ preventScroll: true }), 400);
+}
+async function closePresent(openId) {
+  const w = $('.present'); if (!w) return;
+  if (openId) {
+    w.querySelector('#present-env')?.classList.add('is-open');
+    w.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+    await sleep(reduceMotion() ? 50 : 1300);
+    opening = openId; patchLetter(openId, { readAt: new Date().toISOString() });
+    go('letter', openId);
+  }
+  await w.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'forwards' }).finished;
+  w.remove();
+}
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('.present')) closePresent(); });
 
 /* ----- letter ----- */
 let opening = null;
@@ -1269,7 +1221,7 @@ function drawSky() {
   if (ticks === 'month') { const days = dayDiff(to, from) + 1; tickList = [1, 8, 15, 22, 29].filter((d) => d <= days).map((d) => ({ x: padX + ((d - 1) / span) * (W - 2 * padX), label: String(d) })); }
   else { let k = from.slice(0, 7); while (`${k}-01` <= to) { const off = dayDiff(`${k}-01`, from); tickList.push({ x: padX + (off / span) * (W - 2 * padX), label: MON[+k.slice(5) - 1] }); const [yy, mm] = k.split('-').map(Number); k = mm === 12 ? `${yy + 1}-01` : `${yy}-${pad(mm + 1)}`; } }
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${plural(stars.length, 'night')}${theme ? `, ${chosen.length} about ${esc(THEMES[theme])}` : ''}">
-    <defs><radialGradient id="glow"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".35" stop-color="#fbe9d2" stop-opacity=".35"/><stop offset="1" stop-color="#fbe9d2" stop-opacity="0"/></radialGradient></defs>
+    <defs><radialGradient id="glow"><stop offset="0" style="stop-color:var(--light-1)" stop-opacity=".9"/><stop offset=".35" style="stop-color:rgb(var(--star-rgb))" stop-opacity=".35"/><stop offset="1" style="stop-color:rgb(var(--star-rgb))" stop-opacity="0"/></radialGradient></defs>
     ${tickList.map((t) => `<g class="ns-tick"><line x1="${t.x}" x2="${t.x}" y1="${H - 26}" y2="${H - 20}"/><text x="${t.x}" y="${H - 8}" text-anchor="middle">${t.label}</text></g>`).join('')}
     ${chosen.length > 1 ? `<path d="${path}" class="ns-line" pathLength="1"/>` : ''}
     ${stars.map((s, i) => { const on = !theme || realThemes(s.l).includes(theme); return `<g class="ns-star tone-${s.l.content.tone} ${on ? '' : 'is-off'} ${pTip === s.l.id ? 'is-sel' : ''} ${fresh ? 'ns-new' : ''}" transform="translate(${s.x.toFixed(1)} ${s.y.toFixed(1)})" style="--tw:${s.tw}s;--dl:${s.dl}s;--d:${Math.min(i * 45, 1600)}ms" tabindex="0" role="button" aria-label="${esc(fmtDay(s.l.date))}: ${esc(s.l.content.headline)}" data-star="${s.l.id}"><circle r="${(s.size * 4.2).toFixed(1)}" class="halo" fill="url(#glow)"/><path d="${sparkle(s.l.id, s.size * 1.7)}" class="core"/><circle r="16" fill="transparent"/></g>`; }).join('')}
@@ -1399,7 +1351,7 @@ function startBubbles(visible) {
     const ids = new Set(visible[i].evidence.map((l) => l.id));
     if (visible[j].evidence.some((l) => ids.has(l.id))) edges.push([visible[i].id, visible[j].id]);
   }
-  svg.innerHTML = `<defs><radialGradient id="corehalo"><stop offset="0" stop-color="#ffe9c4" stop-opacity=".55"/><stop offset="1" stop-color="#e3955a" stop-opacity="0"/></radialGradient></defs>`
+  svg.innerHTML = `<defs><radialGradient id="corehalo"><stop offset="0" style="stop-color:var(--light-2)" stop-opacity=".55"/><stop offset="1" style="stop-color:var(--ember)" stop-opacity="0"/></radialGradient></defs>`
     + visible.map((d) => { const g = geo[d.id]; return `<path class="orbit" d="${wobble(`orbit-${d.key}`, cx, cy, Math.hypot(g.x - cx, g.y - cy), .012, 18)}"/>`; }).join('')
     + edges.map(([a, b]) => `<line class="share" data-e="${a}|${b}"/>`).join('')
     + visible.map((d) => `<line class="spoke" data-s="${d.id}" style="--w:${(.9 + 2.4 * d.days / max).toFixed(2)}"/>`).join('');
@@ -1449,13 +1401,14 @@ function startBubbles(visible) {
   stage.onpointerleave = () => { tx = 0; ty = 0; };
   const ease = (k) => 1 - (1 - k) ** 3; const clamp = (k) => Math.max(0, Math.min(1, k));
   const pos = (id, t) => { const g = geo[id]; if (still) return g; const w = (t / g.period) * Math.PI * 2 + g.phase; return { x: g.x + Math.sin(w) * g.amp, y: g.y + Math.cos(w * .8) * g.ampY }; };
+  const starFill = `rgb(${tone('star-rgb')})`;
   const frame = (t) => {
     if (!document.body.contains(stage)) return;
     px += (tx - px) * .06; py += (ty - py) * .06;
     par.style.transform = `translate3d(${(-px * 22).toFixed(2)}px, ${(-py * 16).toFixed(2)}px, 0)`;
     sky.style.transform = `translate3d(${(-px * 8).toFixed(2)}px, ${(-py * 6).toFixed(2)}px, 0) scale(1.04)`;
     g2.clearRect(0, 0, W, H);
-    for (const s of stars) { g2.globalAlpha = still ? s.a : s.a * (.55 + .45 * Math.sin(t / s.p + s.ph)); g2.fillStyle = '#fbe9d2'; g2.beginPath(); g2.arc(s.x, s.y, s.r, 0, 6.283); g2.fill(); }
+    for (const s of stars) { g2.globalAlpha = still ? s.a : s.a * (.55 + .45 * Math.sin(t / s.p + s.ph)); g2.fillStyle = starFill; g2.beginPath(); g2.arc(s.x, s.y, s.r, 0, 6.283); g2.fill(); }
     g2.globalAlpha = 1;
     const since = identRevealAt && !still ? performance.now() - identRevealAt : Infinity;
     const cur = {};
@@ -1599,6 +1552,10 @@ function vSettings() {
     <section class="spread" id="mode"><h2 class="sec">Mode</h2><div class="stack">
       <button class="toggle" role="switch" aria-checked="${demoOn()}" data-act="toggle-sample"><span class="track"></span><span>Demo mode: Kit’s sample letters next to yours</span></button>
       <p class="fine">Beyond starts in Demo mode, for showing it to others such as judges. Kit is fictional; the sample letters show what months of Beyond look like. A night you seal is saved to your account and its letter is written by the AI, in both modes. Turn Demo mode off for Normal mode, just your own journal.</p>
+    </div></section>
+    <section class="spread" id="look"><h2 class="sec">Colours</h2><div class="stack">
+      <div class="jthemes" role="group" aria-label="Colour theme">${JOURNAL_THEMES.map((t) => `<button class="jtheme" data-jtheme-pick="${t.id}" aria-pressed="${journalTheme() === t.id}"><span class="jtheme-sw" style="--sw:${themeSwatch(t.bands)}" aria-hidden="true"></span><b>${t.name}</b><span>${t.note}</span></button>`).join('')}</div>
+      <p class="fine">Only changes how Beyond looks on this device.</p>
     </div></section>
     <section class="spread" id="letters-settings"><h2 class="sec">Letters</h2><div class="stack">
       <h3 class="qh">Who writes your letters</h3>
@@ -1750,6 +1707,9 @@ document.addEventListener('click', async (ev) => {
     const m = $(`#q-${d.q}`); if (m) { m.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'center' }); m.classList.add('is-flash'); setTimeout(() => m.classList.remove('is-flash'), 1600); } return;
   }
   if (d.private) { const L = findLetter(d.private); const next = !L.private; patchLetter(L.id, { private: next }); toast(next ? 'Kept out of Patterns. The letter stays here.' : 'This night is back in Patterns.'); return render(); }
+  if (d.jthemePick) { setJournalTheme(d.jthemePick); return render(); }
+  if (d.presentOpen) return closePresent(d.presentOpen);
+  if (d.presentLater !== undefined) return closePresent();
   if (d.openenv) {
     const env = $('#env'); el.disabled = true;
     if (env) env.classList.add('is-open');
@@ -1779,8 +1739,7 @@ document.addEventListener('click', async (ev) => {
     case 'toggle-sample': S.mode = S.mode === 'sample' ? 'own' : 'sample'; pMonth = null; save(); toast(demoOn() ? 'Demo mode: sample nights and Kit’s sample letters are back.' : 'Normal mode: just your own journal.'); return render();
     case 'seal': el.disabled = true; return seal();
     case 'orb': return orbTap();
-    case 'readnow': { const L = pendingNight(); if (L) { el.disabled = true; return overnight(L, { now: true }); } return; }
-    case 'skip': { const L = pendingNight(); if (L) { el.disabled = true; return overnight(L); } return; }
+    case 'skip': el.disabled = true; return skipToMorning();
     case 'reveal': identVeiled = false; identRevealAt = performance.now(); return render();
     case 'delete': confirmDelete = true; return render();
     case 'delete-no': confirmDelete = false; return render();
@@ -1831,6 +1790,7 @@ function start() {
   if (S.onboarded && ['welcome', 'login'].includes(route)) route = 'identity';
   if (route === 'login') route = 'identity';
   render(); stateReady = true;
+  setTimeout(presentLetters, 700);
 }
 /* ---------- Beyond account glue ----------
    Everything below connects the views above to your account. Journal text is
@@ -1910,13 +1870,31 @@ function sendLetterPatch(L, body, before) {
 }
 
 /* Sealing saves the night to your account, then asks for its letter. A retry of
-   the same words reuses the same key, so a flaky connection never saves twice. */
+   the same words reuses the same key, so a flaky connection never saves twice.
+   Writing again the same night adds to that night's entry, so the morning brings
+   one letter over everything written that day. A night whose letter has already
+   arrived (Skip to morning, or after it's read) starts a new one instead. */
 let sealKey = null; let sealText = null;
+const MAX_NIGHT = 20000; // the server's limit for one entry
+let nightEntry = null; // tonight's entry, remembered even while its letter is asked for again
 async function sealNight(text, date) {
+  const open = S.letters.find((l) => l.date === date && l.entryId && !l.readAt && !delivered(l));
+  const arrived = (id) => S.letters.some((l) => l.entryId === id && (l.readAt || delivered(l)));
+  const entryId = open?.entryId ?? (nightEntry?.date === date && !arrived(nightEntry.entryId) ? nightEntry.entryId : null);
+  const fits = !open || (open.entries[0]?.text || '').length + 2 + text.length <= MAX_NIGHT;
+  if (entryId && fits) {
+    nightEntry = { date, entryId };
+    const x = await backend.addToNight(entryId, text, date, deliverAtFor(date));
+    S.letters = S.letters.filter((l) => l.entryId !== entryId); // its old letter is gone with the edit
+    const L = mergeLetter(x);
+    watchLetters();
+    return L;
+  }
   if (sealText !== text) { sealKey = crypto.randomUUID(); sealText = text; }
   const x = await backend.seal(text, sealKey, date, deliverAtFor(date));
   sealKey = null; sealText = null;
   const L = mergeLetter(x);
+  nightEntry = { date, entryId: L.entryId };
   watchLetters();
   return L;
 }
@@ -1956,7 +1934,7 @@ async function refresh() {
       S.letters = letters.map(toLetter); S.memories = memories.map(toMemory); S.notes = toNotes(notes);
       const changed = before !== JSON.stringify(S.letters.map((l) => [l.id, l.status, l.revision])) || deliveredBefore !== S.letters.filter(delivered).length;
       const busy = document.querySelector('.ascend, .overnight, .sheet-wrap') || (route === 'tonight' && $('#entry') && document.activeElement === $('#entry')) || (document.activeElement?.id === 'arch-q') || memEditing;
-      if (changed && !busy) render();
+      if (changed && !busy) { render(); presentLetters(); }
     } catch (e) { /* offline for a moment: keep what's here */ }
     refreshing = null;
   })();
@@ -1966,8 +1944,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 setInterval(() => {
   // A sealed letter arrives at its time even if nothing else happens.
   if (!AUTH.user || route !== 'tonight' || document.querySelector('.ascend, .overnight, .sheet-wrap')) return;
-  const sealed = pendingNight();
-  if (!sealed && $('.sealed')) render();
+  presentLetters();
 }, 30000);
 
 /* Memory */
