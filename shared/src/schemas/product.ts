@@ -30,6 +30,13 @@ export const directionsSchema = z.partialRecord(
   directionKeySchema,
   z.enum(['suggested', 'confirmed', 'dismissed', 'removed']),
 );
+/** First sign-in welcome, screen 2: what brought the person to Beyond. */
+export const welcomeReasonSchema = z.enum(['want', 'mind', 'behind', 'write', 'other']);
+const welcomeReasonsSchema = z
+  .array(welcomeReasonSchema)
+  .max(5)
+  .refine((list) => new Set(list).size === list.length);
+const welcomeOtherSchema = z.string().trim().min(1).max(150).nullable();
 export const settingsSchema = z.strictObject({
   timezone: timezoneSchema,
   morning_time: z.enum(['07:00', '07:30', '08:00']),
@@ -41,6 +48,10 @@ export const settingsSchema = z.strictObject({
   allow_early: z.boolean(),
   onboarded: z.boolean(),
   directions: directionsSchema,
+  // Optional until the welcome migration is applied everywhere; then always present.
+  welcome_seen: z.boolean().optional(),
+  welcome_reasons: welcomeReasonsSchema.optional(),
+  welcome_other: welcomeOtherSchema.optional(),
   revision,
   updated_at: timestamp,
 });
@@ -55,6 +66,9 @@ export const patchSettingsSchema = z
     allow_early: z.boolean().optional(),
     onboarded: z.boolean().optional(),
     directions: directionsSchema.optional(),
+    welcome_seen: z.boolean().optional(),
+    welcome_reasons: welcomeReasonsSchema.optional(),
+    welcome_other: welcomeOtherSchema.optional(),
     expected_revision: revision,
   })
   .refine((value) => Object.keys(value).length > 1);

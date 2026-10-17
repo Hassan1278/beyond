@@ -224,6 +224,47 @@ const PHRASES: Record<string, string> = {
   'Black and white, dark': '黑白 · 深色',
   'Only changes how Beyond looks on this device.': '只改变 Beyond 在这台设备上的外观。',
 
+  /* ---- welcome (first sign-in): wording lives in welcome.ts ---- */
+  'How Beyond works': 'Beyond 怎么用',
+  'Journal and write freely, anytime.': '想写就写，随时都可以。',
+  'Whatever’s on your mind, whenever it hits. Nothing interrupts you.':
+    '心里想到什么，就在那一刻写下来。没有任何东西会打扰你。',
+  'Wake up to a letter.': '醒来就有一封信。',
+  'Beyond reads your day and writes back once, the next morning.':
+    'Beyond 会读完你的一天，在第二天早上回一封信。',
+  'Look back, reflect and see yourself grow.': '回头看看，静下来想想，看见自己的成长。',
+  'Your letters and patterns stay with you, so you can see where you’re heading.':
+    '你的信和规律会一直留着，让你看清自己正往哪里走。',
+  'What brings you here?': '是什么让你来到这里？',
+  'Choose any that fit.': '符合的都可以选。',
+  'Figuring out what I actually want': '想弄清楚自己真正想要什么',
+  'Too much on my mind': '心里装了太多事',
+  'Feeling behind everyone else': '总觉得自己落后于别人',
+  'Just want somewhere to write': '只是想找个地方写写',
+  'Something else…': '其他……',
+  'Something else': '其他',
+  'Tell us in your own words': '用你自己的话告诉我们',
+  'Who writes back each morning?': '每天早上，谁来给你回信？',
+  'Just the notes': '只要摘要',
+  'A plain summary, no voice.': '简单的摘要，不带语气。',
+  'Only the tone changes. You can switch anytime in Settings.':
+    '只有口吻会不同，随时可以在设置里切换。',
+  'What you write stays yours.': '你写下的，始终属于你。',
+  'Private to your account.': '只属于你的账户。',
+  'Only you can read your journal.': '只有你能读你的日记。',
+  'Nothing leaves until you seal it.': '封存之前，什么都不会送出去。',
+  'Only that night is used to write your letter. Never your name or email.':
+    '写信只会用到那一晚的内容，绝不会用到你的名字或邮箱。',
+  'You decide what Beyond remembers.': 'Beyond 记住什么，由你决定。',
+  'See, edit, or forget anything, anytime.': '随时查看、编辑或忘记任何内容。',
+  'Delete everything, anytime.': '随时删除一切。',
+  'Your journal, letters, and memories, gone for good.': '你的日记、信和记忆，永久删除。',
+  'Beyond is a journal, not a crisis service. If you ever need someone right now, help is one tap away in Settings.':
+    'Beyond 是一本日记，不是危机支援服务。如果你需要马上找人聊聊，在设置里点一下就能找到帮助。',
+  Next: '下一步',
+  'I’m ready': '我准备好了',
+  'Welcome progress': '欢迎进度',
+
   /* ---- welcome and sign in ---- */
   'Beyond, a journal that writes back in the morning': 'Beyond，一本会在早上给你回信的日记',
   'Write tonight. Nothing replies. A letter arrives in the morning.':
@@ -708,6 +749,7 @@ export const ZH_PATTERNS: [RegExp, (...m: string[]) => string][] = [
   ],
 
   // counts
+  [/^([1-4]) of 4$/, (k) => `${k} / 4`],
   [/^(\d+) letters?$/, (k) => `${k} 封信`],
   [/^(\d+) letters?\.$/, (k) => `${k} 封信。`],
   [/^(\d+) letters? of (\d+)\.$/, (a, b) => `${b} 封信中的 ${a} 封。`],

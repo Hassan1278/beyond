@@ -92,6 +92,9 @@ Preferences:
 - `delivery_time`: a quarter hour from `05:00` to `12:45`.
 - `allow_early`, `onboarded`, `memory_paused`: booleans.
 - `directions`: a map from the six Identity direction keys to `suggested`, `confirmed`, `dismissed` or `removed`.
+- `welcome_seen`: boolean; the first sign-in welcome has been completed. Existing accounts start `false` and see it once.
+- `welcome_reasons`: up to five distinct of `want`, `mind`, `behind`, `write`, `other` (welcome screen 2, "What brings you here?"); `welcome_other`: optional trimmed text, 1–150 characters, or `null`. Kept for the team; not shown as a memory and not sent to the letter writer.
+- The three `welcome_*` fields need migration `20261017000000_welcome`; until it is applied they are absent from responses and the app falls back to `onboarded`.
 
 Legacy `morning_time` (`07:00`/`07:30`/`08:00`) and `reflection_enabled: false` remain for compatibility. Saving preferences never writes a letter. Every change increments the revision.
 

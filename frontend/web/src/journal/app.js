@@ -14,6 +14,7 @@
 import SAMPLE_DATA from './sample.json';
 import { uiLang, setUiLang, startTranslating } from './i18n';
 import { JOURNAL_THEMES, journalTheme, setJournalTheme, applyJournalTheme, themeSwatch } from './theme';
+import { WELCOME_STEPS, WELCOME_REASONS, WELCOME_OTHER_MAX, WELCOME_VOICES, WELCOME_PRIVACY } from './welcome';
 
 let started = false;
 export function startJournal(backend) {
@@ -101,7 +102,7 @@ const OFFLINE = false;
 let AUTH = { auth: true, user: null };
 const isGuest = () => false;
 let storageOk = true;
-function fresh() { return { v: 2, onboarded: false, mode: 'own', voice: 'friend', lang: 'auto', inputMode: 'type', deliverTime: '08:00', allowEarly: true, draft: '', letters: [], demoLetters: [], demoNights: [], sampleMeta: {}, notes: {}, dirs: {}, memories: [], memoryPaused: false, forgotten: [], hiddenSampleMem: [], savedAt: 0 }; }
+function fresh() { return { v: 2, onboarded: false, welcomeSeen: false, welcomeReasons: [], welcomeOther: null, mode: 'own', voice: 'friend', lang: 'auto', inputMode: 'type', deliverTime: '08:00', allowEarly: true, draft: '', letters: [], demoLetters: [], demoNights: [], sampleMeta: {}, notes: {}, dirs: {}, memories: [], memoryPaused: false, forgotten: [], hiddenSampleMem: [], savedAt: 0 }; }
 /* Demo mode (the default): sample nights to try, Kit's fictional letters next to
    yours, and "Skip to morning". Letters are still written by the AI, as in
    Normal mode. Normal mode is just your own journal. */
@@ -219,7 +220,7 @@ let route = 'identity'; let param = null; // Identity is home
 let claudeReady = Promise.resolve();
 function checkAI() { return (claudeReady = (async () => {
   try { const j = await backend.aiStatus(); claudeState = j.letters ? 'ready' : 'off'; SERVER_STT = !!j.transcribe; } catch (e) { claudeState = 'off'; SERVER_STT = false; }
-  if (route === 'login' || !AUTH.user) return;
+  if (route === 'login' || route === 'welcome' || !AUTH.user) return;
   if (route !== 'tonight') render();
   watchLetters();
 })()); }
@@ -248,12 +249,22 @@ function writeLetter(id) {
 }
 
 /* ---------- routing ---------- */
+let lettersScroll = 0; // going back from a letter returns to the same place in the list
 function go(r, p = null, opts = {}) {
+  const from = route;
+  if (from === 'letters' && r === 'letter') lettersScroll = window.scrollY;
   route = r; param = p;
   const token = p ? `${route}-${p}` : route;
   if (!opts.replace && location.hash.slice(1) !== token) { try { history.pushState(null, '', `#${token}`); } catch (e) { /* frame may refuse */ } }
-  render(); if (!opts.keepScroll) window.scrollTo(0, 0);
+  render();
+  if (!opts.keepScroll) toTop(from === 'letter' && r === 'letters' ? lettersScroll : 0);
 }
+/* Every tab and Settings opens at the top: set now, and again once the page has laid out. */
+function toTop(y = 0) {
+  window.scrollTo({ top: y, left: 0, behavior: 'instant' });
+  requestAnimationFrame(() => { if (Math.abs(window.scrollY - y) > 2) window.scrollTo({ top: y, left: 0, behavior: 'instant' }); });
+}
+try { history.scrollRestoration = 'manual'; } catch (e) { /* older browsers */ }
 function readHash() {
   const h = decodeURIComponent(location.hash.slice(1));
   const m = h.match(/^(letter|patterns)-(.+)$/);
@@ -263,7 +274,7 @@ function readHash() {
   else if (h === 'profile') { route = 'letters'; param = null; } // old links
   else if (['tonight', 'letters', 'identity', 'patterns', 'settings', 'support', 'welcome'].includes(h)) { route = h; param = null; }
 }
-window.addEventListener('popstate', () => { closeSheet(false); readHash(); render(); });
+window.addEventListener('popstate', () => { const from = route; closeSheet(false); readHash(); render(); toTop(from === 'letter' && route === 'letters' ? lettersScroll : 0); });
 
 /* ---------- icons ---------- */
 /* Hand-drawn line marks: slightly uneven strokes, never perfect geometry. */
@@ -327,7 +338,7 @@ let after = []; let lastRoute = null;
 function render() {
   if (route !== 'tonight' && voice.state === 'rec') stopRecording();
   if (route !== 'tonight' && voice.state === 'dictate') voice.state = 'idle';
-  if (!S.onboarded && !['support', 'login'].includes(route)) route = 'welcome';
+  if (needsWelcome() && !['support', 'login'].includes(route)) route = 'welcome';
   document.body.classList.add('night');
   setAmbient(route === 'tonight' || route === 'welcome' ? 'full' : 'soft');
   if (route === 'you') route = 'settings';
@@ -339,7 +350,7 @@ function render() {
   const here = (r) => route === r || (r === 'letters' && route === 'letter');
   // a new page enters with one short rise; staying on a page re-renders in place
   const entering = route !== lastRoute; lastRoute = route;
-  if (entering && route === 'identity' && !identVeiled) identRevealAt = performance.now();
+  if (entering && route === 'identity' && !identVeiled) identRevealAt = performance.now() + (identArrive ? 650 : 0);
   const nav = route === 'welcome' || route === 'login' ? '' : `
     <header class="topbar">
       <button class="brand" data-go="identity" aria-label="Beyond, Identity">${I.moon}<span>Beyond</span></button>
@@ -383,35 +394,94 @@ function sampleBanner() {
   return `<p class="sample-banner">Demo mode: Kit’s sample letters (fictional) are shown with yours. <button class="link" data-act="own">Switch to Normal mode</button></p>`;
 }
 
-/* ----- welcome ----- */
-let welcomeStep = 0;
-const NOISE = ["what's next", 'everyone else', 'lunch alone?', 'group chat', '將來', 'GPA', 'which major?', '唔知', 'should I', 'behind', 'notifications', '比較', 'new campus', 'seen 11:47pm', 'internship?', '一個人'];
+/* ----- welcome: four calm screens on first sign-in -----
+   Shown once per account, before any tab. "Seen" is kept on the account
+   (settings.welcome_seen once the welcome migration is live; until then the
+   older settings.onboarded), never in browser storage. Words live in welcome.ts. */
+const DEV = process.env.NODE_ENV !== 'production';
+// Development only: /app?onboarding=1 shows the welcome again, for demos and testing.
+let replayWelcome = DEV && new URLSearchParams(location.search).get('onboarding') === '1';
+let welcomeSupported = false; // the account can store welcome_seen and the answers
+const needsWelcome = () => replayWelcome || (welcomeSupported ? !S.welcomeSeen : !S.onboarded);
+const W = { step: 0, shown: -1, reasons: new Set(), other: '', voice: null, ready: false, timer: 0 };
+const ART = {
+  write: `<svg viewBox="0 0 120 90" ${HAND}><path d="M88 13c-5 1.5-8 6.5-6.6 11.5 1.3 4.9 6.3 7.8 11.3 6.7-3 3-8 4-12.2 2-6-2.9-8.3-10-5.2-15.5 2.2-4 6.7-6 11-5.2"/><path d="M60 41c-10-6-24-7.4-38-4.2v32c14-3.2 28-1.8 38 4.2 10-6 24-7.4 38-4.2v-32c-14-3.2-28-1.8-38 4.2Z"/><path d="M60 41v32"/><path d="M29 47.5c7.5-1.2 15-.9 22.6 1M29 54.5c7.5-1.2 15-.9 22.6 1M29 61.5c5-.8 10-.7 15 .3"/><path d="M71 62l19-23.5 4.4 3.4-19 23.5-6.6 2.3Z"/><path d="M104 32l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1Z"/><path d="M18 22l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7Z"/></svg>`,
+  letter: `<svg viewBox="0 0 120 90" ${HAND}><path d="M14 72h92"/><path d="M30 72a30 30 0 0 1 60 0" stroke-dasharray="2 5"/><path d="M60 33v-9M37 41l-6-6M83 41l6-6M24 58h-8M96 58h8"/><path d="M39 47.5c14-.6 28-.6 42 0 .5 8 .4 16-.2 24.3-13.8.5-27.6.5-41.4 0-.6-8.2-.8-16.2-.4-24.3Z"/><path d="M39.6 48.6c6.6 5 13.4 9.6 20.4 13.7 7-4.1 13.8-8.7 20.3-13.8"/><path d="M60 57.6c2.5 0 4.4 2 4.3 4.4 0 2.4-2 4.3-4.4 4.3-2.4 0-4.3-2-4.2-4.4 0-2.4 2-4.3 4.3-4.3Z"/></svg>`,
+  grow: `<svg viewBox="0 0 120 90" ${HAND}><path d="M60 40.5c4.4 0 8 3.6 7.9 8 0 4.4-3.7 7.9-8.1 7.8-4.3-.1-7.8-3.7-7.7-8 .1-4.3 3.6-7.8 7.9-7.8Z"/><path d="M31 26.5c2.6 0 4.7 2.1 4.6 4.7 0 2.6-2.2 4.6-4.8 4.6-2.5 0-4.6-2.2-4.5-4.7.1-2.5 2.2-4.6 4.7-4.6ZM93 23c3.1 0 5.6 2.5 5.5 5.6 0 3.1-2.6 5.5-5.7 5.5-3 0-5.5-2.6-5.4-5.6.1-3 2.6-5.5 5.6-5.5ZM97 63c2.2 0 4 1.8 3.9 4 0 2.2-1.8 3.9-4 3.9-2.1 0-3.9-1.8-3.8-4 0-2.1 1.8-3.9 3.9-3.9ZM26 63.5c2.8 0 5 2.3 4.9 5 0 2.8-2.3 5-5.1 4.9-2.7 0-4.9-2.3-4.8-5 .1-2.7 2.3-4.9 5-4.9Z"/><path d="M53.5 44.5 35.5 33.5M66.8 44l21.4-12.6M67 53l25.5 12M53 53.5 30.5 65.5" stroke-dasharray="2 4"/><path d="M75 13l.9 2.3 2.3.9-2.3.9-.9 2.3-.9-2.3-2.3-.9 2.3-.9Z"/></svg>`,
+  shield: `<svg viewBox="0 0 64 64" ${HAND}><path d="M32 6.5c6.6 2.9 13.3 5 20.2 6.4.6 6 .5 11.6-.3 16.9-2 12.3-9.2 21.3-19.9 27.7-10.7-6.4-17.9-15.4-19.9-27.7-.8-5.3-.9-10.9-.3-16.9 6.9-1.4 13.6-3.5 20.2-6.4Z"/><path d="M32 23.5c3 0 5.4 2.4 5.3 5.4 0 2.9-2.4 5.3-5.4 5.2-2.9 0-5.2-2.4-5.2-5.3.1-2.9 2.4-5.3 5.3-5.3Z"/><path d="M32 34.2v9.6"/></svg>`,
+  lock: `<svg viewBox="0 0 24 24" ${HAND}><path d="M6.4 10.6c3.7-.3 7.5-.3 11.2 0 .3 3.2.3 6.4 0 9.6-3.7.3-7.5.3-11.2 0-.3-3.2-.3-6.4 0-9.6Z"/><path d="M8.6 10.4V8c0-2 1.5-3.6 3.4-3.6 1.9 0 3.4 1.6 3.4 3.6v2.4"/></svg>`,
+  seal: `<svg viewBox="0 0 24 24" ${HAND}><path d="M3.4 6.2c5.8-.5 11.5-.6 17.3-.1.4 4 .3 8 .1 11.9-5.8.4-11.5.4-17.2 0-.4-3.9-.5-7.9-.2-11.8Z"/><path d="M3.8 6.7c2.6 2.3 5.3 4.4 8.3 6.3 2.9-1.9 5.6-4 8.2-6.4"/></svg>`,
+  memory: `<svg viewBox="0 0 24 24" ${HAND}><path d="M12.2 3.2c.6 4.1 2.2 6.3 6.6 7.3-4.3.9-6 3-6.7 7.8-.7-4.5-2.4-6.8-6.9-7.6 4.4-1 6.3-3.2 7-7.5Z"/></svg>`,
+  clear: `<svg viewBox="0 0 24 24" ${HAND}><path d="M4.5 6.8h15M9.3 6.6V4.8c1.8-.3 3.6-.3 5.4 0v1.8"/><path d="M6.4 7c.3 4.3.6 8.6 1.1 12.9 2.9.3 5.8.3 8.8 0 .5-4.3.8-8.6 1.1-12.9"/></svg>`,
+};
+function welcomeOk() {
+  if (W.step === 0) return W.ready;
+  if (W.step === 1) return W.reasons.size > 0 || !!W.other.trim();
+  if (W.step === 2) return !!W.voice;
+  return W.ready;
+}
 function vWelcome() {
-  if (welcomeStep === 0) {
-    const r = seeded('beyond-noise');
-    const words = NOISE.map((w) => `<span style="left:${(r() * 86).toFixed(1)}%;top:${(r() * 62).toFixed(1)}%;--s:${(18 + r() * 34).toFixed(0)}px;--r:${((r() - .5) * 14).toFixed(1)}deg;--t:${(6 + r() * 6).toFixed(1)}s;--dl:${(-r() * 6).toFixed(1)}s;--dx:${((r() - .5) * 40).toFixed(0)}px;--dy:${((r() - .5) * 30).toFixed(0)}px">${esc(w)}</span>`).join('');
-    after.push(() => setTimeout(() => $('.welcome')?.classList.add('is-quiet'), 1800));
-    return `<section class="welcome">
-      <div class="noise" aria-hidden="true">${words}</div>
-      <p class="brand-line">${I.moon}<span>Beyond, a journal that writes back in the morning</span></p>
-      <h1 class="display">Write tonight. Nothing replies. A letter arrives in the morning.</h1>
-      <ol class="how">
-        <li><b>Journal</b>Write or just talk about whatever is on your mind. No feed, no likes, no reply.</li>
-        <li><b>Overnight</b>It's sealed. Claude reads it next to your earlier nights.</li>
-        <li><b>Morning</b>A short letter, and three small to-dos you can tick off.</li>
-      </ol>
-      <div class="row"><button class="btn amber" data-act="start-own">Start my journal</button></div>
-      ${demoOn() ? `<p class="mode-note">You’re in <b>Demo mode</b>: Kit’s fictional letters are shown next to yours. To use Beyond just for yourself, switch to Normal mode in Settings.</p>` : ''}
-      <p class="fine">${OFFLINE ? 'Offline trial: letters here are simple templates. The online version writes them with Claude.' : LOCAL ? (isGuest() ? 'Judge preview: you have your own empty journal, and Claude writes your letters.' : 'Letters are written by Claude. Your journal is saved to your Beyond account, private to you.') : 'Letters are written by Claude on your own claude.ai account. Your journal stays in this browser.'}</p>
-    </section>`;
+  const n = W.step; const pct = (n + 1) * 25; const from = W.shown >= 0 && W.shown !== n ? (W.shown + 1) * 25 : pct;
+  const entering = W.shown !== n; W.shown = n;
+  if (entering) { clearTimeout(W.timer); W.ready = false; if (n === 0 || n === 3) W.timer = setTimeout(() => { W.ready = true; paintWelcome(); }, 3000); }
+  after.push(() => {
+    const bar = $('.onb-bar i'); if (bar) requestAnimationFrame(() => { bar.style.width = `${pct}%`; });
+    if (n === 1) $('#onb-other')?.addEventListener('input', (e) => { W.other = e.target.value; paintWelcome(); });
+    $('.onb-body h1')?.focus({ preventScroll: true });
+  });
+  let body = '';
+  if (n === 0) {
+    body = `<h1 class="onb-t" tabindex="-1">How Beyond works</h1>
+      <ol class="onb-steps">${WELCOME_STEPS.map((st, i) => `<li style="--d:${(0.25 + i * 1).toFixed(2)}s"><span class="onb-art" aria-hidden="true">${[ART.write, ART.letter, ART.grow][i]}</span><span class="onb-num">${i + 1}</span><b>${st.title}</b><span>${st.text}</span></li>`).join('')}</ol>`;
+  } else if (n === 1) {
+    body = `<h1 class="onb-t" tabindex="-1">What brings you here?</h1><p class="onb-sub">Choose any that fit.</p>
+      <div class="onb-opts" role="group" aria-label="What brings you here?">${WELCOME_REASONS.map((r) => `<button class="onb-opt" data-onb-reason="${r.key}" role="checkbox" aria-checked="${W.reasons.has(r.key)}"><i aria-hidden="true">${I.check}</i><span>${r.label}</span></button>`).join('')}</div>
+      <div class="onb-other" ${W.reasons.has('other') ? '' : 'hidden'}><label class="sr-only" for="onb-other">Something else</label><input id="onb-other" class="login-in" maxlength="${WELCOME_OTHER_MAX}" placeholder="Tell us in your own words" value="${esc(W.other)}" autocomplete="off"></div>`;
+  } else if (n === 2) {
+    body = `<h1 class="onb-t" tabindex="-1">Who writes back each morning?</h1>
+      <div class="onb-voices" role="radiogroup" aria-label="Who writes back each morning?">${WELCOME_VOICES.map((v) => `<button class="onb-voice" data-onb-voice="${v.key}" role="radio" aria-checked="${W.voice === v.key}"><b>${v.name}</b><span>${v.desc}</span><i>“${esc(v.example)}”</i></button>`).join('')}</div>
+      <p class="fine onb-foot-note">Only the tone changes. You can switch anytime in Settings.</p>`;
+  } else {
+    body = `<span class="onb-shield" aria-hidden="true">${ART.shield}</span>
+      <h1 class="onb-t" tabindex="-1">${WELCOME_PRIVACY.title}</h1>
+      <ul class="onb-privacy">${WELCOME_PRIVACY.items.map((it) => `<li><span class="onb-ico" aria-hidden="true">${ART[it.icon]}</span><span><b>${it.title}</b> ${it.text}</span></li>`).join('')}</ul>
+      <p class="fine onb-note">${WELCOME_PRIVACY.note}</p>`;
   }
-  return `<section class="welcome" style="align-content:center">
-    <p class="lead">One choice before tonight.</p>
-    <h1 class="display" style="max-width:18ch">Who should write your morning letters?</h1>
-    <div class="voices" role="group" aria-label="Letter voice">${voiceCards()}</div>
-    <p class="fine">The voice changes the tone only. Every letter quotes your exact words and never invents anything. You can change this later.</p>
-    <div class="row"><button class="btn amber" data-act="finish-welcome">Start writing</button></div>
-  </section>`;
+  const ok = welcomeOk();
+  return `<section class="onb" data-step="${n}">
+      <div class="onb-bar" role="progressbar" aria-label="Welcome progress" aria-valuemin="1" aria-valuemax="4" aria-valuenow="${n + 1}"><i style="width:${from}%"></i></div>
+      <p class="onb-count">${n + 1} of 4</p>
+      <div class="onb-body">${body}</div>
+      <div class="onb-actions">${n < 3
+        ? `<button class="btn amber onb-next" data-act="onb-next" ${ok ? '' : 'disabled aria-disabled="true"'}>Next${I.right}</button>`
+        : `<button class="btn amber onb-ready ${ok ? 'is-shown' : ''}" data-act="onb-done" ${ok ? '' : 'disabled aria-disabled="true" tabindex="-1"'}>I’m ready</button>`}</div>
+    </section>`;
+}
+/* Light the Next (or I'm ready) button without redrawing the screen, so nothing replays. */
+function paintWelcome() {
+  if (route !== 'welcome') return;
+  const ok = welcomeOk();
+  const btn = $('.onb-next, .onb-ready'); if (!btn) return;
+  btn.disabled = !ok; if (ok) btn.removeAttribute('aria-disabled'); else btn.setAttribute('aria-disabled', 'true');
+  if (btn.classList.contains('onb-ready')) { btn.classList.toggle('is-shown', ok); if (ok) btn.removeAttribute('tabindex'); }
+}
+function finishWelcome() {
+  clearTimeout(W.timer);
+  S.onboarded = true;
+  if (welcomeSupported) {
+    // Kept on the account for the team. TODO: these answers could later shape the welcome
+    // letter or prompts, but they are not sent to the letter writer today (the Privacy page
+    // lists exactly what is), and they are not shown as a memory.
+    S.welcomeSeen = true;
+    S.welcomeReasons = WELCOME_REASONS.map((r) => r.key).filter((k) => W.reasons.has(k));
+    const other = W.reasons.has('other') ? W.other.trim().slice(0, WELCOME_OTHER_MAX) : '';
+    S.welcomeOther = other || null;
+  }
+  save();
+  if (replayWelcome) { replayWelcome = false; try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* fine */ } }
+  W.step = 0; W.shown = -1; W.reasons = new Set(); W.other = ''; W.voice = null;
+  identArrive = true;
+  go('identity');
 }
 function voiceCards() {
   return Object.entries(VOICES).map(([k, v]) => `<button class="voice" data-voice="${k}" aria-pressed="${S.voice === k}"><b>${v.name}</b><span>${v.desc}</span><i>“${esc(v.example)}”</i></button>`).join('');
@@ -1299,6 +1369,7 @@ function drawSky() {
 }
 
 /* --- Identity: who you might become --- */
+let identArrive = false; // straight after the welcome: the centre glows first, then the directions
 let identVeiled = false; let identFocus = null; let identRaf = 0; let identRevealAt = 0; let identHover = null;
 function directions() {
   const list = keptLetters();
@@ -1367,9 +1438,10 @@ function vIdentity() {
   const n = nightsToFirst(all); const kept = keptLetters().length;
   const max = Math.max(1, ...visible.map((d) => d.days));
   after.push(() => startBubbles(visible));
+  if (identArrive) after.push(() => { identArrive = false; });
   // home: the constellation comes first, with no heading or veil in front of it
   return `<h1 class="sr-only">Identity</h1>
-    <section class="ident" aria-label="Your directions">
+    <section class="ident ${identArrive ? 'is-arriving' : ''}" aria-label="Your directions">
       ${visible.length ? `<div class="stage ${identVeiled ? 'is-veiled' : ''} ${f ? 'has-focus' : ''}" id="stage">
         <canvas class="stage-sky" aria-hidden="true"></canvas>
         <div class="parallax"><div class="stage-layer"><svg class="stage-links" aria-hidden="true"></svg></div></div>
@@ -1768,6 +1840,17 @@ document.addEventListener('click', async (ev) => {
     const m = $(`#q-${d.q}`); if (m) { m.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'center' }); m.classList.add('is-flash'); setTimeout(() => m.classList.remove('is-flash'), 1600); } return;
   }
   if (d.private) { const L = findLetter(d.private); const next = !L.private; patchLetter(L.id, { private: next }); toast(next ? 'Kept out of Patterns. The letter stays here.' : 'This night is back in Patterns.'); return render(); }
+  if (d.onbReason) {
+    const k = d.onbReason; if (W.reasons.has(k)) W.reasons.delete(k); else W.reasons.add(k);
+    el.setAttribute('aria-checked', String(W.reasons.has(k)));
+    if (k === 'other') { const box = $('.onb-other'); if (box) { box.hidden = !W.reasons.has('other'); if (!box.hidden) $('#onb-other')?.focus(); } }
+    return paintWelcome();
+  }
+  if (d.onbVoice) {
+    W.voice = d.onbVoice; S.voice = d.onbVoice; save(); // the same letter-voice setting Settings shows
+    document.querySelectorAll('[data-onb-voice]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.onbVoice === W.voice)));
+    return paintWelcome();
+  }
   if (d.jthemePick) { setJournalTheme(d.jthemePick); return render(); }
   if (d.presentOpen) return closePresent(d.presentOpen);
   if (d.presentLater !== undefined) return closePresent();
@@ -1782,7 +1865,8 @@ document.addEventListener('click', async (ev) => {
   if (d.login) { loginMode = d.login; loginNote = ''; return render(); }
   if (d.copy) { try { await navigator.clipboard.writeText(d.copy); toast(`Copied ${d.copy}`); } catch (e) { const r = document.createRange(); r.selectNodeContents(el.parentElement.querySelector('b')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } return; }
   switch (d.act) {
-    case 'start-own': welcomeStep = 1; return render();
+    case 'onb-next': if (!welcomeOk()) return; W.step = Math.min(3, W.step + 1); render(); window.scrollTo(0, 0); return;
+    case 'onb-done': if (!welcomeOk()) return; return finishWelcome();
     case 'toggle-early': S.allowEarly = S.allowEarly === false; save(); toast(S.allowEarly ? '“Read it now” is on.' : 'Letters will wait for the morning.'); return render();
     case 'mem-pause': S.memoryPaused = !S.memoryPaused; save(); toast(S.memoryPaused ? 'Memory paused. Letters won’t use it.' : 'Memory is on again.'); return render();
     case 'export': return exportJournal();
@@ -1792,7 +1876,6 @@ document.addEventListener('click', async (ev) => {
     case 'delete-account': confirmAccount = true; return render();
     case 'delete-account-no': confirmAccount = false; return render();
     case 'delete-account-yes': el.disabled = true; return deleteAccount();
-    case 'finish-welcome': S.onboarded = true; save(); return go('tonight');
     case 'ui-lang': setUiLang(uiLang() === 'zh' ? 'en' : 'zh'); return render();
     case 'own': S.mode = 'own'; save(); toast('Normal mode: just your own journal. Demo mode is in Settings.'); pMonth = null; return render();
     case 'arch-gold': arch.gold = !arch.gold; return refreshArchive();
@@ -1848,7 +1931,7 @@ window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() =
 
 /* ---------- boot ---------- */
 function start() {
-  if (S.onboarded && ['welcome', 'login'].includes(route)) route = 'identity';
+  if (!needsWelcome() && ['welcome', 'login'].includes(route)) route = 'identity';
   if (route === 'login') route = 'identity';
   render(); stateReady = true;
   setTimeout(presentLetters, 700);
@@ -1860,17 +1943,22 @@ let synced = null; // settings as the server last confirmed them
 let ACCOUNT = { deletion: false, letters: false, voice: false };
 let syncing = false; let syncAgain = false;
 const SETTING_FIELDS = [['voice', 'voice'], ['lang', 'letter_language'], ['deliverTime', 'delivery_time'], ['allowEarly', 'allow_early'], ['memoryPaused', 'memory_paused'], ['onboarded', 'onboarded'], ['dirs', 'directions']];
-const settingValue = (k) => (k === 'dirs' ? { ...(S.dirs || {}) } : k === 'allowEarly' ? S.allowEarly !== false : k === 'memoryPaused' || k === 'onboarded' ? !!S[k] : S[k]);
+const WELCOME_FIELDS = [['welcomeSeen', 'welcome_seen'], ['welcomeReasons', 'welcome_reasons'], ['welcomeOther', 'welcome_other']];
+const settingFields = () => (welcomeSupported ? [...SETTING_FIELDS, ...WELCOME_FIELDS] : SETTING_FIELDS);
+const settingValue = (k) => (k === 'dirs' ? { ...(S.dirs || {}) } : k === 'allowEarly' ? S.allowEarly !== false : k === 'memoryPaused' || k === 'onboarded' || k === 'welcomeSeen' ? !!S[k]
+  : k === 'welcomeReasons' ? [...(S.welcomeReasons || [])] : k === 'welcomeOther' ? S.welcomeOther || null : S[k]);
 function applySettings(s) {
   synced = s;
   S.voice = s.voice; S.lang = s.letter_language; S.deliverTime = s.delivery_time; S.allowEarly = s.allow_early;
   S.memoryPaused = s.memory_paused; S.onboarded = s.onboarded; S.dirs = { ...(s.directions || {}) };
+  welcomeSupported = typeof s.welcome_seen === 'boolean';
+  S.welcomeSeen = !!s.welcome_seen; S.welcomeReasons = [...(s.welcome_reasons || [])]; S.welcomeOther = s.welcome_other ?? null;
 }
 async function syncSettings() {
   if (!synced) return;
   if (syncing) { syncAgain = true; return; }
   const patch = {};
-  for (const [k, f] of SETTING_FIELDS) { const v = settingValue(k); if (JSON.stringify(v) !== JSON.stringify(synced[f])) patch[f] = v; }
+  for (const [k, f] of settingFields()) { const v = settingValue(k); if (JSON.stringify(v) !== JSON.stringify(synced[f])) patch[f] = v; }
   if (!Object.keys(patch).length) return;
   syncing = true;
   try { synced = await backend.updateSettings(patch, synced.revision); }
@@ -1994,7 +2082,7 @@ async function refresh() {
       const [letters, memories, notes] = await Promise.all([backend.letters(), backend.memories(), backend.notes()]);
       S.letters = letters.map(toLetter); S.memories = memories.map(toMemory); S.notes = toNotes(notes);
       const changed = before !== JSON.stringify(S.letters.map((l) => [l.id, l.status, l.revision])) || deliveredBefore !== S.letters.filter(delivered).length;
-      const busy = document.querySelector('.ascend, .overnight, .sheet-wrap') || (route === 'tonight' && $('#entry') && document.activeElement === $('#entry')) || (document.activeElement?.id === 'arch-q') || memEditing;
+      const busy = route === 'welcome' || document.querySelector('.ascend, .overnight, .sheet-wrap') || (route === 'tonight' && $('#entry') && document.activeElement === $('#entry')) || (document.activeElement?.id === 'arch-q') || memEditing;
       if (changed && !busy) { render(); presentLetters(); }
     } catch (e) { /* offline for a moment: keep what's here */ }
     refreshing = null;
@@ -2041,7 +2129,7 @@ async function submitReauth(f) {
   } catch (e) { btn.disabled = false; toast('That password didn’t work.'); }
 }
 async function clearJournal() {
-  const keep = { voice: S.voice, letter_language: S.lang, delivery_time: S.deliverTime, allow_early: S.allowEarly !== false, onboarded: true };
+  const keep = { voice: S.voice, letter_language: S.lang, delivery_time: S.deliverTime, allow_early: S.allowEarly !== false, onboarded: true, ...(welcomeSupported ? { welcome_seen: true } : {}) };
   try {
     await backend.clearAll();
     confirmDelete = false;

@@ -50,6 +50,9 @@ const db = {
     allow_early: true,
     onboarded: false,
     directions: {},
+    welcome_seen: false,
+    welcome_reasons: [],
+    welcome_other: null,
     revision: 1,
     updated_at: now(),
   },
@@ -370,20 +373,83 @@ try {
   check(true, 'a wrong password is refused without saying whether the account exists');
   await page.fill('#password', 'fictional-password');
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await page.getByRole('button', { name: 'Start my journal' }).waitFor();
+  console.log('welcome');
+  const next = page.locator('.onb-next');
+  const step = async () => ({
+    label: (await page.locator('.onb-count').innerText()).trim(),
+    bar: await page.locator('.onb-bar').getAttribute('aria-valuenow'),
+  });
+  await page.getByRole('heading', { name: 'How Beyond works' }).waitFor();
   await shot(page, '02-welcome');
-
-  console.log('onboarding');
-  await page.getByRole('button', { name: 'Start my journal' }).click();
-  await page.getByText('Who should write your morning letters?').waitFor();
-  await page.locator('[data-voice="mentor"]').click();
-  await page.getByRole('button', { name: 'Start writing' }).click();
-  await page.locator('#entry').waitFor();
+  let at = await step();
+  check(at.label === '1 of 4' && at.bar === '1', 'the welcome opens on screen 1 of 4');
+  check(await next.isDisabled(), 'Next waits while the three steps appear');
+  check(!(await page.locator('.topbar').count()), 'the welcome comes before any tab');
+  await page.waitForFunction(() => !document.querySelector('.onb-next')?.disabled, null, {
+    timeout: 6000,
+  });
+  check(true, 'Next lights up once all three steps are shown');
+  await next.click();
+  await page.getByRole('heading', { name: 'What brings you here?' }).waitFor();
+  at = await step();
+  check(at.label === '2 of 4' && at.bar === '2', 'screen 2 of 4');
+  check(await next.isDisabled(), 'Next waits for an answer');
+  await page.locator('[data-onb-reason="other"]').click();
+  check(
+    !(await next.isDisabled()) && (await page.locator('#onb-other').isVisible()),
+    '“Something else” counts as a choice and opens a box',
+  );
+  await page.fill('#onb-other', 'Fictional: a new city');
+  check(!(await next.isDisabled()), 'words in the box are enough');
+  await page.fill('#onb-other', '   ');
+  await page.locator('[data-onb-reason="mind"]').click();
+  await page.locator('[data-onb-reason="write"]').click();
+  check(
+    !(await next.isDisabled()) &&
+      (await page.locator('.onb-opt[aria-checked="true"]').count()) === 3,
+    'several answers can be chosen',
+  );
+  await page.fill('#onb-other', 'Fictional: a new city');
+  await next.click();
+  await page.getByRole('heading', { name: 'Who writes back each morning?' }).waitFor();
+  at = await step();
+  check(at.label === '3 of 4' && at.bar === '3', 'screen 3 of 4');
+  check(
+    (await next.isDisabled()) && !(await page.locator('.onb-voice[aria-checked="true"]').count()),
+    'no voice is chosen for you',
+  );
+  check(
+    !(await page.getByText('never invents').count()) &&
+      (await page.getByText('Just the notes').isVisible()),
+    'screen 3 has the new wording',
+  );
+  await page.locator('[data-onb-voice="mentor"]').click();
+  check(!(await next.isDisabled()), 'choosing a voice lights up Next');
+  await next.click();
+  await page.getByRole('heading', { name: 'What you write stays yours.' }).waitFor();
+  at = await step();
+  check(at.label === '4 of 4' && at.bar === '4', 'screen 4 of 4');
+  check(!(await page.locator('.onb-next').count()), 'the last screen has no Next');
+  check(!(await page.locator('.onb-ready.is-shown').count()), '“I’m ready” waits a moment');
+  await page.locator('.onb-ready.is-shown').waitFor({ timeout: 6000 });
+  await shot(page, '02b-privacy');
+  await page.getByRole('button', { name: 'I’m ready' }).click();
+  await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
   await sleep(700);
   check(
-    db.settings.voice === 'mentor' && db.settings.onboarded === true,
-    'voice and onboarding are saved to the account',
+    db.settings.welcome_seen === true &&
+      db.settings.onboarded === true &&
+      db.settings.voice === 'mentor' &&
+      JSON.stringify(db.settings.welcome_reasons) === '["mind","write","other"]' &&
+      db.settings.welcome_other === 'Fictional: a new city',
+    'the welcome, the voice and the answers are saved to the account',
   );
+  check(!db.memories.some((m) => m.text.includes('new city')), 'the answers are not a memory');
+  await page.reload();
+  await page.locator('.topbar').waitFor();
+  check(!(await page.locator('.onb').count()), 'after a reload the welcome does not come back');
+  await page.locator('.tab[data-go="tonight"]').click();
+  await page.locator('#entry').waitFor();
   check(
     (await page.locator('.tn-head .tn-date').isVisible()) &&
       (await page.locator('.tn-head #prompt').isVisible()) &&
@@ -578,6 +644,24 @@ try {
     file.suggestedFilename().startsWith('beyond-journal-'),
     'Download a copy exports the account',
   );
+
+  console.log('tabs open at the top');
+  await page.locator('.gear-btn[data-go="settings"]').click();
+  await sleep(300);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await sleep(250);
+  const scrolled = await page.evaluate(() => window.scrollY);
+  await page.locator('.tab[data-go="letters"]').click();
+  await sleep(300);
+  check(
+    scrolled > 200 && (await page.evaluate(() => window.scrollY)) === 0,
+    'switching tabs always opens the new tab at the top',
+  );
+  await page.evaluate(() => window.scrollTo(0, 400));
+  await sleep(150);
+  await page.locator('.gear-btn[data-go="settings"]').click();
+  await sleep(300);
+  check((await page.evaluate(() => window.scrollY)) === 0, 'Settings opens at the top');
 
   console.log('demo mode');
   await page.locator('[data-act="toggle-sample"]').click();
