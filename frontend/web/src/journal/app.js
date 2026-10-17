@@ -1554,7 +1554,7 @@ function vSettings() {
       <p class="fine">Beyond starts in Demo mode, for showing it to others such as judges. Kit is fictional; the sample letters show what months of Beyond look like. A night you seal is saved to your account and its letter is written by the AI, in both modes. Turn Demo mode off for Normal mode, just your own journal.</p>
     </div></section>
     <section class="spread" id="look"><h2 class="sec">Colours</h2><div class="stack">
-      <div class="jthemes" role="group" aria-label="Colour theme">${JOURNAL_THEMES.map((t) => `<button class="jtheme" data-jtheme-pick="${t.id}" aria-pressed="${journalTheme() === t.id}"><span class="jtheme-sw" style="--sw:${themeSwatch(t.bands)}" aria-hidden="true"></span><b>${t.name}</b><span>${t.note}</span></button>`).join('')}</div>
+      <div class="jthemes" role="group" aria-label="Colour theme">${JOURNAL_THEMES.map((t) => `<button class="jtheme" data-jtheme-pick="${t.id}" aria-pressed="${journalTheme() === t.id}" aria-label="${t.name}" title="${t.note}"><span class="jtheme-dot" style="--sw:${themeSwatch(t.bands)}" aria-hidden="true"></span><span class="jtheme-name">${t.name}</span></button>`).join('')}</div>
       <p class="fine">Only changes how Beyond looks on this device.</p>
     </div></section>
     <section class="spread" id="letters-settings"><h2 class="sec">Letters</h2><div class="stack">

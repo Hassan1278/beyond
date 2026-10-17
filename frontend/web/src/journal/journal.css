@@ -275,26 +275,27 @@ label.btn { display: inline-flex; }
 .tn-tools { display: flex; flex-wrap: wrap; gap: 10px 26px; align-items: center; justify-content: center; flex: 1 1 100%; }
 .tn-foot { font-size: 14px; color: var(--faint); }
 @media (max-width: 520px) { .tn-bar > .btn { flex: 1 1 100%; } }
-/* Skip to morning: a quiet demo control at the bottom right, there only while a letter waits */
-.skip-morning { position: fixed; right: var(--gutter); bottom: calc(28px + env(safe-area-inset-bottom, 0px)); z-index: 15; display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px 10px 18px; border-radius: 999px;
+/* Skip to morning: a quiet demo control at the bottom left, there only while a letter waits */
+.skip-morning { position: fixed; left: var(--gutter); bottom: calc(28px + env(safe-area-inset-bottom, 0px)); z-index: 15; display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px 10px 18px; border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--fg) 16%, transparent); background: color-mix(in srgb, var(--bg) 70%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   color: var(--soft); font-size: 14px; font-weight: 500; transition: color .2s, border-color .2s, transform .3s var(--ease); animation: fadeup .6s var(--ease) both; }
 .skip-morning svg { width: 16px; height: 16px; transition: transform .3s var(--ease); }
 .skip-morning:hover { color: var(--fg); border-color: color-mix(in srgb, var(--amber) 55%, transparent); }
 .skip-morning:hover svg { transform: translateX(3px); }
 .skip-morning:disabled { opacity: .5; }
-@media (max-width: 720px) { .skip-morning { position: static; justify-self: end; margin-top: 4px; } }
+@media (max-width: 720px) { .skip-morning { position: static; justify-self: start; margin-top: 4px; } }
 .tn-failed { width: 100%; text-align: left; font-size: 14px; color: var(--soft); }
 
-/* Settings: colour themes */
-.jthemes { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
-.jtheme { display: grid; justify-items: start; align-content: start; gap: 4px; padding: 14px; border-radius: 12px; text-align: left; background: color-mix(in srgb, var(--night-2) 70%, transparent);
-  border: 1px solid var(--line); color: var(--fg); transition: border-color .2s, transform .3s var(--ease); }
-.jtheme:hover { border-color: color-mix(in srgb, var(--amber) 45%, var(--line)); }
-.jtheme[aria-pressed="true"] { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber) inset; }
-.jtheme-sw { width: 100%; height: 44px; border-radius: 8px; background: var(--sw); border: 1px solid color-mix(in srgb, var(--fg) 14%, transparent); margin-bottom: 6px; }
-.jtheme b { font: 400 18px/1.2 var(--f-display); }
-.jtheme span:last-child { font-size: 13px; color: var(--soft); }
+/* Settings: colour themes, as round swatches */
+.jthemes { display: flex; flex-wrap: wrap; justify-content: center; gap: 22px 30px; }
+.jtheme { display: grid; justify-items: center; gap: 10px; padding: 0; border: 0; background: none; color: var(--soft); }
+.jtheme-dot { width: 58px; height: 58px; border-radius: 50%; background: var(--sw); box-shadow: 0 0 0 1px color-mix(in srgb, var(--fg) 18%, transparent), 0 6px 16px -8px rgba(0,0,0,.6);
+  outline: 2px solid transparent; outline-offset: 5px; transition: outline-color .2s, transform .3s var(--ease); }
+.jtheme:hover .jtheme-dot { transform: scale(1.06); }
+.jtheme[aria-pressed="true"] .jtheme-dot { outline-color: var(--amber); }
+.jtheme-name { font-size: 14px; font-weight: 500; }
+.jtheme[aria-pressed="true"] .jtheme-name { color: var(--fg); }
+#look .fine { text-align: center; }
 
 /* A letter arrives as a present */
 .present { position: fixed; inset: 0; z-index: 85; display: grid; place-items: center; padding: 24px; }

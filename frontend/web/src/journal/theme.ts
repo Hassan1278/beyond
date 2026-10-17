@@ -68,5 +68,6 @@ export function setJournalTheme(next: string): void {
   applyJournalTheme();
 }
 
+/** A round swatch: the night on one side, the accent, and a slice of the paper. */
 export const themeSwatch = ([a, b, c]: [string, string, string]): string =>
-  `linear-gradient(135deg, ${a} 0 38%, ${b} 38% 62%, ${c} 62% 100%)`;
+  `conic-gradient(from 200deg, ${a} 0 50%, ${b} 50% 78%, ${c} 78% 100%)`;

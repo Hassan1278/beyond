@@ -421,7 +421,10 @@ try {
   console.log('write again the same night');
   await page.fill('#entry', LATER_WORDS);
   await page.getByRole('button', { name: 'Seal tonight' }).click();
-  await page.waitForFunction(() => !document.querySelector('.ascend'), null, { timeout: 20000 });
+  // wait for the second seal to reach the server, then for the page to come back
+  for (let t = 0; t < 100 && !(db.letters.length === 1 && db.entries[0].revision === 2); t++)
+    await sleep(100);
+  await page.locator('.ascend').waitFor({ state: 'detached', timeout: 20000 });
   await page.locator('.skip-morning').waitFor();
   check(
     db.letters.length === 1 &&
