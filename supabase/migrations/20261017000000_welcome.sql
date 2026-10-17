@@ -5,20 +5,25 @@
 -- their settings, removed with the settings row by clearing and account deletion,
 -- and never part of any letter or note context (those read named settings only).
 -- Existing accounts start with welcome_seen = false, so they see the new welcome once.
+--
+-- letter_name is what the person's letters call them. The app fills it into the letter
+-- after it is written; it is never part of the letter writer's input.
 
 ALTER TABLE public.user_settings
   ADD COLUMN welcome_seen boolean NOT NULL DEFAULT false,
   ADD COLUMN welcome_reasons text[] NOT NULL DEFAULT '{}'
-    CHECK (welcome_reasons <@ ARRAY['want','mind','behind','write','other']::text[] AND cardinality(welcome_reasons) <= 5),
+    CHECK (welcome_reasons <@ ARRAY['want','mind','behind','write','lookback','other']::text[] AND cardinality(welcome_reasons) <= 6),
   ADD COLUMN welcome_other text
-    CHECK (welcome_other IS NULL OR char_length(welcome_other) BETWEEN 1 AND 150);
-GRANT SELECT (welcome_seen, welcome_reasons, welcome_other) ON public.user_settings TO authenticated;
+    CHECK (welcome_other IS NULL OR char_length(welcome_other) BETWEEN 1 AND 150),
+  ADD COLUMN letter_name text
+    CHECK (letter_name IS NULL OR char_length(letter_name) BETWEEN 1 AND 40);
+GRANT SELECT (welcome_seen, welcome_reasons, welcome_other, letter_name) ON public.user_settings TO authenticated;
 
 CREATE OR REPLACE FUNCTION private.settings_resource(p public.user_settings) RETURNS jsonb LANGUAGE sql STABLE SET search_path = '' AS $$
  SELECT jsonb_build_object('timezone',p.timezone,'morning_time',p.morning_time,'voice',p.voice,'memory_paused',p.memory_paused,
  'reflection_enabled',false,'letter_language',p.letter_language,'delivery_time',p.delivery_time,'allow_early',p.allow_early,
  'onboarded',p.onboarded,'directions',p.directions,
- 'welcome_seen',p.welcome_seen,'welcome_reasons',to_jsonb(p.welcome_reasons),'welcome_other',p.welcome_other,
+ 'welcome_seen',p.welcome_seen,'welcome_reasons',to_jsonb(p.welcome_reasons),'welcome_other',p.welcome_other,'letter_name',p.letter_name,
  'revision',p.revision,'updated_at',to_char(p.updated_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"'));
 $$;
 
@@ -26,7 +31,7 @@ CREATE OR REPLACE FUNCTION public.settings_update(p_patch jsonb, p_expected_revi
 DECLARE v_uid uuid := private.writing_active_uid(); v_row public.user_settings; v_dirs jsonb; v_reasons jsonb;
 BEGIN
  IF p_patch IS NULL OR jsonb_typeof(p_patch) <> 'object' OR p_patch = '{}'::jsonb
- OR EXISTS (SELECT 1 FROM jsonb_object_keys(p_patch) k WHERE k NOT IN ('timezone','morning_time','voice','memory_paused','letter_language','delivery_time','allow_early','onboarded','directions','welcome_seen','welcome_reasons','welcome_other'))
+ OR EXISTS (SELECT 1 FROM jsonb_object_keys(p_patch) k WHERE k NOT IN ('timezone','morning_time','voice','memory_paused','letter_language','delivery_time','allow_early','onboarded','directions','welcome_seen','welcome_reasons','welcome_other','letter_name'))
  OR p_expected_revision IS NULL OR p_expected_revision < 1 THEN RAISE EXCEPTION USING MESSAGE='bad_request'; END IF;
  IF p_patch ? 'timezone' AND (jsonb_typeof(p_patch->'timezone') <> 'string'
  OR length(p_patch->>'timezone') > 100 OR (p_patch->>'timezone') !~ '^(UTC|[A-Za-z_]+(/[A-Za-z0-9_+\-]+)+)$'
@@ -44,12 +49,14 @@ BEGIN
  END IF;
  IF p_patch ? 'welcome_reasons' THEN
   v_reasons := p_patch->'welcome_reasons';
-  IF jsonb_typeof(v_reasons) <> 'array' OR jsonb_array_length(v_reasons) > 5
-   OR EXISTS (SELECT 1 FROM jsonb_array_elements(v_reasons) r WHERE jsonb_typeof(r) <> 'string' OR (r #>> '{}') NOT IN ('want','mind','behind','write','other'))
+  IF jsonb_typeof(v_reasons) <> 'array' OR jsonb_array_length(v_reasons) > 6
+   OR EXISTS (SELECT 1 FROM jsonb_array_elements(v_reasons) r WHERE jsonb_typeof(r) <> 'string' OR (r #>> '{}') NOT IN ('want','mind','behind','write','lookback','other'))
    OR (SELECT count(DISTINCT r) FROM jsonb_array_elements_text(v_reasons) r) <> jsonb_array_length(v_reasons) THEN RAISE EXCEPTION USING MESSAGE='bad_request'; END IF;
  END IF;
  IF p_patch ? 'welcome_other' AND NOT (jsonb_typeof(p_patch->'welcome_other') = 'null'
    OR (jsonb_typeof(p_patch->'welcome_other') = 'string' AND char_length(btrim(p_patch->>'welcome_other')) BETWEEN 1 AND 150)) THEN RAISE EXCEPTION USING MESSAGE='bad_request'; END IF;
+ IF p_patch ? 'letter_name' AND NOT (jsonb_typeof(p_patch->'letter_name') = 'null'
+   OR (jsonb_typeof(p_patch->'letter_name') = 'string' AND char_length(btrim(p_patch->>'letter_name')) BETWEEN 1 AND 40)) THEN RAISE EXCEPTION USING MESSAGE='bad_request'; END IF;
  INSERT INTO public.user_settings(owner_id) VALUES (v_uid) ON CONFLICT DO NOTHING;
  SELECT * INTO v_row FROM public.user_settings WHERE owner_id = v_uid FOR UPDATE;
  IF v_row.revision <> p_expected_revision OR v_row.revision = 2147483647 THEN RAISE EXCEPTION USING MESSAGE='conflict'; END IF;
@@ -61,6 +68,7 @@ BEGIN
  welcome_seen=COALESCE((p_patch->>'welcome_seen')::boolean,welcome_seen),
  welcome_reasons=CASE WHEN p_patch ? 'welcome_reasons' THEN ARRAY(SELECT jsonb_array_elements_text(p_patch->'welcome_reasons')) ELSE welcome_reasons END,
  welcome_other=CASE WHEN p_patch ? 'welcome_other' THEN NULLIF(btrim(p_patch->>'welcome_other'),'') ELSE welcome_other END,
+ letter_name=CASE WHEN p_patch ? 'letter_name' THEN NULLIF(btrim(p_patch->>'letter_name'),'') ELSE letter_name END,
  revision=revision+1,updated_at=clock_timestamp() WHERE owner_id=v_uid RETURNING * INTO v_row;
  RETURN private.settings_resource(v_row);
 END;

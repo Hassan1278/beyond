@@ -17,8 +17,8 @@ export const stepKeySchema = z.enum(['step.0', 'step.1', 'step.2']);
 export const stepStateSchema = z.enum(['tried', 'skipped']);
 export const noteKeySchema = z.string().regex(/^(\d{4}-(0[1-9]|1[0-2])|Y\d{4})$/);
 
-/** A written letter, as checked by the AI service. Unknown extra keys are dropped. */
-export const letterContentSchema = z.object({
+/** A letter in the first format (sections, three steps). Unknown extra keys are dropped. */
+export const letterContentV2Schema = z.object({
   voice: voiceSchema,
   greeting: text(200),
   signoff: text(200),
@@ -57,6 +57,54 @@ export const letterContentSchema = z.object({
   safetyConcern: z.boolean(),
   remember: z.array(z.object({ text: text(140).min(1), entryId: z.uuid() })).max(2),
 });
+
+const level = z.int().min(-2).max(2);
+const labels = z.array(text(60).min(1)).max(2);
+/**
+ * Letter format version 3: one flowing letter, one question, one small step, plus
+ * the per-night fields the Growth page reads. headline, steps, openQuestions, tone and
+ * safetyConcern repeat the new fields so the database and notes keep working.
+ */
+export const letterContentV3Schema = z.object({
+  version: z.literal(3),
+  voice: voiceSchema,
+  language: z.enum(['en', 'zh', 'zh-hant', 'zh-hans', 'mixed']),
+  title: text(100).min(1),
+  headline: text(200).min(1),
+  body: text(4000).min(1),
+  reflection_question: text(240).min(1).nullable(),
+  small_step: z
+    .object({
+      text: text(240).min(1),
+      minutes: z.int().min(1).max(15),
+      category: z.enum(['reflection', 'connection', 'rest', 'focus', 'movement', 'exploration']),
+    })
+    .nullable(),
+  steps: z
+    .array(
+      z.object({
+        text: text(240).min(1),
+        kind: z.enum(['reflection', 'connection', 'rest', 'focus', 'movement', 'exploration']),
+        minutes: z.int().min(1).max(15),
+        why: text(240),
+      }),
+    )
+    .max(1),
+  openQuestions: z.array(text(240)).max(1),
+  night_type: z.enum(['heavy', 'good', 'mixed', 'comparison', 'decision', 'quiet']),
+  safety_flag: z.enum(['none', 'watch', 'urgent']),
+  safetyConcern: z.boolean(),
+  tone: z.enum(['difficult', 'mixed', 'positive', 'ordinary']),
+  themes: z.array(z.string().regex(/^[a-z]{2,20}$/)).max(3),
+  evidence: z.array(text(160).min(1)).max(6),
+  activities: z.array(z.object({ name: text(40).min(1), energy: level, absorption: level })).max(6),
+  compass: z.object({ loves: labels, good_at: labels, matters: labels, within_reach: labels }),
+  interests: z.array(text(40).min(1)).max(3),
+  remember: z.array(z.object({ text: text(140).min(1), entryId: z.uuid() })).max(2),
+});
+
+/** A written letter, as checked by the AI service: either format. */
+export const letterContentSchema = z.union([letterContentV3Schema, letterContentV2Schema]);
 
 export const letterSchema = z.strictObject({
   id: z.uuid(),

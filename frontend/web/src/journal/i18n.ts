@@ -17,7 +17,7 @@ const SKIP = [
   'textarea, script, style, [data-i18n-skip], [contenteditable]',
   // letters, quotes, search snippets and memories: someone's words, never the app's
   '.greet, .headline, .ls-body > p:not(.cause), .insight, .quote, .issue, .cause span, .words, .remembers li, .signoff',
-  '.snip, mark, .mem > p, .todo > p, .ev-list .link',
+  '.snip, mark, .mem > p, .todo > p, .ev-list .link, .lt-body, .lt-q, .lt-s',
 ].join(', ');
 const LATIN = /[A-Za-z]/;
 

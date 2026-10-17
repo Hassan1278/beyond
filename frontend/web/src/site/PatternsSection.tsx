@@ -47,7 +47,7 @@ export function PatternsSection(): ReactElement {
         <div className="wrap">
           <div className="sec-head" data-reveal="lead">
             <p className="eyebrow">Over months</p>
-            <h2>Your patterns. Not their highlight reel.</h2>
+            <h2>Your growth. Not their highlight reel.</h2>
             <p className="sub">
               One letter helps you get through a week. Over months, Beyond shows what keeps coming
               back, what is fading, and who you are turning into.
@@ -82,7 +82,7 @@ export function PatternsSection(): ReactElement {
           </div>
           <WrappedStrip />
           <p className="demo-note">
-            Fictional sample patterns and Quarterly Wrapped; these do not analyze your entry.
+            Fictional sample Growth and Quarterly Wrapped; these do not analyze your entry.
           </p>
         </div>
       </section>

@@ -188,7 +188,7 @@ export function TryOneNight(): ReactElement {
 
         <div>
           <p className="kicker" style={{ marginBottom: 10 }}>
-            Sample patterns
+            Sample growth
           </p>
           <div className="chips">
             <span>
@@ -229,7 +229,7 @@ export function TryOneNight(): ReactElement {
             ? `Written for your entry by ${state.ai.model ?? 'fictional demo'}${
                 state.ai.ms ? ` in ${(state.ai.ms / 1000).toFixed(1)}s` : ''
               }. `
-            : 'Scripted letter for the fictional sample entry. Patterns above are samples, including when live AI is used. '}
+            : 'Scripted letter for the fictional sample entry. Growth above is a sample, including when live AI is used. '}
         </p>
       </div>
     </div>

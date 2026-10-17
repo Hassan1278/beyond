@@ -22,40 +22,17 @@ const input: LetterInput = {
   ],
 };
 const goodLetter = {
-  language: 'mixed',
-  greeting: 'Hey,',
-  signoff: 'Talk tonight,\nB.',
-  headline: 'A calm walk by the harbour',
-  recap: 'You wrote that you walked by the harbour after class.',
-  analysis: [
-    {
-      lens: 'feeling',
-      title: 'Calm after class',
-      text: 'It might be that walking helps.',
-      quote: '“我覺得好平靜”',
-      entryId: ENTRY_ID,
-    },
-    {
-      lens: 'pattern',
-      title: 'Invented',
-      text: 'Something else.',
-      quote: 'words they never wrote',
-      entryId: 'nope',
-    },
-  ],
-  challenge: { issue: 'Nothing needs fixing', cause: 'An ordinary good day.' },
-  advice: { text: 'Walk again on Thursday.', why: 'You felt calm.' },
-  encouragement: 'You noticed the calm.',
-  steps: [
-    { text: 'Walk ten minutes', kind: 'rest', minutes: 10, why: 'calm' },
-    { text: 'Message a friend', kind: 'connection', minutes: 999, why: 'connection' },
-    { text: 'Write one line', kind: 'homework', minutes: 0, why: 'reflect' },
-  ],
+  safety_flag: 'none',
+  night_type: 'good',
+  title: 'A calm walk by the harbour',
+  body: 'Hey {{name}},\n\nYou walked by the harbour after class, and the calm came when you stopped rushing.\n\nTalk tonight,\nB.',
+  reflection_question: 'Where else today could you slow down like that?',
+  small_step: { text: 'Walk ten minutes after class', minutes: 999, category: 'homework' },
   themes: ['rest', 'not-a-theme', 'rest'],
-  openQuestions: [],
-  wins: [],
-  tone: 'positive',
-  safetyConcern: false,
+  evidence: ['walked by the harbour', 'words they never wrote'],
+  activities: [{ name: 'Harbour walk', energy: 5, absorption: 1.4 }],
+  compass: { loves: ['walking', 'walking', 'the sea'], good_at: [], matters: [], within_reach: [] },
+  interests: ['walking'],
   remember: [
     { text: 'Walks by the harbour to feel calm.', entryId: ENTRY_ID },
     { text: 'From nowhere', entryId: 'x' },
@@ -115,36 +92,65 @@ describe('configuration', () => {
 });
 
 describe('letter checks', () => {
-  it('keeps only exact quotes, known vocabularies and clipped values', () => {
+  it('keeps checked evidence, known vocabularies and clipped values', () => {
     const r = validateLetter(goodLetter, input);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.value.analysis[0]).toMatchObject({ quote: '我覺得好平靜', entryId: ENTRY_ID });
-    expect(r.value.analysis[1]).toMatchObject({ quote: '', entryId: ENTRY_ID });
-    expect(r.value.steps.map((s) => [s.kind, s.minutes])).toEqual([
-      ['rest', 10],
-      ['connection', 60],
-      ['practical', 10],
-    ]);
+    expect(r.value.version).toBe(3);
+    expect(r.value.evidence).toEqual(['walked by the harbour']);
+    expect(r.value.small_step).toEqual({
+      text: 'Walk ten minutes after class',
+      minutes: 15,
+      category: 'reflection',
+    });
+    expect(r.value.steps).toHaveLength(1);
+    expect(r.value.headline).toBe('A calm walk by the harbour');
+    expect(r.value.openQuestions).toEqual(['Where else today could you slow down like that?']);
     expect(r.value.themes).toEqual(['rest']);
+    expect(r.value.tone).toBe('positive');
+    expect(r.value.activities).toEqual([{ name: 'Harbour walk', energy: 2, absorption: 1 }]);
+    expect(r.value.compass.loves).toEqual(['walking', 'the sea']);
     expect(r.value.remember).toEqual([
       { text: 'Walks by the harbour to feel calm', entryId: ENTRY_ID },
     ]);
+    expect(r.value.body).toContain('\n\n');
     expect(r.value.voice).toBe('friend');
   });
-  it('rejects letters without three steps', () => {
-    const r = validateLetter({ ...goodLetter, steps: goodLetter.steps.slice(0, 2) }, input);
-    expect(r).toEqual({ ok: false, problems: ['needs exactly 3 steps (got 2)'] });
+  it('needs one question and one step', () => {
+    const r = validateLetter({ ...goodLetter, reflection_question: null, small_step: null }, input);
+    expect(r).toEqual({
+      ok: false,
+      problems: ['needs exactly one reflection question', 'needs exactly one small step'],
+    });
   });
-  it('drops memories when there is a safety concern', () => {
-    const r = validateLetter({ ...goodLetter, safetyConcern: true }, input);
-    expect(r.ok && r.value.remember).toEqual([]);
+  it('rejects headings and quotation marks around the person’s words', () => {
+    const headed = validateLetter({ ...goodLetter, body: '# Recap\nYou walked.' }, input);
+    expect(headed.ok).toBe(false);
+    const quoted = validateLetter(
+      { ...goodLetter, body: 'Hey {{name}}, you wrote “I walked by the harbour after class”.' },
+      input,
+    );
+    expect(quoted.ok).toBe(false);
   });
-  it('builds the prototype prompt from the backend input', () => {
+  it('an urgent night has no step or question, keeps the contacts, learns nothing', () => {
+    const r = validateLetter(
+      { ...goodLetter, safety_flag: 'urgent', body: 'Thank you for writing this down.' },
+      input,
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.small_step).toBeNull();
+    expect(r.value.reflection_question).toBeNull();
+    expect(r.value.steps).toEqual([]);
+    expect(r.value.body).toContain('18111');
+    expect(r.value.remember).toEqual([]);
+    expect(r.value.safetyConcern).toBe(true);
+  });
+  it('builds the prompt from the backend input without ids it does not need', () => {
     const p = letterRequest(input);
-    expect(p.user).toContain('You write the morning reflection letter for "Beyond"');
-    expect(p.user).toContain('"voiceGuide": "Write as a warm, direct friend');
-    expect(p.user).toContain('"writtenAt": "22:40"');
+    expect(p.system).toContain('You are the letter writer for Beyond');
+    expect(p.user).toContain('"voice": "Friend"');
+    expect(p.user).toContain('"written_at": "22:40"');
     expect(p.user).not.toContain('request_id');
   });
 });
@@ -195,7 +201,8 @@ describe('service', () => {
       request_id: input.request_id,
       model: 'claude-sonnet-5-5',
     });
-    expect(body.content.steps).toHaveLength(3);
+    expect(body.content.steps).toHaveLength(1);
+    expect(body.content.version).toBe(3);
     const call = fetcher.mock.calls[0] as unknown as [string, RequestInit];
     expect(call[0]).toBe('https://api.anthropic.com/v1/messages');
     expect(JSON.parse(String(call[1].body))).toMatchObject({
@@ -204,7 +211,7 @@ describe('service', () => {
   });
 
   it('asks once more with the problems, then gives up as invalid output', async () => {
-    const bad = { ...goodLetter, steps: [] };
+    const bad = { ...goodLetter, small_step: null };
     const fetcher = vi.fn(async () => anthropicReply(bad));
     const res = await createService(env, fetcher)('letters', post('/v1/letters', input));
     expect(res.status).toBe(422);
@@ -213,7 +220,7 @@ describe('service', () => {
     const second = JSON.parse(
       String((fetcher.mock.calls[1] as unknown as [string, RequestInit])[1].body),
     );
-    expect(second.messages[0].content).toContain('needs exactly 3 steps (got 0)');
+    expect(second.messages[0].content).toContain('needs exactly one small step');
   });
 
   it('maps refusals and upstream failures to short codes without upstream text', async () => {

@@ -2,7 +2,7 @@
  * Drives the real journal app (/app) in Chromium against a fake Supabase Auth
  * and a fake product API, so the whole UI flow is checked without a database:
  * sign in, onboarding, sealing a night, a letter arriving, opening it, ticking a
- * to-do, Letters with search, Identity, Patterns, Settings with memory,
+ * to-do, Letters with search, Identity, Growth, Settings with memory,
  * export, Demo mode (a sample night sealed and answered by the AI), and
  * signing out.
  * Also checks that nothing the person writes is left in browser storage, and
@@ -63,41 +63,25 @@ const db = {
   calls: [],
 };
 const content = (entryId) => ({
+  version: 3,
   voice: 'mentor',
-  greeting: 'Good morning.',
-  signoff: 'Until tonight.',
   language: 'en',
+  title: 'A calm walk by the harbour',
   headline: 'A calm walk by the harbour',
-  recap: 'You wrote that you walked along the harbour after class and felt calm.',
-  analysis: [
-    {
-      lens: 'feeling',
-      title: 'Calm after class',
-      text: 'It might be that walking helps you land.',
-      quote: 'felt calm',
-      entryId,
-    },
-    {
-      lens: 'pattern',
-      title: 'Water helps',
-      text: 'The harbour came up as a place to breathe.',
-      quote: 'walked along the harbour',
-      entryId,
-    },
-  ],
-  challenge: { issue: 'Nothing needs fixing', cause: 'An ordinary good day.' },
-  advice: { text: 'Walk the harbour again on Thursday.', why: 'You felt calm there.' },
-  encouragement: 'You noticed the calm instead of rushing past it.',
-  steps: [
-    { text: 'Walk ten minutes without your phone', kind: 'rest', minutes: 10, why: 'Calm.' },
-    { text: 'Send a friend the harbour photo', kind: 'connection', minutes: 3, why: 'Share it.' },
-    { text: 'Write one line about the walk', kind: 'reflection', minutes: 3, why: 'Keep it.' },
-  ],
-  themes: ['rest', 'nature'],
-  openQuestions: [],
-  wins: [{ text: 'Walked after class', entryId }],
-  tone: 'positive',
+  body: 'Good morning {{name}},\n\nYou walked along the harbour after class and the calm came while you were walking, not after.\n\nThat is worth noticing: you slow down when there is water nearby.\n\nUntil tonight.',
+  reflection_question: 'Where else today could you slow down like that?',
+  small_step: { text: 'Walk ten minutes without your phone', minutes: 10, category: 'rest' },
+  steps: [{ text: 'Walk ten minutes without your phone', kind: 'rest', minutes: 10, why: '' }],
+  openQuestions: ['Where else today could you slow down like that?'],
+  night_type: 'good',
+  safety_flag: 'none',
   safetyConcern: false,
+  tone: 'positive',
+  themes: ['rest', 'nature'],
+  evidence: ['walked along the harbour', 'felt calm'],
+  activities: [{ name: 'Harbour walk', energy: 2, absorption: 1 }],
+  compass: { loves: ['walking by the water'], good_at: [], matters: ['calm'], within_reach: [] },
+  interests: ['walking'],
   remember: [{ text: 'Walks by the harbour to feel calm', entryId }],
 });
 function finishLetter(letter) {
@@ -436,11 +420,21 @@ try {
   await page.getByRole('heading', { name: 'Who writes back each morning?' }).waitFor();
   await page.locator('[data-onb-voice="mentor"]').click();
   check(!(await next.isDisabled()), 'choosing a voice lights up Next');
+  check(
+    !(await page.locator('.onb-voice i').count()) &&
+      (await page.getByText('You can switch anytime in Settings.').isVisible()),
+    'screen 3 has no example quotes, and the Settings note sits under everything',
+  );
+  await page.fill('#onb-name', '  Kit  ');
   await next.click();
   await page.getByRole('heading', { name: 'Privacy', exact: true }).waitFor();
   at = await step();
   check(at.label === '4 of 4' && at.bar === '4', 'screen 4 of 4');
   check(!(await page.locator('.onb-next').count()), 'the last screen has no Next');
+  check(
+    (await page.locator('.onb-privacy li').count()) === 3,
+    'the privacy screen has three points',
+  );
   check(!(await page.locator('.onb-ready.is-shown').count()), '“I’m ready” waits a moment');
   await page.locator('.onb-ready.is-shown').waitFor({ timeout: 6000 });
   await shot(page, '02b-privacy');
@@ -452,7 +446,8 @@ try {
       db.settings.onboarded === true &&
       db.settings.voice === 'mentor' &&
       JSON.stringify(db.settings.welcome_reasons) === '["mind","write","other"]' &&
-      db.settings.welcome_other === 'Fictional: a new city',
+      db.settings.welcome_other === 'Fictional: a new city' &&
+      db.settings.letter_name === 'Kit',
     'the welcome, the voice and the answers are saved to the account',
   );
   check(!db.memories.some((m) => m.text.includes('new city')), 'the answers are not a memory');
@@ -531,16 +526,30 @@ try {
   );
   await shot(page, '06-letter');
 
-  console.log('to-dos');
-  await page.locator('[data-todo]').first().click();
-  await page.locator('[data-check="0"]').click();
+  console.log('one small step');
+  check(
+    (await page.locator('.lt-body p').first().innerText()).startsWith('Good morning Kit,') &&
+      !(await page.locator('.lt-body').innerText()).includes('{{name}}'),
+    'the letter uses the name from the welcome, filled in by the app',
+  );
+  check(
+    (await page.locator('.lt-end').count()) === 2 &&
+      (await page.locator('.lt-q').innerText()).includes('slow down') &&
+      !(await page.locator('.ls-label').count()),
+    'the letter is one flowing letter, then one question and one small step',
+  );
+  await page.locator('[data-step-skip]').click();
+  await sleep(400);
+  check(db.letters[0].steps['step.0'] === 'skipped', '“Not for me” is saved');
+  await page.locator('[data-step-skip]').click();
+  await sleep(300);
+  await page.locator('[data-step-done]').click();
   await sleep(500);
-  check(db.letters[0].steps['step.0'] === 'tried', 'ticking a to-do is saved');
-  await page.locator('[data-skip="1"]').click();
-  await sleep(500);
-  check(db.letters[0].steps['step.1'] === 'skipped', '“Not for me” is saved');
+  check(
+    db.letters[0].steps['step.0'] === 'tried' && (await page.locator('.lt-seal').count()) === 1,
+    'doing the one step is saved and earns the gold seal',
+  );
   await shot(page, '07-todos');
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
 
   console.log('letters');
   await page.locator('.tab[data-go="letters"]').click();
@@ -575,8 +584,11 @@ try {
   await page.getByText('Nothing matches').waitFor();
   await page.fill('#arch-q', '');
   await page.locator('[data-act="arch-gold"]').click();
-  await page.getByText('Nothing matches').waitFor();
-  check(true, 'the gold seal filter hides letters without one');
+  await sleep(300);
+  check(
+    await page.locator('#arch-results').getByText('A calm walk by the harbour').isVisible(),
+    'the gold seal filter shows the letter whose small step was done',
+  );
   await page.locator('[data-act="arch-gold"]').click();
   await shot(page, '08-letters');
 
@@ -587,12 +599,32 @@ try {
     await page.getByText('more nights to see your first direction').first().isVisible(),
     'Identity has its own tab and says when a direction will appear',
   );
-  await page.locator('.tab[data-go="patterns"]').click();
-  await page.getByText('Your patterns, not their highlight reel.').waitFor();
+  await page.locator('.tab[data-go="growth"]').click();
+  await page.getByRole('heading', { name: 'Growth', exact: true }).waitFor();
   check(
-    !(await page.locator('[data-ptab="identity"]').count()),
-    'Patterns no longer holds Identity',
+    (await page.locator('.tab[data-go="growth"]').innerText()).trim() === 'Growth' &&
+      !(await page.locator('[data-go="patterns"]').count()) &&
+      !(await page.getByText('Your patterns, not their highlight reel.').count()),
+    'Patterns is now Growth',
   );
+  check(
+    (await page.locator('.g-card').count()) === 7 &&
+      (await page.locator('.g-card .g-t').count()) === 7 &&
+      (await page.locator('.g-card .g-sub').count()) === 7,
+    'Growth is seven cards, each with a title and a one-line subtitle',
+  );
+  check(
+    (await page.locator('.g-empty').count()) >= 4,
+    'a month with few nights shows gentle empty states, not confident visuals',
+  );
+  await page.goto(`${ORIGIN}/app#patterns-year`);
+  await page.locator('.g-card').first().waitFor();
+  check(
+    page.url().endsWith('#patterns-year') &&
+      (await page.locator('[data-ptab="year"][aria-current="page"]').count()) === 1,
+    'old #patterns-year links open the Growth year view',
+  );
+  await page.locator('.tab[data-go="growth"]').click();
   check(
     !(await page.locator('.tab[data-go="profile"]').count()),
     'there is no separate Profile tab',
@@ -601,7 +633,7 @@ try {
     !(await page.locator('.tab[data-go="settings"]').count()),
     'Settings is the gear at the top right, not a tab',
   );
-  await shot(page, '09-patterns');
+  await shot(page, '09-growth');
   await page.locator('.brand').click();
   await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
   check(true, 'the Beyond mark returns to Identity, the home page');
@@ -722,10 +754,122 @@ try {
     'Demo mode shows a labelled demo letter built from the night’s own words',
   );
   check(
-    (await page.locator('.quote').first().innerText()).includes('library was quiet'),
+    (await page.locator('.lt-body').innerText()).includes('library was quiet'),
     'the demo letter quotes what was written',
   );
   db.lettersUsedUp = false;
+
+  console.log('growth in demo mode');
+  await page.locator('.tab[data-go="growth"]').click();
+  await page.locator('.g-compass').waitFor();
+  check(
+    (await page.locator('.g-compass .g-pt b').count()) >= 3 &&
+      (await page.locator('.g-dot').count()) >= 3 &&
+      (await page.locator('.g-thread').count()) >= 2 &&
+      (await page.locator('.g-rank-row').count()) >= 3,
+    'Demo mode fills every Growth card from Kit’s letters',
+  );
+  await shot(page, '11c-growth-month');
+  await page.locator('[data-ptab="year"]').click();
+  await page.locator('.g-film').waitFor();
+  check((await page.locator('.g-film .frame').count()) >= 5, 'the Year view has the Life Film');
+  await shot(page, '11d-growth-year');
+
+  console.log('a direction’s own page');
+  await page.locator('.tab[data-go="identity"]').click();
+  await page.locator('.bubble[data-bubble="community-builder"]').waitFor();
+  await sleep(1600);
+  check(
+    !(await page.locator('.spread, .focus, .dir-list').count()),
+    'the Identity page is just the map',
+  );
+  await page.locator('.bubble[data-bubble="community-builder"]').click();
+  await page.locator('.dir-head').waitFor();
+  await sleep(700);
+  await shot(page, '11e-direction');
+  check(
+    page.url().endsWith('#identity/community-builder') &&
+      (await page.getByRole('heading', { name: 'Community Builder' }).isVisible()) &&
+      (await page.locator('.dir-line').innerText()).split('.').filter(Boolean).length === 1 &&
+      (await page.getByText('A possibility, not a label.').isVisible()),
+    'a bubble opens its own page with one plain sentence and its note',
+  );
+  const firstJournal = {};
+  firstJournal.community = await page.locator('.dir-j b').first().innerText();
+  check(
+    (await page.locator('.dir-j').count()) >= 3 &&
+      (await page.locator('.tl-star[data-open]').count()) >= 3,
+    'the page has the timeline and a box for each journal',
+  );
+  check(
+    (await page.locator('#dir-try').count()) === 1,
+    'Try it shows suggestions from its letters',
+  );
+  await page.locator('.dir-j').first().click();
+  await page.locator('.letter, .env-stage').first().waitFor();
+  await page.locator('[data-letter-back-dir="community-builder"]').click();
+  await page.locator('.dir-head').waitFor();
+  check(
+    page.url().endsWith('#identity/community-builder'),
+    'going back from a letter returns to its direction',
+  );
+  await page.locator('[data-dir-back]').click();
+  await page.locator('#stage').waitFor();
+  await sleep(900);
+  check(
+    page.url().endsWith('#identity') &&
+      (await page.locator('.bubble.is-back[data-bubble="community-builder"]').count()) === 1,
+    'Back returns to the map and lights up the bubble it came from',
+  );
+  await page.locator('.bubble[data-bubble="community-builder"]').click();
+  await page.locator('.dir-head').waitFor();
+  await page.goBack();
+  await page.locator('#stage').waitFor();
+  await sleep(800);
+  check(
+    page.url().endsWith('#identity') && (await page.locator('.dir-head').count()) === 0,
+    'the phone’s back returns to the map',
+  );
+  for (const [key, name] of [
+    ['curious-learner', 'learner'],
+    ['creative-explorer', 'creative'],
+  ]) {
+    await page.goto(`${ORIGIN}/app#identity/${key}`);
+    await page.locator('.dir-head').waitFor();
+    firstJournal[name] = await page.locator('.dir-j b').first().innerText();
+  }
+  check(
+    new Set(Object.values(firstJournal)).size === 3,
+    'each Kit direction leads with a different journal of its own',
+  );
+  await page.locator('[data-dir-fit]').click();
+  await sleep(300);
+  check(
+    (await page.locator('.dir-st').innerText()).includes('Confirmed') &&
+      !(await page.locator('.dir-decide').count()),
+    'This fits me confirms it and the choice goes away',
+  );
+  await page.locator('[data-dir-change]').click();
+  await page.locator('[data-dir-unsure]').click();
+  check(
+    (await page.locator('.dir-decide').count()) === 1,
+    'Changed your mind? turns it back into a suggestion',
+  );
+  await page.goto(`${ORIGIN}/app#identity/curious-learner`);
+  await page.locator('.dir-head').waitFor();
+  await page.locator('[data-dir-pop]').click();
+  await page.locator('.toast-undo').waitFor();
+  await sleep(1500);
+  check(
+    !(await page.locator('.bubble[data-bubble="curious-learner"]').count()),
+    'Pop it removes the bubble from the map',
+  );
+  await page.locator('.toast-undo button').click();
+  await page.locator('.bubble[data-bubble="curious-learner"]').waitFor();
+  check(true, 'Undo brings it back');
+  await page.goto(`${ORIGIN}/app#identity/astronaut`);
+  await page.locator('#stage').waitFor();
+  check(page.url().endsWith('#identity'), 'an unknown direction link goes to the map');
   await page.locator('.gear-btn[data-go="settings"]').click();
   await page.locator('[data-act="toggle-sample"]').click();
   await page.locator('.tab[data-go="tonight"]').click();

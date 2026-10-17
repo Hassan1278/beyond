@@ -31,6 +31,10 @@ SELECT throws_ok($$SELECT public.settings_update('{"welcome_reasons":"mind"}',3)
 SELECT throws_ok($$SELECT public.settings_update('{"welcome_other":"   "}',3)$$,'P0001','bad_request','A blank written answer is rejected');
 SELECT throws_ok($$SELECT public.settings_update(jsonb_build_object('welcome_other',repeat('x',151)),3)$$,'P0001','bad_request','Written answers are at most 150 characters');
 SELECT throws_ok($$SELECT public.settings_update('{"welcome_seen":"yes"}',3)$$,'P0001','bad_request','Seeing the welcome is a yes or no');
+SELECT is(public.settings_update('{"welcome_reasons":["lookback","write"],"letter_name":"  Kit  "}',3)->>'letter_name','Kit','The name letters use is trimmed and kept');
+SELECT is(public.settings_get()->'welcome_reasons','["lookback","write"]'::jsonb,'Wanting something to look back on is a reason');
+SELECT throws_ok($$SELECT public.settings_update(jsonb_build_object('letter_name',repeat('x',41)),4)$$,'P0001','bad_request','Names are at most 40 characters');
+SELECT is(public.settings_update('{"letter_name":null}',4)->>'letter_name',NULL,'The name can be removed');
 SELECT throws_ok($$UPDATE public.user_settings SET welcome_seen=false$$,'42501',NULL,'Direct welcome writes are denied');
 
 SELECT * FROM finish();

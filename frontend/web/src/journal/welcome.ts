@@ -8,30 +8,33 @@
 export const WELCOME_STEPS = [
   {
     title: 'Journal and write freely, anytime.',
-    text: 'Whatever’s on your mind, whenever it hits. Nothing interrupts you.',
+    text: 'Whatever’s on your mind, whenever it hits.',
   },
   {
     title: 'Wake up to a letter.',
-    text: 'Beyond reads your day and writes back once, the next morning.',
+    text: 'Receive a personalised letter and reflection the next morning.',
   },
   {
-    title: 'Look back, reflect and see yourself grow.',
-    text: 'Your letters and patterns stay with you, so you can see where you’re heading.',
+    title: 'Look back and see yourself grow.',
+    text: 'Reflect on your journals and patterns.',
   },
 ];
 
 /** Screen 2. Keys are what the account stores (see migration 20261017000000_welcome). */
 export const WELCOME_REASONS: {
-  key: 'want' | 'mind' | 'behind' | 'write' | 'other';
+  key: 'want' | 'mind' | 'behind' | 'write' | 'lookback' | 'other';
   label: string;
 }[] = [
   { key: 'want', label: 'Figuring out what I actually want' },
   { key: 'mind', label: 'Too much on my mind' },
   { key: 'behind', label: 'Feeling behind everyone else' },
   { key: 'write', label: 'Just want somewhere to write' },
+  { key: 'lookback', label: 'Want to have something to look back on' },
   { key: 'other', label: 'Something else…' },
 ];
 export const WELCOME_OTHER_MAX = 150;
+/** Screen 3 and Settings: what letters call you (optional; never sent to the letter writer). */
+export const LETTER_NAME_MAX = 40;
 
 /** Screen 3. Same four voices as Settings; only the diary label differs here. */
 export const WELCOME_VOICES: {
@@ -72,11 +75,6 @@ export const WELCOME_PRIVACY = {
   subtitle: 'We value your privacy',
   items: [
     { icon: 'lock', title: 'Private to your account.', text: 'Only you can read your journal.' },
-    {
-      icon: 'seal',
-      title: 'Nothing leaves until you seal it.',
-      text: 'Only that night is used to write your letter. Never your name or email.',
-    },
     {
       icon: 'memory',
       title: 'You decide what Beyond remembers.',

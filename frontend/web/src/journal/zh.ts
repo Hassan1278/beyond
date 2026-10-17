@@ -105,6 +105,8 @@ const KINDS: Record<string, string> = {
   exploration: '探索',
   practical: '行动',
   reflection: '反思',
+  focus: '专注',
+  movement: '活动身体',
 };
 
 const SUPPORT_NAMES: Record<string, string> = {
@@ -204,6 +206,13 @@ const PHRASES: Record<string, string> = {
 
   /* ---- morning and colours ---- */
   'Good morning.': '早上好。',
+  'Something to think about today': '今日想一想',
+  'One small step': '一小步',
+  'Mark as done': '标记为完成',
+  'Marked “Not for me”.': '已标记为“不适合我”。',
+  'Gold seal': '金印',
+  'Gold seal earned.': '已获得金印。',
+  'Not done yet': '还没完成',
   'Your words are saved. Today’s letters are used up, so Skip to morning will show a demo letter.':
     '你的文字已保存。今天的信件次数已用完，所以“跳到早上”会显示一封演示信。',
   'Your words are saved. Today’s letters are used up, so this night’s letter has to wait.':
@@ -226,6 +235,20 @@ const PHRASES: Record<string, string> = {
 
   /* ---- welcome (first sign-in): wording lives in welcome.ts ---- */
   'How Beyond works': 'Beyond 怎么用',
+  'Whatever’s on your mind, whenever it hits.': '心里想到什么，就在那一刻写下来。',
+  'Receive a personalised letter and reflection the next morning.':
+    '第二天早上，收到一封为你而写的信和反思。',
+  'Look back and see yourself grow.': '回头看看，看见自己的成长。',
+  'Reflect on your journals and patterns.': '回顾你的日记和规律。',
+  'Want to have something to look back on': '想留下一些以后可以回头看的东西',
+  'What should your letters call you?': '你希望信里怎么称呼你？',
+  'Your name or a nickname (optional)': '你的名字或昵称（可不填）',
+  'You can switch anytime in Settings.': '随时可以在设置里更改。',
+  'What your letters call you': '信里怎么称呼你',
+  'Beyond adds this to your letters itself. The letter writer never sees it.':
+    'Beyond 会自己把它加进信里，写信服务永远看不到它。',
+  'Your letters will use that name.': '以后的信会用这个称呼。',
+  'Your letters won’t use a name.': '以后的信不会用称呼。',
   'Journal and write freely, anytime.': '想写就写，随时都可以。',
   'Whatever’s on your mind, whenever it hits. Nothing interrupts you.':
     '心里想到什么，就在那一刻写下来。没有任何东西会打扰你。',
@@ -368,7 +391,7 @@ const PHRASES: Record<string, string> = {
   'Your words from that night': '那晚你写下的话',
   'Beyond will remember': 'Beyond 会记住',
   'See, edit or forget': '查看、编辑或忘记',
-  'Keep this night out of Patterns': '不把这一晚计入规律',
+  'Keep this night out of Growth': '不把这一晚计入成长',
   'Show where you wrote this': '显示你在哪里写下这句话',
   "Please don't carry this alone.": '请不要一个人扛着。',
   "Beyond isn't watched by a person. If you're struggling, people can help right now.":
@@ -379,8 +402,8 @@ const PHRASES: Record<string, string> = {
     '演示模式：一封预先写好的示例信，按你写的内容挑选，并引用你自己的话。没有发送给 AI，也没有保存到你的账户。',
   'Kit’s sample letter, pre-written for the demo. Kit isn’t a real person.':
     'Kit 的示例信，为演示预先写好。Kit 不是真实的人。',
-  'Kept out of Patterns. The letter stays here.': '已不计入规律。这封信还会留在这里。',
-  'This night is back in Patterns.': '这一晚已重新计入规律。',
+  'Kept out of Growth. The letter stays here.': '已不计入成长。这封信还会留在这里。',
+  'This night is back in Growth.': '这一晚已重新计入成长。',
   Done: '完成',
   'To-do': '小事',
   'All optional. “Not for me” tells future letters to suggest something different.':
@@ -473,6 +496,78 @@ const PHRASES: Record<string, string> = {
   'There are no kept letters here yet.': '这里还没有信。',
   'Reading your letters…': '正在读你的信……',
 
+  /* ---- a direction's own page ---- */
+  'Your map': '你的星图',
+  'Back to your map': '返回你的星图',
+  'You are at the centre. Larger circles have more nights behind them, and brighter threads mean a stronger pull. Tap a direction to open it.':
+    '你在中心。圆越大，背后的夜晚越多；光线越亮，牵引越强。点一个方向，就能打开它。',
+  'A possibility, not a label.': '一种可能，不是标签。',
+  'Pop it': '戳破它',
+  'You come alive turning ideas into something people can use.':
+    '把想法变成别人用得上的东西时，你最有活力。',
+  'You light up when you’re building something that works.': '亲手做出能用的东西时，你会眼睛发亮。',
+  'You lose track of time when you’re making something of your own.':
+    '做属于自己的东西时，你会忘了时间。',
+  'You come alive when you’re following a question that interests you.':
+    '追着一个让你好奇的问题走下去时，你最有活力。',
+  'You light up when you’re bringing people together.': '把人聚在一起的时候，你会发光。',
+  'You feel most like yourself when you’re out seeing somewhere new.':
+    '走出去看看新地方时，你最像你自己。',
+  'The nights this direction appeared.': '这个方向出现过的夜晚。',
+  'Your journals about this': '关于这个方向的日记',
+  'Try it': '试试看',
+  'Small ways to test this direction in real life.': '在现实生活里试试这个方向的小方法。',
+  'Changed your mind?': '改变主意了？',
+  'Not sure anymore?': '不太确定了？',
+  'Back to a suggestion': '变回建议',
+  Undo: '撤销',
+
+  /* ---- Growth ---- */
+  Growth: '成长',
+  'Growth views': '成长视图',
+  'Your month in stars': '你这个月的星空',
+  'Your year in stars': '你这一年的星空',
+  'Each star is a night you wrote. Brighter means lighter.':
+    '每颗星都是你写下的一个夜晚。越亮，那晚越轻松。',
+  'What took up your year': '这一年你在忙什么',
+  'The themes you wrote about most.': '你写得最多的主题。',
+  'Your compass': '你的指南针',
+  'Where your journal is pointing.': '你的日记正指向哪里。',
+  'What you love': '你热爱的',
+  'What you’re good at': '你擅长的',
+  'What matters to you': '你在乎的',
+  'What’s within reach': '触手可及的',
+  'Still forming': '还在成形',
+  'Pointing toward': '正指向',
+  'Where you come alive': '让你充满活力的地方',
+  'Top right is where your energy and focus meet.': '右上角是你的精力和专注交汇的地方。',
+  bored: '无聊',
+  absorbed: '投入',
+  'gives you energy': '给你能量',
+  'drains you': '消耗你',
+  'Activities by energy and focus': '按精力和专注排列的活动',
+  'How this month compares to last.': '这个月和上个月相比。',
+  'What changed since your first month': '和你的第一个月相比',
+  'Threads that last': '延续的线索',
+  'What keeps coming back, and what faded.': '哪些一直出现，哪些渐渐淡去。',
+  faded: '淡去',
+  'Try it before you decide': '先试试，再决定',
+  'Small real-world experiments for the direction you’re exploring.':
+    '为你正在探索的方向，做一些小小的现实尝试。',
+  Tried: '试过了',
+  'Not for me. Future letters will suggest something different.': '不适合我。以后的信会换个建议。',
+  'One frame per month, with a line you wrote that month.': '每月一帧，配上你那个月写下的一句话。',
+  'A few more nights and your themes will show here.': '再写几个晚上，你的主题就会出现在这里。',
+  'A few more nights and your compass will start to form.':
+    '再写几个晚上，你的指南针就会开始成形。',
+  'A few more nights and your map will fill in.': '再写几个晚上，这张图就会慢慢填满。',
+  'A few more nights and changes will show here.': '再写几个晚上，变化就会出现在这里。',
+  'A few more months and changes will show here.': '再过几个月，变化就会出现在这里。',
+  'A few more nights and the threads will show here.': '再写几个晚上，线索就会出现在这里。',
+  'Small experiments will appear here as your letters suggest them.':
+    '信里提到的小尝试，会出现在这里。',
+  Previous: '上一个',
+
   /* ---- settings ---- */
   'How your letters are written, what Beyond remembers, your data, and where to find help.':
     '信是怎么写的、Beyond 记住了什么、你的数据，以及去哪里求助。',
@@ -527,7 +622,7 @@ const PHRASES: Record<string, string> = {
   'Keep it': '保留',
   Save: '保存',
   Cancel: '取消',
-  '. Not used: its letter is kept out of Patterns': '。未使用：它所在的信不计入规律',
+  '. Not used: its letter is kept out of Growth': '。未使用：它所在的信不计入成长',
   'Forgotten.': '已忘记。',
   'Forgotten. Beyond won’t learn it again from old letters.':
     '已忘记。Beyond 不会再从旧信里学到这一点。',
@@ -539,8 +634,8 @@ const PHRASES: Record<string, string> = {
   'What the AI sees': 'AI 能看到什么',
   'Letters are written by Claude through Beyond’s letter service, after you seal a night.':
     '你封存一晚之后，信由 Claude 通过 Beyond 的写信服务撰写。',
-  'The AI sees only the entry it writes about, the headlines of a few earlier letters, and your memories (unless paused). It never sees letters you keep out of Patterns.':
-    'AI 只能看到它要回复的那篇日记、之前几封信的标题，以及你的记忆（暂停时除外）。不计入规律的信，它永远看不到。',
+  'The AI sees only the entry it writes about, the headlines of a few earlier letters, and your memories (unless paused). It never sees letters you keep out of Growth.':
+    'AI 只能看到它要回复的那篇日记、之前几封信的标题，以及你的记忆（暂停时除外）。不计入成长的信，它永远看不到。',
   'Your data': '你的数据',
   'Saved to your Beyond account, private to you. Nothing you write is kept in this browser.':
     '保存在你的 Beyond 账户里，只有你能看到。你写的内容不会保存在这个浏览器里。',
@@ -679,6 +774,37 @@ const nights = (k: string): string => `${k} 个晚上`;
 
 /** Wording with a date, count or name in it. Content (headlines, quotes) passes through as is. */
 export const ZH_PATTERNS: [RegExp, (...m: string[]) => string][] = [
+  [/^(\d+) nights?, newest first\.$/, (k) => `${k} 个晚上，最新的在前。`],
+  [/^Show all (\d+)$/, (k) => `显示全部 ${k} 篇`],
+  [/^Popped (.+)\.$/, (d) => `已戳破“${dir(d)}”。`],
+  [/^Does (.+) fit you\?$/, (d) => `“${dir(d)}”适合你吗？`],
+  [new RegExp(`^No nights from ${MO} to compare with\\.$`), (m) => `${mo(m)}没有夜晚可以比较。`],
+  [/^More nights about (.+)$/, (t) => `写到${theme(t)}的夜晚多了`],
+  [/^Fewer nights about (.+)$/, (t) => `写到${theme(t)}的夜晚少了`],
+  [/^New: (.+) showed up for the first time$/, (t) => `新出现：${theme(t)}第一次出现`],
+  [new RegExp(`^${MONTHS} compared with ${MONTHS}\\.$`), (a, b) => `${mo(a)}和${mo(b)}相比。`],
+  [/^Threads across (\d+) months$/, (k) => `${k} 个月里的线索`],
+  [
+    /^In (\w+) you were pointing toward (.+)\. Now (.+)\.$/,
+    (m, a, b) => `${mo(m)}时，你正指向${a}。现在是${b}。`,
+  ],
+  [
+    /^(.+), (\d+) nights?\. Show these nights in Letters$/,
+    (t, k) => `${theme(t)}，${k} 个晚上。在来信里查看这些夜晚`,
+  ],
+  [
+    /^(What you love|What you’re good at|What matters to you|What’s within reach): (.+)$/,
+    (k, v) => `${PHRASES[k] ?? k}：${v === 'Still forming' ? '还在成形' : v}`,
+  ],
+  [
+    /^Written by (.+)\. Every line is checked against your words\.$/,
+    (m) => `由 ${m} 撰写。每一句都和你写下的话核对过。`,
+  ],
+  [
+    new RegExp(`^Small step for ${DAY}: (done, gold seal|not done yet)$`),
+    (w, d, m, x) =>
+      `${day(w, d, m)} 的一小步：${x.startsWith('done') ? '已完成，获得金印' : '还没完成'}`,
+  ],
   // dates
   [new RegExp(`^${DAY}$`), day],
   [new RegExp(`^${DAY}, summary$`), (w, d, m) => `${day(w, d, m)}，摘要`],

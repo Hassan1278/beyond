@@ -46,18 +46,18 @@ Request (built by the database; nothing else is sent):
 
 Learned memories are included only while a letter they came from is kept in Patterns. Earlier letters are at most four, and only ones kept in Patterns.
 
-Response `200`: `{ "version": 2, "request_id", "content", "model" }`. `content` is the prototype's letter shape after `validateLetter`:
+Response `200`: `{ "version": 2, "request_id", "content", "model" }`. `content` is **letter format 3** (the letter writer prompt in [`ai/src/lib/letter-prompt.ts`](../ai/src/lib/letter-prompt.ts)) after `validateLetter`:
 
-- `greeting`, `signoff`, `headline`, `recap`
-- `analysis` (1–2): quotes must be the person's exact words, otherwise they are dropped
-- `challenge`, `advice`, `encouragement`
-- `steps`: exactly 3
-- `themes` from the fixed list, plus `openQuestions` and `wins`
-- `tone` and `safetyConcern`
-- `remember` (≤2, none when there is a safety concern)
-- `voice` and `language`
+- `title`, `body` (one flowing letter, paragraphs separated by blank lines, greeting with the `{{name}}` placeholder the app fills in), `reflection_question`, `small_step` `{ text, minutes ≤ 15, category }`
+- `night_type` (`heavy`, `good`, `mixed`, `comparison`, `decision`, `quiet`) and `safety_flag` (`none`, `watch`, `urgent`). An urgent night has no question and no step, and always ends with the Hong Kong contacts.
+- `themes` (1–3 from the fixed list) and `evidence` (phrases kept only when they are the person's exact words; not shown)
+- Growth fields, from that night only: `activities` (≤6 of `{ name, energy −2..2, absorption −2..2 }`), `compass` (`loves`, `good_at`, `matters`, `within_reach`, ≤2 labels each) and `interests` (≤3)
+- `remember` (≤2; none on a heavy, watch or urgent night)
+- Repeated for the database and older screens: `headline` (= title), `steps` (the one step, or none), `openQuestions` (the one question), `tone` (from `night_type`) and `safetyConcern` (`safety_flag` is not `none`)
 
-The shared `letterContentSchema` in [`shared/src/schemas/letters.ts`](../shared/src/schemas/letters.ts) is what the backend accepts.
+The checks reject a body with headings, bullets or bold, quotation marks around the person's own words, or a missing question or step, and the model is asked once more with the problems. Letters written before the switch keep format 2 (sections and three steps); the app shows both the same way. Migration `20261018000000_letters_v3` lets the database store format 3.
+
+The shared `letterContentSchema` in [`shared/src/schemas/letters.ts`](../shared/src/schemas/letters.ts) is what the backend accepts: format 3 or format 2.
 
 ## `POST /v1/notes`
 

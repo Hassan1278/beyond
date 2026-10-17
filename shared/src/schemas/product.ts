@@ -31,12 +31,14 @@ export const directionsSchema = z.partialRecord(
   z.enum(['suggested', 'confirmed', 'dismissed', 'removed']),
 );
 /** First sign-in welcome, screen 2: what brought the person to Beyond. */
-export const welcomeReasonSchema = z.enum(['want', 'mind', 'behind', 'write', 'other']);
+export const welcomeReasonSchema = z.enum(['want', 'mind', 'behind', 'write', 'lookback', 'other']);
 const welcomeReasonsSchema = z
   .array(welcomeReasonSchema)
-  .max(5)
+  .max(6)
   .refine((list) => new Set(list).size === list.length);
 const welcomeOtherSchema = z.string().trim().min(1).max(150).nullable();
+/** What letters call the person; added by the app, never sent to the letter writer. */
+const letterNameSchema = z.string().trim().min(1).max(40).nullable();
 export const settingsSchema = z.strictObject({
   timezone: timezoneSchema,
   morning_time: z.enum(['07:00', '07:30', '08:00']),
@@ -52,6 +54,7 @@ export const settingsSchema = z.strictObject({
   welcome_seen: z.boolean().optional(),
   welcome_reasons: welcomeReasonsSchema.optional(),
   welcome_other: welcomeOtherSchema.optional(),
+  letter_name: letterNameSchema.optional(),
   revision,
   updated_at: timestamp,
 });
@@ -69,6 +72,7 @@ export const patchSettingsSchema = z
     welcome_seen: z.boolean().optional(),
     welcome_reasons: welcomeReasonsSchema.optional(),
     welcome_other: welcomeOtherSchema.optional(),
+    letter_name: letterNameSchema.optional(),
     expected_revision: revision,
   })
   .refine((value) => Object.keys(value).length > 1);

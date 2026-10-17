@@ -71,7 +71,21 @@
    "wins": [],
    "tone": "mixed",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Celebrating after the DSE",
+     "energy": -1,
+     "absorption": -1
+    }
+   ],
+   "compass": {
+    "loves": [],
+    "good_at": [],
+    "matters": [],
+    "within_reach": []
+   },
+   "interests": []
   },
   "actions": {
    "step.0": "tried",
@@ -151,7 +165,27 @@
    "wins": [],
    "tone": "positive",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Hiking with my cousin",
+     "energy": 2,
+     "absorption": 1
+    }
+   ],
+   "compass": {
+    "loves": [
+     "hiking"
+    ],
+    "good_at": [],
+    "matters": [
+     "a quiet head"
+    ],
+    "within_reach": []
+   },
+   "interests": [
+    "hiking"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -233,7 +267,23 @@
    "wins": [],
    "tone": "mixed",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Choosing courses by score",
+     "energy": -1,
+     "absorption": 0
+    }
+   ],
+   "compass": {
+    "loves": [],
+    "good_at": [],
+    "matters": [],
+    "within_reach": [
+     "a business degree"
+    ]
+   },
+   "interests": []
   },
   "actions": {
    "step.0": "tried",
@@ -312,7 +362,17 @@
    "wins": [],
    "tone": "mixed",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [],
+   "compass": {
+    "loves": [],
+    "good_at": [],
+    "matters": [
+     "old friends"
+    ],
+    "within_reach": []
+   },
+   "interests": []
   },
   "actions": {
    "step.0": "tried",
@@ -393,7 +453,19 @@
    "wins": [],
    "tone": "mixed",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [],
+   "compass": {
+    "loves": [],
+    "good_at": [],
+    "matters": [
+     "Mum"
+    ],
+    "within_reach": [
+     "the BBA offer"
+    ]
+   },
+   "interests": []
   },
   "actions": {
    "step.0": "tried",
@@ -471,7 +543,23 @@
    "wins": [],
    "tone": "difficult",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Rereading old photos",
+     "energy": -1,
+     "absorption": 1
+    }
+   ],
+   "compass": {
+    "loves": [],
+    "good_at": [],
+    "matters": [
+     "old friends"
+    ],
+    "within_reach": []
+   },
+   "interests": []
   },
   "actions": {
    "step.0": "tried",
@@ -549,7 +637,21 @@
    "wins": [],
    "tone": "difficult",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Orientation games",
+     "energy": -2,
+     "absorption": -1
+    }
+   ],
+   "compass": {
+    "loves": [],
+    "good_at": [],
+    "matters": [],
+    "within_reach": []
+   },
+   "interests": []
   },
   "actions": {
    "step.1": "tried"
@@ -626,7 +728,28 @@
    "wins": [],
    "tone": "mixed",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Group project",
+     "energy": -1,
+     "absorption": 0
+    },
+    {
+     "name": "Making slides",
+     "energy": 1,
+     "absorption": 1
+    }
+   ],
+   "compass": {
+    "loves": [],
+    "good_at": [
+     "making a slide the tutor liked"
+    ],
+    "matters": [],
+    "within_reach": []
+   },
+   "interests": []
   },
   "actions": {
    "step.1": "tried",
@@ -717,7 +840,23 @@
      "text": "Picked the major for the results, still unsure about it",
      "entryId": "e_d09"
     }
-   ]
+   ],
+   "activities": [
+    {
+     "name": "Lunch alone on my phone",
+     "energy": -2,
+     "absorption": -2
+    }
+   ],
+   "compass": {
+    "loves": [],
+    "good_at": [],
+    "matters": [
+     "making friends"
+    ],
+    "within_reach": []
+   },
+   "interests": []
   },
   "actions": {
    "step.0": "tried",
@@ -797,7 +936,27 @@
    "wins": [],
    "tone": "mixed",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Photo walk",
+     "energy": 1,
+     "absorption": 2
+    }
+   ],
+   "compass": {
+    "loves": [
+     "photography"
+    ],
+    "good_at": [],
+    "matters": [],
+    "within_reach": [
+     "the photography society"
+    ]
+   },
+   "interests": [
+    "photography"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -876,7 +1035,21 @@
    "wins": [],
    "tone": "difficult",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Scrolling stories",
+     "energy": -2,
+     "absorption": -1
+    }
+   ],
+   "compass": {
+    "loves": [],
+    "good_at": [],
+    "matters": [],
+    "within_reach": []
+   },
+   "interests": []
   },
   "actions": {
    "step.0": "tried",
@@ -955,7 +1128,27 @@
    "wins": [],
    "tone": "positive",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Photo walk",
+     "energy": 2,
+     "absorption": 2
+    }
+   ],
+   "compass": {
+    "loves": [
+     "photography"
+    ],
+    "good_at": [],
+    "matters": [
+     "small kindnesses"
+    ],
+    "within_reach": []
+   },
+   "interests": [
+    "photography"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -1037,7 +1230,23 @@
    "wins": [],
    "tone": "mixed",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Accounting revision",
+     "energy": -1,
+     "absorption": -1
+    }
+   ],
+   "compass": {
+    "loves": [],
+    "good_at": [],
+    "matters": [
+     "wanting it to be mine"
+    ],
+    "within_reach": []
+   },
+   "interests": []
   },
   "actions": {
    "step.0": "tried",
@@ -1115,7 +1324,31 @@
    "wins": [],
    "tone": "positive",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Tutoring kids",
+     "energy": 2,
+     "absorption": 2
+    }
+   ],
+   "compass": {
+    "loves": [
+     "teaching kids"
+    ],
+    "good_at": [
+     "helping kids with maths"
+    ],
+    "matters": [
+     "helping kids learn"
+    ],
+    "within_reach": [
+     "volunteer tutoring"
+    ]
+   },
+   "interests": [
+    "tutoring"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -1194,7 +1427,23 @@
    "wins": [],
    "tone": "difficult",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Texting old friends",
+     "energy": -1,
+     "absorption": 0
+    }
+   ],
+   "compass": {
+    "loves": [],
+    "good_at": [],
+    "matters": [
+     "people who know me"
+    ],
+    "within_reach": []
+   },
+   "interests": []
   },
   "actions": {
    "step.0": "tried",
@@ -1272,7 +1521,23 @@
    "wins": [],
    "tone": "mixed",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Hall formal dinner",
+     "energy": -1,
+     "absorption": -1
+    }
+   ],
+   "compass": {
+    "loves": [],
+    "good_at": [],
+    "matters": [],
+    "within_reach": [
+     "Saturday walks"
+    ]
+   },
+   "interests": []
   },
   "actions": {
    "step.0": "tried",
@@ -1351,7 +1616,29 @@
    "wins": [],
    "tone": "positive",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Psychology elective",
+     "energy": 2,
+     "absorption": 2
+    }
+   ],
+   "compass": {
+    "loves": [
+     "asking questions"
+    ],
+    "good_at": [],
+    "matters": [
+     "why kids give up on maths"
+    ],
+    "within_reach": [
+     "Dr Lam’s book"
+    ]
+   },
+   "interests": [
+    "psychology"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -1403,6 +1690,12 @@
    "encouragement": "You kept showing up every week. That's why he ran to the door.",
    "steps": [
     {
+     "text": "Read one more chapter of the book",
+     "kind": "exploration",
+     "minutes": 25,
+     "why": "Keep following it."
+    },
+    {
      "text": "Write down what you did that helped Jason",
      "kind": "reflection",
      "minutes": 5,
@@ -1413,12 +1706,6 @@
      "kind": "connection",
      "minutes": 2,
      "why": "Share the good news."
-    },
-    {
-     "text": "Read one more chapter of the book",
-     "kind": "exploration",
-     "minutes": 25,
-     "why": "Keep following it."
     }
    ],
    "themes": [
@@ -1429,7 +1716,29 @@
    "wins": [],
    "tone": "positive",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Tutoring kids",
+     "energy": 2,
+     "absorption": 2
+    }
+   ],
+   "compass": {
+    "loves": [
+     "teaching kids"
+    ],
+    "good_at": [
+     "helping Jason with fractions"
+    ],
+    "matters": [
+     "helping kids learn"
+    ],
+    "within_reach": []
+   },
+   "interests": [
+    "tutoring"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -1508,7 +1817,23 @@
    "wins": [],
    "tone": "mixed",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Video call with old friends",
+     "energy": 1,
+     "absorption": 0
+    }
+   ],
+   "compass": {
+    "loves": [],
+    "good_at": [],
+    "matters": [
+     "old friends"
+    ],
+    "within_reach": []
+   },
+   "interests": []
   },
   "actions": {
    "step.0": "tried",
@@ -1561,16 +1886,16 @@
    "encouragement": "You walked over. In your first week, you almost turned back at the door.",
    "steps": [
     {
-     "text": "Write how it felt to welcome someone",
-     "kind": "reflection",
-     "minutes": 5,
-     "why": "A clue worth keeping."
-    },
-    {
      "text": "Add the new member to the society group",
      "kind": "connection",
      "minutes": 2,
      "why": "Keep the welcome going."
+    },
+    {
+     "text": "Write how it felt to welcome someone",
+     "kind": "reflection",
+     "minutes": 5,
+     "why": "A clue worth keeping."
     },
     {
      "text": "Back up today's photos",
@@ -1581,20 +1906,110 @@
    ],
    "themes": [
     "community",
-    "friendship",
-    "creativity"
+    "friendship"
    ],
    "openQuestions": [],
    "wins": [],
    "tone": "positive",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Running the newbie photo walk",
+     "energy": 2,
+     "absorption": 1
+    }
+   ],
+   "compass": {
+    "loves": [],
+    "good_at": [
+     "making people feel welcome"
+    ],
+    "matters": [
+     "nobody standing alone"
+    ],
+    "within_reach": []
+   },
+   "interests": [
+    "photography"
+   ]
   },
   "actions": {
    "step.0": "tried",
    "step.1": "tried",
    "step.2": "tried"
   },
+  "private": false
+ },
+ {
+  "id": "l_d26",
+  "date": "2025-11-18",
+  "entries": [
+   {
+    "id": "e_d26",
+    "t": "23:55",
+    "text": "Spent the whole evening editing photos from Saturday's walk. Started at eight and suddenly it was midnight. Wing said my shot of the dai pai dong lights was her favourite. I printed three and stuck them above my desk."
+   }
+  ],
+  "content": {
+   "version": 3,
+   "voice": "friend",
+   "language": "en",
+   "title": "The evening that disappeared",
+   "headline": "The evening that disappeared",
+   "body": "Hey {{name}},\n\nYou sat down to edit Saturday's photos at eight, and the next time you looked up it was midnight. Nobody asked you to do it, and nothing was due.\n\nThat's worth noticing. Most of your nights this term have been about other people: the kids on Tuesdays, Wing, the guy at the door. This one was just you and the dai pai dong lights, and the hours went by without you checking. Three of those photos are on the wall above your desk now, which says something on its own.\n\nTalk tonight,\nYour friend",
+   "reflection_question": "What else makes the time disappear like that for you?",
+   "small_step": {
+    "text": "Pick one photo and try editing it a completely different way",
+    "minutes": 10,
+    "category": "exploration"
+   },
+   "steps": [
+    {
+     "text": "Pick one photo and try editing it a completely different way",
+     "kind": "exploration",
+     "minutes": 10,
+     "why": ""
+    }
+   ],
+   "openQuestions": [
+    "What else makes the time disappear like that for you?"
+   ],
+   "night_type": "good",
+   "safety_flag": "none",
+   "safetyConcern": false,
+   "tone": "positive",
+   "themes": [
+    "creativity",
+    "friendship"
+   ],
+   "evidence": [
+    "editing photos from Saturday's walk",
+    "suddenly it was midnight"
+   ],
+   "activities": [
+    {
+     "name": "Editing photos",
+     "energy": 2,
+     "absorption": 2
+    }
+   ],
+   "compass": {
+    "loves": [
+     "editing photos"
+    ],
+    "good_at": [
+     "night photography"
+    ],
+    "matters": [],
+    "within_reach": []
+   },
+   "interests": [
+    "photography"
+   ],
+   "remember": []
+  },
+  "actions": {},
   "private": false
  },
  {
@@ -1671,7 +2086,34 @@
    "wins": [],
    "tone": "mixed",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Psychology elective",
+     "energy": 1,
+     "absorption": 2
+    },
+    {
+     "name": "Business courses",
+     "energy": -1,
+     "absorption": -1
+    }
+   ],
+   "compass": {
+    "loves": [
+     "psychology"
+    ],
+    "good_at": [],
+    "matters": [
+     "wanting it to be mine"
+    ],
+    "within_reach": [
+     "a psychology minor"
+    ]
+   },
+   "interests": [
+    "psychology"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -1724,7 +2166,7 @@
    "steps": [
     {
      "text": "Ask what planning the schedule involves",
-     "kind": "practical",
+     "kind": "exploration",
      "minutes": 5,
      "why": "Know what you said yes to."
     },
@@ -1749,7 +2191,27 @@
    "wins": [],
    "tone": "positive",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Planning tutoring",
+     "energy": 1,
+     "absorption": 1
+    }
+   ],
+   "compass": {
+    "loves": [],
+    "good_at": [
+     "helping kids learn"
+    ],
+    "matters": [],
+    "within_reach": [
+     "helping run tutoring"
+    ]
+   },
+   "interests": [
+    "tutoring"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -1802,6 +2264,12 @@
    "encouragement": "You asked the society chat, and you met Joyce. You turned a worry into a conversation.",
    "steps": [
     {
+     "text": "Read about the minor's first course",
+     "kind": "exploration",
+     "minutes": 15,
+     "why": "One step closer to knowing."
+    },
+    {
      "text": "Write three questions you'd ask a youth NGO",
      "kind": "reflection",
      "minutes": 10,
@@ -1812,12 +2280,6 @@
      "kind": "connection",
      "minutes": 3,
      "why": "A good person to know."
-    },
-    {
-     "text": "Read about the minor's first course",
-     "kind": "exploration",
-     "minutes": 15,
-     "why": "One step closer to knowing."
     }
    ],
    "themes": [
@@ -1829,7 +2291,28 @@
    "wins": [],
    "tone": "positive",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Coffee with a Year 3",
+     "energy": 2,
+     "absorption": 1
+    }
+   ],
+   "compass": {
+    "loves": [],
+    "good_at": [],
+    "matters": [
+     "helping young people"
+    ],
+    "within_reach": [
+     "a psychology minor",
+     "youth NGO work"
+    ]
+   },
+   "interests": [
+    "youth work"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -1907,7 +2390,29 @@
    "wins": [],
    "tone": "positive",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Tutoring kids",
+     "energy": 2,
+     "absorption": 2
+    }
+   ],
+   "compass": {
+    "loves": [
+     "teaching kids"
+    ],
+    "good_at": [
+     "teaching fractions"
+    ],
+    "matters": [
+     "helping kids learn"
+    ],
+    "within_reach": []
+   },
+   "interests": [
+    "tutoring"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -1960,16 +2465,16 @@
    "encouragement": "In your first weeks you didn't know where to start. You started anyway, and kept going.",
    "steps": [
     {
-     "text": "Write down three things you did this term that you're proud of",
-     "kind": "reflection",
-     "minutes": 10,
-     "why": "See the whole term."
-    },
-    {
      "text": "Thank Wing for saving you that seat on the minibus",
      "kind": "connection",
      "minutes": 3,
      "why": "She was part of it."
+    },
+    {
+     "text": "Write down three things you did this term that you're proud of",
+     "kind": "reflection",
+     "minutes": 10,
+     "why": "See the whole term."
     },
     {
      "text": "Plan a slow first day of the holiday",
@@ -1987,7 +2492,32 @@
    "wins": [],
    "tone": "positive",
    "safetyConcern": false,
-   "remember": []
+   "remember": [],
+   "activities": [
+    {
+     "name": "Saturday photo walks",
+     "energy": 1,
+     "absorption": 1
+    },
+    {
+     "name": "Tuesday tutoring",
+     "energy": 2,
+     "absorption": 2
+    }
+   ],
+   "compass": {
+    "loves": [
+     "Saturday walks"
+    ],
+    "good_at": [],
+    "matters": [
+     "helping people figure things out"
+    ],
+    "within_reach": []
+   },
+   "interests": [
+    "tutoring"
+   ]
   },
   "actions": {},
   "private": false,
