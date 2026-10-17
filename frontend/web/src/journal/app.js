@@ -101,7 +101,7 @@ const OFFLINE = false;
 let AUTH = { auth: true, user: null };
 const isGuest = () => false;
 let storageOk = true;
-function fresh() { return { v: 2, onboarded: false, mode: 'own', voice: 'friend', lang: 'auto', inputMode: 'type', deliverTime: '08:00', allowEarly: true, draft: '', letters: [], demoNights: [], sampleMeta: {}, notes: {}, dirs: {}, memories: [], memoryPaused: false, forgotten: [], hiddenSampleMem: [], savedAt: 0 }; }
+function fresh() { return { v: 2, onboarded: false, mode: 'own', voice: 'friend', lang: 'auto', inputMode: 'type', deliverTime: '08:00', allowEarly: true, draft: '', letters: [], demoLetters: [], demoNights: [], sampleMeta: {}, notes: {}, dirs: {}, memories: [], memoryPaused: false, forgotten: [], hiddenSampleMem: [], savedAt: 0 }; }
 /* Demo mode (the default): sample nights to try, Kit's fictional letters next to
    yours, and "Skip to morning". Letters are still written by the AI, as in
    Normal mode. Normal mode is just your own journal. */
@@ -150,12 +150,14 @@ function sampleLetters() {
   });
 }
 function allLetters() {
-  const list = demoOn() ? [...S.letters, ...sampleLetters()] : [...S.letters];
+  const list = demoOn() ? [...S.letters, ...S.demoLetters, ...sampleLetters()] : [...S.letters];
   return list.sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''));
 }
 const findLetter = (id) => allLetters().find((l) => l.id === id);
 const delivered = (l) => l.status === 'ready' && (l.early || Date.now() >= Date.parse(l.deliverAt));
 function patchLetter(id, patch) {
+  const demo = S.demoLetters.find((l) => l.id === id);
+  if (demo) { Object.assign(demo, patch); return; } // never leaves this page
   const own = S.letters.find((l) => l.id === id);
   if (!own) { Object.assign((S.sampleMeta[id] = S.sampleMeta[id] || {}), patch); return; }
   const before = { ...own, actions: { ...(own.actions || {}) } };
@@ -463,7 +465,7 @@ function vTonight() {
       <div class="tn-bar">
         <button class="btn amber" data-act="seal" id="b-seal" ${S.draft.trim() ? '' : 'disabled'}>Seal tonight</button>
       </div>
-      ${S.letters.some((l) => !delivered(l) && l.status !== 'failed') && canSkip() ? `<button class="skip-morning" data-act="skip">Skip to morning${I.right}</button>` : ''}
+      ${skipReady() ? `<button class="skip-morning" data-act="skip">Skip to morning${I.right}</button>` : ''}
     </section>`;
 }
 /* A letter that couldn't be written stays findable here, with a way to try again. */
@@ -740,54 +742,73 @@ async function seal() {
   const date = journalDate();
   window.scrollTo(0, 0); // the words float up into a light above the page
   const rect = ta.getBoundingClientRect(); const lrect = { left: window.innerWidth / 2 - 48, top: Math.max(72, rect.top - 120), width: 96, height: 96 };
-  let L;
-  try { L = await sealNight(text, date); }
-  catch (e) {
-    const b = $('#b-seal'); if (b) b.disabled = false;
-    toast(e?.code === 'rate_limited' ? 'Today’s letters are used up. Your words are still here.' : e?.code === 'unauthorized' ? 'Please sign in again. Your words are still here.' : 'Couldn’t seal tonight. Your words are still here; check your connection and try again.');
+  // The words rise straight away; saving happens alongside, and the page comes back
+  // ready for more. If saving fails, the words return to the page.
+  const sealing = sealNight(text, date).then((L) => ({ L }), (e) => ({ e }));
+  if (demoOn()) demoNight = demoNight?.date === date && !demoNight.done ? { date, texts: [...demoNight.texts, text] } : { date, texts: [text] };
+  S.draft = ''; save();
+  await ascend(text, rect, lrect);
+  go('tonight');
+  const r = await sealing;
+  if (r.e) {
+    refresh();
+    if (r.e?.code === 'rate_limited') {
+      // the daily limit comes after the words are saved: they're kept, only the letter waits
+      syncSkip();
+      toast(demoOn() ? 'Your words are saved. Today’s letters are used up, so Skip to morning will show a demo letter.' : 'Your words are saved. Today’s letters are used up, so this night’s letter has to wait.');
+      return;
+    }
+    if (demoNight?.date === date) demoNight.texts = demoNight.texts.filter((t) => t !== text);
+    if (!$('#entry')?.value.trim()) { S.draft = text; save(); if (route === 'tonight') render(); }
+    toast(r.e?.code === 'unauthorized' ? 'Please sign in again. Your words are still here.' : 'Couldn’t seal tonight. Your words are still here; check your connection and try again.');
     return;
   }
-  S.draft = ''; save();
-  await ascend(text, L.id, rect, lrect);
-  go('tonight');
+  syncSkip();
 }
-function starPositions(id, n) {
-  const r = seeded(id); const out = [];
-  for (let i = 0; i < n; i++) out.push({ x: 8 + r() * 84, y: 6 + r() * 44, tw: 2.5 + r() * 3, dl: r() * 3 });
-  return out;
+/* Skip to morning shows while a letter waits. With no letter writer switched on, Demo
+   mode can still show the night's demo letter; elsewhere the night just waits. */
+let demoNight = null; // { date, texts, done }: tonight's words in Demo mode, in memory only
+function skipReady() {
+  if (!canSkip()) return false;
+  const demoWaiting = demoOn() && demoNight && !demoNight.done && demoNight.texts.length > 0;
+  if (claudeState !== 'ready' && demoOn()) return demoWaiting;
+  return demoWaiting || S.letters.some((l) => !delivered(l) && l.status !== 'failed');
 }
-async function ascend(text, id, rect, lrect) {
+/* Show Skip to morning once a letter waits, without redrawing what's being written. */
+function syncSkip() {
+  const tn = route === 'tonight' && $('.tn'); if (!tn) return;
+  const want = skipReady();
+  const btn = tn.querySelector('.skip-morning');
+  if (want && !btn) tn.insertAdjacentHTML('beforeend', `<button class="skip-morning" data-act="skip">Skip to morning${I.right}</button>`);
+  if (!want && btn) btn.remove();
+}
+async function ascend(text, rect, lrect) {
   const layer = $('#layer');
   // English splits into words; Chinese (no spaces) into single characters, so long lines wrap and float up one by one.
-  const CJK = /[\u3000-\u303f\u3400-\u9fff\uff00-\uffef]/;
-  const words = (text.match(/[\u3000-\u303f\u3400-\u9fff\uff00-\uffef]|[^\s\u3000-\u303f\u3400-\u9fff\uff00-\uffef]+/g) || []).slice(0, 140);
-  const ov = document.createElement('div'); ov.className = 'ascend'; ov.setAttribute('role', 'status');
+  const CJK = /[　-〿㐀-鿿＀-￯]/;
+  const words = (text.match(/[　-〿㐀-鿿＀-￯]|[^\s　-〿㐀-鿿＀-￯]+/g) || []).slice(0, 140);
+  const ov = document.createElement('div'); ov.className = 'ascend'; ov.setAttribute('role', 'status'); ov.setAttribute('aria-label', 'Sealed');
   const top = Math.min(Math.max(rect.top + 20, 80), window.innerHeight * 0.55);
   ov.innerHTML = `<span class="stars" aria-hidden="true"></span>
     <div class="words" style="left:${rect.left + 22}px;top:${top}px;width:${Math.max(120, rect.width - 44)}px">${words.map((w) => `<span class="w">${esc(w)}${CJK.test(w) ? '' : ' '}</span>`).join('')}</div>
-    <div class="lantern" style="left:${lrect.left}px;top:${lrect.top}px;width:${lrect.width}px;height:${lrect.height}px;--k:1;--b:1.05"></div>
-    <p class="cap">Sealed. Nothing replies tonight.</p>`;
+    <div class="lantern" style="left:${lrect.left}px;top:${lrect.top}px;width:${lrect.width}px;height:${lrect.height}px;--k:1;--b:1.05"></div>`;
   layer.appendChild(ov);
   const lantern = ov.querySelector('.lantern');
   const lx = lrect.left + lrect.width / 2, ly = lrect.top + lrect.height / 2;
   if (!reduceMotion()) {
-    await sleep(350);
     const spans = [...ov.querySelectorAll('.w')];
-    const step = Math.min(30, 1300 / Math.max(1, spans.length));
+    const step = Math.min(18, 450 / Math.max(1, spans.length));
     const anims = spans.map((s, i) => {
       const b = s.getBoundingClientRect();
       const tx = lx - (b.left + b.width / 2), ty = ly - (b.top + b.height / 2);
       return s.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${tx * .6}px, ${ty * .6}px) scale(.6)`, opacity: .8, offset: .6 }, { transform: `translate(${tx}px, ${ty}px) scale(.1)`, opacity: 0 }],
-        { duration: 1100, delay: i * step, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' }).finished;
+        { duration: 750, delay: 80 + i * step, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' }).finished;
     });
-    const glow = tone('glow-rgb'); lantern.animate([{ filter: `brightness(1) drop-shadow(0 0 30px rgba(${glow},.55))` }, { filter: `brightness(1.6) drop-shadow(0 0 70px rgba(${glow},.9))` }], { duration: 1100 + spans.length * step, fill: 'forwards' });
+    const glow = tone('glow-rgb'); lantern.animate([{ filter: `brightness(1) drop-shadow(0 0 30px rgba(${glow},.55))` }, { filter: `brightness(1.6) drop-shadow(0 0 70px rgba(${glow},.9))` }], { duration: 830 + spans.length * step, fill: 'forwards' });
     await Promise.all(anims);
-    await lantern.animate([{ transform: 'translate(0,0) scale(1)' }, { transform: `translate(${window.innerWidth * .18}px, ${-(ly - window.innerHeight * .08)}px) scale(.3)` }], { duration: 1800, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished;
-    starPositions(id, 26).forEach((st, i) => { const d = document.createElement('i'); d.className = 's'; d.style.left = `${st.x}%`; d.style.top = `${st.y}%`; ov.appendChild(d); d.animate([{ opacity: 0, transform: 'scale(0)' }, { opacity: 1, transform: 'scale(1.6)' }, { opacity: .9, transform: 'scale(1)' }], { duration: 700, delay: i * 40, fill: 'forwards' }); });
-  }
-  ov.classList.add('is-done');
-  await sleep(reduceMotion() ? 400 : 1700);
-  await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: 'forwards' }).finished;
+    await lantern.animate([{ transform: 'translate(0,0) scale(1)' }, { transform: `translate(${window.innerWidth * .18}px, ${-(ly - window.innerHeight * .08)}px) scale(.3)`, opacity: 0 }], { duration: 750, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished;
+  } else await sleep(300);
+  await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished;
   ov.remove();
 }
 
@@ -798,7 +819,8 @@ const fmtMin = (m) => { m = ((Math.round(m) % 1440) + 1440) % 1440; return `${pa
    letter is finished and marked early, then they arrive as a present. */
 async function skipToMorning() {
   const pending = S.letters.filter((l) => !delivered(l) && l.status !== 'failed');
-  if (!pending.length) return;
+  const demoFallback = demoOn() && demoNight && !demoNight.done && demoNight.texts.length > 0;
+  if (!pending.length && !demoFallback) return;
   const layer = $('#layer');
   const ov = document.createElement('div'); ov.className = 'overnight'; ov.setAttribute('role', 'status'); ov.setAttribute('aria-live', 'polite');
   ov.innerHTML = `<div class="ov-sky ov-night"></div><div class="ov-sky ov-dawn"></div><span class="stars" aria-hidden="true"></span><span class="ov-moon" aria-hidden="true"></span><span class="ov-sun" aria-hidden="true"></span>
@@ -814,26 +836,65 @@ async function skipToMorning() {
   const fast = reduceMotion();
   const leave = async () => { await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500, fill: 'forwards' }).finished; ov.remove(); };
   requestAnimationFrame(() => ov.classList.add('is-late'));
-  const at = toMin(atTime(pending[0])); const before = fmtMin(at - 20);
+  const at = toMin(pending.length ? atTime(pending[0]) : deliverTime()); const before = fmtMin(at - 20);
   await roll(toMin(hhmm()), toMin(before), fast ? 200 : 2600);
   const tasks = claudeState === 'ready' ? pending.filter((l) => l.status === 'writing').map((l) => waitForLetter(l.id)) : [];
   if (tasks.length) {
     txt.textContent = pending.some((l) => l.demo) ? 'Finishing your sample letter…' : 'Claude is still writing your letter…';
     const slow = setTimeout(() => { txt.textContent = 'Still writing. This can take up to a minute.'; }, 9000);
-    await Promise.all(tasks); clearTimeout(slow);
+    // don't hold the night open forever: Demo mode falls back to its demo letter sooner
+    await Promise.race([Promise.all(tasks), sleep(demoFallback ? 15000 : 60000)]); clearTimeout(slow);
   }
   const ready = pending.map((l) => findLetter(l.id)).filter((l) => l && l.status === 'ready');
+  if (!ready.length && demoFallback) { const D = demoLetter(demoNight); S.demoLetters.push(D); ready.push(D); }
+  if (demoNight && ready.length) demoNight.done = true;
   if (!ready.length) {
     await leave(); render();
-    toast(claudeState === 'ready' ? 'Still being written. It will be here soon.' : 'Your letter is sealed and waiting for the letter writer.');
+    toast(claudeState === 'ready' ? 'Still being written. It will be here soon.' : 'Beyond’s letter writer isn’t switched on yet, so this letter can’t be written. It’s sealed and safe.');
     return;
   }
   ov.classList.add('is-dawn'); txt.textContent = 'Good morning.';
   await roll(toMin(before), at, fast ? 100 : 1500);
   await sleep(fast ? 100 : 700);
-  ready.forEach((l) => patchLetter(l.id, { early: true }));
+  ready.forEach((l) => { if (!l.demo) patchLetter(l.id, { early: true }); });
   await leave(); render();
   presentLetters();
+}
+
+/* Demo mode's stand-in when no letter writer is switched on: a clearly labelled,
+   pre-written letter that quotes only the night's own words. It is never sent to an
+   AI, never saved to the account, and gone when the page closes. */
+function demoLetter(night) {
+  const text = night.texts.join('\n\n');
+  const id = `demo_${Date.now().toString(36)}`; const entryId = `${id}_e`;
+  const zh = detectLang(text) === 'zh';
+  const parts = text.split(/(?<=[.!?。！？])\s+|\n+/).map((x) => x.trim()).filter((x) => countWords(x) >= 2);
+  const clipQ = (x) => (x.length > 90 ? x.slice(0, 90).replace(/\s+\S*$/, '') : x);
+  const first = parts[0] ? clipQ(parts[0]) : clipQ(text.trim());
+  const longest = parts.slice(1).sort((a, b) => b.length - a.length)[0];
+  const v = VOICES[S.voice] || VOICES.friend; const n = countWords(text); const k = night.texts.length;
+  const t = zh ? {
+    headline: '你今晚写下的话', recap: `你今晚写了 ${n} 个字${k > 1 ? `，分 ${k} 次写下` : ''}。这是一封演示信：只用你自己的话，展示早上的信是什么样子。`,
+    a1: ['你从这里开始', '你先写下了这句。最先写出的话，往往是早就在等着的那句。'], a2: ['占了最多篇幅的事', '这是你今晚写得最长的一段，背后可能有最多的东西。'],
+    advice: '今晚动笔之前，再读一遍上面那句话，留意它在向你要什么。', enc: '把它写下来是最难的一步，你已经做到了。',
+    steps: [['再读一句你昨晚写下的话', 2, 'reflection'], ['不带手机，散步十分钟', 10, 'rest'], ['给你想到的人发一条消息', 3, 'connection']],
+    greet: v.hans[0], sign: v.hans[1],
+  } : {
+    headline: 'What you set down tonight', recap: `You wrote ${plural(n, 'word')} tonight${k > 1 ? `, across ${k} moments` : ''}. This is a demo letter: it shows what a morning letter looks like, using only your own words.`,
+    a1: ['Where you began', 'You opened with this. The first words are often the ones that were already waiting.'], a2: ['What took the most room', 'This was your longest thought tonight. It may be the one with the most behind it.'],
+    advice: 'Before you write tonight, read the line above once more and notice what it asks of you.', enc: 'Writing it down was the hard part, and you did it.',
+    steps: [['Reread one line you wrote last night', 2, 'reflection'], ['Take a ten-minute walk without your phone', 10, 'rest'], ['Send a message to someone you thought of', 3, 'connection']],
+    greet: v.en[0], sign: v.en[1],
+  };
+  const analysis = [{ title: t.a1[0], text: t.a1[1], quote: first, entryId }];
+  if (longest) analysis.push({ title: t.a2[0], text: t.a2[1], quote: clipQ(longest), entryId });
+  const now = new Date().toISOString();
+  return {
+    id, entryId, demo: true, by: 'demo', date: night.date, entries: [{ id: entryId, t: hhmm(), text }],
+    status: 'ready', deliverAt: now, early: true, readAt: null, actions: {}, private: false, createdAt: now, sealedAt: hhmm(), revision: 1, model: null, error: null,
+    content: { voice: S.voice, language: zh ? 'zh-hans' : 'en', greeting: t.greet, signoff: t.sign, headline: t.headline, recap: t.recap, analysis,
+      advice: { text: t.advice }, encouragement: t.enc, steps: t.steps.map(([text, minutes, kind]) => ({ text, minutes, kind })), themes: ['ordinary'] },
+  };
 }
 
 /* A letter that has arrived opens as a present: once per letter, the next time
@@ -841,7 +902,7 @@ async function skipToMorning() {
 const presented = new Set();
 function presentLetters() {
   if (!AUTH.user || ['welcome', 'login'].includes(route) || document.querySelector('.present, .overnight, .ascend, .sheet-wrap')) return;
-  const list = S.letters.filter((l) => delivered(l) && !l.readAt && !presented.has(l.id)).sort((a, b) => b.date.localeCompare(a.date));
+  const list = [...S.letters, ...S.demoLetters].filter((l) => delivered(l) && !l.readAt && !presented.has(l.id)).sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''));
   if (!list.length) return;
   list.forEach((l) => presented.add(l.id));
   const L = list[0]; const v = VOICES[L.content?.voice || S.voice] || VOICES.friend; const more = list.length - 1;
@@ -1984,7 +2045,7 @@ async function clearJournal() {
   try {
     await backend.clearAll();
     confirmDelete = false;
-    S.letters = []; S.demoNights = []; S.memories = []; S.notes = {}; S.dirs = {}; S.draft = '';
+    S.letters = []; S.demoLetters = []; S.demoNights = []; S.memories = []; S.notes = {}; S.dirs = {}; S.draft = '';
     try { const fresh = await backend.settings(); synced = await backend.updateSettings(keep, fresh.revision); applySettings(synced); } catch (e) { /* defaults are fine */ }
     toast('Your journal was deleted.'); render();
   } catch (e) { confirmDelete = false; needFreshSignIn(e, 'clear'); }

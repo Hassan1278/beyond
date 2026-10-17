@@ -186,6 +186,7 @@ async function api(route) {
   }
   if (path === '/letters' && req.method() === 'POST') {
     if (body.consent !== true) return err(route, 'bad_request', 400);
+    if (db.lettersUsedUp) return err(route, 'rate_limited', 429);
     const e = db.entries.find((x) => x.id === body.entry_id);
     const l = {
       id: uuid(),
@@ -537,9 +538,9 @@ try {
   await page.locator('.tab[data-go="tonight"]').getByText('Journal').waitFor();
   check(true, 'and back to English');
   await page.locator('.gear-btn[data-go="settings"]').click();
-  await page.locator('[data-jtheme-pick="paper"]').click();
+  await page.locator('[data-jtheme-pick="ink"]').click();
   check(
-    (await page.evaluate(() => document.documentElement.dataset.jtheme)) === 'paper',
+    (await page.evaluate(() => document.documentElement.dataset.jtheme)) === 'ink',
     'Settings switches the colour theme',
   );
   await page.locator('[data-jtheme-pick="midnight"]').click();
@@ -603,6 +604,33 @@ try {
   await sleep(400);
   check(db.letters[1].read_at !== null, 'the demo night’s AI letter opens');
   await shot(page, '11-demo-letter');
+
+  console.log('demo letter when no letter can be written');
+  db.lettersUsedUp = true;
+  const lettersBefore = db.letters.length;
+  await page.locator('.tab[data-go="tonight"]').click();
+  await page.fill(
+    '#entry',
+    'Fictional demo night: the library was quiet. I finally finished the essay.',
+  );
+  await page.getByRole('button', { name: 'Seal tonight' }).click();
+  await page.getByText('Skip to morning will show a demo letter').waitFor({ timeout: 20000 });
+  check(
+    (await page.locator('#entry').inputValue()) === '' && db.letters.length === lettersBefore,
+    'past the daily limit the words are saved and no letter is asked for',
+  );
+  await page.locator('.skip-morning').click();
+  await page.getByRole('button', { name: 'Open it' }).click({ timeout: 20000 });
+  await page.getByText('What you set down tonight').waitFor();
+  check(
+    await page.getByText('Demo mode: a pre-written sample letter').isVisible(),
+    'Demo mode shows a labelled demo letter built from the night’s own words',
+  );
+  check(
+    (await page.locator('.quote').first().innerText()).includes('library was quiet'),
+    'the demo letter quotes what was written',
+  );
+  db.lettersUsedUp = false;
   await page.locator('.gear-btn[data-go="settings"]').click();
   await page.locator('[data-act="toggle-sample"]').click();
   await page.locator('.tab[data-go="tonight"]').click();

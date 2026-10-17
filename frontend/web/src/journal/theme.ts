@@ -3,7 +3,7 @@
  * under `:root[data-jtheme=…]`; this only remembers the choice (a display
  * setting, kept in this browser) and sets the attribute. Midnight is the default.
  */
-export type JournalTheme = 'midnight' | 'candle' | 'ink' | 'paper';
+export type JournalTheme = 'midnight' | 'candle' | 'ink';
 
 /** night, accent, paper: the swatch previews the page, not a hint at it. */
 export const JOURNAL_THEMES: {
@@ -29,12 +29,6 @@ export const JOURNAL_THEMES: {
     name: 'Ink',
     note: 'Black and white, dark',
     bands: ['#0c0c0c', '#ececec', '#f3f3f1'],
-  },
-  {
-    id: 'paper',
-    name: 'Paper',
-    note: 'Black and white, light',
-    bands: ['#f6f6f4', '#161616', '#ffffff'],
   },
 ];
 

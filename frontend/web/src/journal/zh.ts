@@ -204,6 +204,13 @@ const PHRASES: Record<string, string> = {
 
   /* ---- morning and colours ---- */
   'Good morning.': '早上好。',
+  'Your words are saved. Today’s letters are used up, so Skip to morning will show a demo letter.':
+    '你的文字已保存。今天的信件次数已用完，所以“跳到早上”会显示一封演示信。',
+  'Your words are saved. Today’s letters are used up, so this night’s letter has to wait.':
+    '你的文字已保存。今天的信件次数已用完，这一晚的信需要再等等。',
+  'Beyond’s letter writer isn’t switched on yet, so this letter can’t be written. It’s sealed and safe.':
+    'Beyond 的写信服务还没有开启，所以这封信暂时写不出来。它已经封存好，很安全。',
+  Sealed: '已封存',
   'A letter arrived for you': '你有一封信到了',
   'Open it': '拆开看看',
   Later: '稍后',
@@ -212,11 +219,9 @@ const PHRASES: Record<string, string> = {
   Midnight: '午夜',
   Candle: '烛光',
   Ink: '墨',
-  Paper: '纸',
   'Deep navy, a soft periwinkle light': '深海军蓝，透着柔和的淡紫蓝光',
   'Warm charcoal and amber, the original': '温暖的炭黑与琥珀色，最初的配色',
   'Black and white, dark': '黑白 · 深色',
-  'Black and white, light': '黑白 · 浅色',
   'Only changes how Beyond looks on this device.': '只改变 Beyond 在这台设备上的外观。',
 
   /* ---- welcome and sign in ---- */
