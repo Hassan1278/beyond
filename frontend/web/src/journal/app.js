@@ -5,7 +5,9 @@
    writing go through Beyond's backend. Journal text is kept in memory only,
    never in browser storage.
    PC redesign: ink on night, letters on paper, hand-drawn marks instead of
-   boxes. Tabs: Tonight, Letters, Identity, Patterns, Settings; Letters holds every letter, Settings holds memories.
+   boxes. Tabs: Tonight, Letters, Identity, Patterns, centred; Settings is the gear at the top right.
+   Identity is home: the app opens on it and the Beyond mark returns to it.
+   Letters holds every letter, Settings holds memories.
    ====================================================================== */
 /* eslint-disable */
 import SAMPLE_DATA from './sample.json';
@@ -227,7 +229,7 @@ let SERVER_STT = false; let SERVER_SYNC = true;
 let aiLabel = 'Claude';
 let claudeState = 'checking'; // checking | ready | off
 const inflight = new Map();
-let route = 'tonight'; let param = null;
+let route = 'identity'; let param = null; // Identity is home
 let claudeReady = Promise.resolve();
 function checkAI() { return (claudeReady = (async () => {
   try { const j = await backend.aiStatus(); claudeState = j.letters ? 'ready' : 'off'; SERVER_STT = !!j.transcribe; } catch (e) { claudeState = 'off'; SERVER_STT = false; }
@@ -287,7 +289,8 @@ const I = {
   sky: `<svg viewBox="0 0 24 24" ${HAND}><path d="M6 13.4c.3 1.6.9 2.4 2.4 2.7-1.5.4-2.1 1.1-2.4 2.8-.3-1.6-.9-2.4-2.5-2.7 1.6-.4 2.2-1.1 2.5-2.8Z"/><path d="M15.4 3.6c.5 2.6 1.6 3.9 4.1 4.4-2.5.6-3.6 1.9-4.1 4.6-.5-2.6-1.6-3.9-4.2-4.4 2.6-.6 3.7-1.9 4.2-4.6Z"/><path d="M8.7 15.4c2-1.4 3.6-2.9 5.2-4.6" stroke-dasharray="0.1 2.6"/></svg>`,
   you: `<svg viewBox="0 0 24 24" ${HAND}><path d="M12.1 4.6c1.9 0 3.4 1.6 3.3 3.5 0 1.9-1.6 3.4-3.5 3.3-1.8 0-3.3-1.6-3.2-3.5.1-1.8 1.5-3.3 3.4-3.3Z"/><path d="M5.2 19.8c.9-3.6 3.8-5.4 6.9-5.4 3.2 0 6 1.8 6.8 5.5"/></svg>`,
   star: `<svg viewBox="0 0 24 24" ${HAND}><path d="M12.2 3.2c.6 4.1 2.2 6.3 6.6 7.3-4.3.9-6 3-6.7 7.8-.7-4.5-2.4-6.8-6.9-7.6 4.4-1 6.3-3.2 7-7.5Z"/></svg>`,
-  gear: `<svg viewBox="0 0 24 24" ${HAND}><path d="M12 8.6c1.9 0 3.4 1.5 3.4 3.4 0 1.9-1.6 3.5-3.5 3.4-1.8 0-3.3-1.6-3.3-3.5.1-1.8 1.6-3.3 3.4-3.3Z"/><path d="M12 2.9v2.6M12 18.6v2.5M4.1 7.4l2.3 1.3M17.6 15.3l2.2 1.3M4.2 16.7l2.2-1.3M17.6 8.7l2.3-1.4M7.6 3.9l.9 1.7M15.5 18.4l.9 1.8M3.1 12h2.5M18.4 12.1h2.6"/></svg>`,
+  // the Settings cog: eight square teeth around a ring
+  gear: `<svg viewBox="0 0 24 24" ${HAND}><path d="M19.1 9.8L21.8 10.3L21.8 13.7L19.1 14.2L18.5 15.5L20.2 17.7L17.7 20.2L15.5 18.5L14.2 19.1L13.7 21.8L10.3 21.8L9.8 19.1L8.5 18.5L6.3 20.2L3.8 17.7L5.5 15.5L4.9 14.2L2.2 13.7L2.2 10.3L4.9 9.8L5.5 8.5L3.8 6.3L6.3 3.8L8.5 5.5L9.8 4.9L10.3 2.2L13.7 2.2L14.2 4.9L15.5 5.5L17.7 3.8L20.2 6.3L18.5 8.5Z"/><circle cx="12" cy="12" r="3.4"/></svg>`,
   search: `<svg viewBox="0 0 24 24" ${HAND}><path d="M10.6 4.2c3.6 0 6.4 2.8 6.3 6.3-.1 3.5-3 6.2-6.4 6.1-3.4-.1-6.1-2.9-6-6.3.1-3.3 2.8-6.1 6.1-6.1Z"/><path d="M15.4 15.6c1.6 1.5 3.2 3 4.9 4.6"/></svg>`,
   left: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m14 6-6 6 6 6"/></svg>',
   right: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m10 6 6 6-6 6"/></svg>',
@@ -351,11 +354,12 @@ function render() {
   if (entering && route === 'identity' && !identVeiled) identRevealAt = performance.now();
   const nav = route === 'welcome' || route === 'login' ? '' : `
     <header class="topbar">
-      <button class="brand" data-go="tonight" aria-label="Beyond, Tonight">${I.moon}<span>Beyond</span></button>
+      <button class="brand" data-go="identity" aria-label="Beyond, Identity">${I.moon}<span>Beyond</span></button>
       <nav class="tabs" aria-label="Main">
-        ${[['tonight', 'Tonight', I.moon], ['letters', 'Letters', I.mail], ['identity', 'Identity', I.bubbles], ['patterns', 'Patterns', I.sky], ['settings', 'Settings', I.gear]].map(([r, l, ic]) =>
+        ${[['tonight', 'Tonight', I.moon], ['letters', 'Letters', I.mail], ['identity', 'Identity', I.bubbles], ['patterns', 'Patterns', I.sky]].map(([r, l, ic]) =>
           `<button class="tab" data-go="${r}" ${here(r) ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${r === 'letters' && unread ? '<i class="dot" aria-label="Unread letter"></i>' : ''}</button>`).join('')}
       </nav>
+      <button class="gear-btn" data-go="settings" aria-label="Settings" ${here('settings') ? 'aria-current="page"' : ''}>${I.gear}</button>
     </header>`;
   $('#app').innerHTML = `${nav}<main id="main" class="v-${route}${entering && stateReady ? ' is-entering' : ''}">${html}</main>`;
   after.forEach((f) => f()); after = [];
@@ -1330,7 +1334,7 @@ function drawSky() {
 }
 
 /* --- Identity: who you might become --- */
-let identVeiled = true; let identFocus = null; let identRaf = 0; let identRevealAt = 0; let identHover = null;
+let identVeiled = false; let identFocus = null; let identRaf = 0; let identRevealAt = 0; let identHover = null;
 function directions() {
   const list = keptLetters();
   return DIRECTIONS.map((def) => {
@@ -1398,17 +1402,12 @@ function vIdentity() {
   const n = nightsToFirst(all); const kept = keptLetters().length;
   const max = Math.max(1, ...visible.map((d) => d.days));
   after.push(() => startBubbles(visible));
-  return `<header class="page-head">
-      <h1 class="display">Who you might become</h1>
-      <p class="lead">Directions drawn only from letters you kept. A possibility you might recognise in yourself, never a label.</p>
-    </header>
-    ${sampleBanner()}
+  // home: the constellation comes first, with no heading or veil in front of it
+  return `<h1 class="sr-only">Identity</h1>
     <section class="ident" aria-label="Your directions">
       ${visible.length ? `<div class="stage ${identVeiled ? 'is-veiled' : ''} ${f ? 'has-focus' : ''}" id="stage">
         <canvas class="stage-sky" aria-hidden="true"></canvas>
         <div class="parallax"><div class="stage-layer"><svg class="stage-links" aria-hidden="true"></svg></div></div>
-        <p class="stage-cap">${plural(visible.length, 'direction')}, drawn from ${plural(kept, 'kept night')}</p>
-        <div class="veil"><h2>Bring it into focus.</h2><p>Directions gathered from your kept letters. The more often something appears, the larger it grows.</p><button class="btn amber" data-act="reveal">Open the map</button></div>
       </div>
       <p class="fine legend">You are at the centre. Larger circles have more nights behind them, and brighter threads mean a stronger pull. Select a direction to see its letters circle it.</p>`
       : `<div class="empty"><span class="empty-mark" aria-hidden="true">${miniMap([])}</span><p class="lead">Write ${plural(n, 'more night')} to see your first direction.</p><p class="fine">A direction appears once kept letters from at least three different nights point to it.</p><button class="btn amber" data-go="tonight">Write tonight</button></div>`}
@@ -1877,8 +1876,8 @@ window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() =
 
 /* ---------- boot ---------- */
 function start() {
-  if (S.onboarded && ['welcome', 'login'].includes(route)) route = 'tonight';
-  if (route === 'login') route = 'tonight';
+  if (S.onboarded && ['welcome', 'login'].includes(route)) route = 'identity';
+  if (route === 'login') route = 'identity';
   render(); stateReady = true;
 }
 /* ---------- Beyond account glue ----------

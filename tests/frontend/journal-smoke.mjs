@@ -462,7 +462,7 @@ try {
 
   console.log('identity, patterns');
   await page.locator('.tab[data-go="identity"]').click();
-  await page.getByRole('heading', { name: 'Who you might become' }).waitFor();
+  await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
   check(
     await page.getByText('more nights to see your first direction').first().isVisible(),
     'Identity has its own tab and says when a direction will appear',
@@ -477,10 +477,17 @@ try {
     !(await page.locator('.tab[data-go="profile"]').count()),
     'there is no separate Profile tab',
   );
+  check(
+    !(await page.locator('.tab[data-go="settings"]').count()),
+    'Settings is the gear at the top right, not a tab',
+  );
   await shot(page, '09-patterns');
+  await page.locator('.brand').click();
+  await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
+  check(true, 'the Beyond mark returns to Identity, the home page');
 
   console.log('settings and memory');
-  await page.locator('.tab[data-go="settings"]').click();
+  await page.locator('.gear-btn[data-go="settings"]').click();
   await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
   check(
     await page.getByText('Walks by the harbour to feel calm').isVisible(),
@@ -531,11 +538,11 @@ try {
   await sleep(400);
   check(db.letters[1].read_at !== null, 'the demo night’s AI letter opens');
   await shot(page, '11-demo-letter');
-  await page.locator('.tab[data-go="settings"]').click();
+  await page.locator('.gear-btn[data-go="settings"]').click();
   await page.locator('[data-act="toggle-sample"]').click();
   await page.locator('.tab[data-go="tonight"]').click();
   check(!(await page.locator('.samples').count()), 'Normal mode has no sample nights');
-  await page.locator('.tab[data-go="settings"]').click();
+  await page.locator('.gear-btn[data-go="settings"]').click();
 
   console.log('sign out');
   await page.getByRole('button', { name: 'Sign out' }).click();
