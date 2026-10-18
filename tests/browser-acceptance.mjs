@@ -68,7 +68,7 @@ export async function runBrowserAcceptance({
       await page.locator('#password').fill(user.password);
       await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     };
-    // First sign-in: the four-screen welcome, ending on Identity.
+    // First sign-in: the five-screen welcome, ending on Identity.
     const welcome = async () => {
       const next = page.locator('.onb-next');
       const ready = () =>
@@ -87,10 +87,16 @@ export async function runBrowserAcceptance({
       await page.locator('[data-onb-voice="friend"]').click();
       await ready();
       await next.click();
-      await page.getByRole('heading', { name: 'Privacy', exact: true }).waitFor();
+      await page
+        .getByRole('heading', { name: 'What you write stays yours', exact: true })
+        .waitFor();
+      await ready();
+      await next.click();
+      await page.getByRole('heading', { name: 'What’s your name?' }).waitFor();
+      await page.locator('#onb-name').fill('Fictional Ada');
       await page.locator('.onb-ready.is-shown').waitFor();
       await page.getByRole('button', { name: 'I’m ready', exact: true }).click();
-      await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
+      await page.getByRole('heading', { name: 'Fictional Ada, who are you becoming…' }).waitFor();
     };
     const storageHas = (text) =>
       page.evaluate(
