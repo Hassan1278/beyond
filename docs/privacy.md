@@ -9,7 +9,7 @@ See [API reference](api.md) and [AI service](ai-service.md) for exact bounds, ro
   - Journal text, drafts and letters are held in page memory only, never in localStorage, sessionStorage or offline caches.
   - Unsealed words on today's journal page are also saved to the person's own account as a draft (`user_settings.draft`, a second after typing stops), so nothing is lost if they leave. The draft is never sent to the letter writer or used in any letter or note; sealing clears it. Until migration `20261019000000_drafts` is applied the draft stays in page memory only.
   - The Supabase session (tokens only) is in sessionStorage, so closing the tab signs out.
-  - localStorage holds only display choices: write or speak, speech language, demo mode, and the site's theme.
+  - localStorage holds only display choices: write or speak, speech language, demo mode. Colour themes travel in URL parameters and are saved to signed-in accounts, never browser storage.
   - The site's fictional demo keeps what a visitor types in memory only, and clears the storage older versions used.
 - **Sealing is consent.**
   - Saving a night alone sends nothing anywhere. Sealing it asks for one letter.

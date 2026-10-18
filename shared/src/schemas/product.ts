@@ -74,6 +74,8 @@ export const settingsSchema = z.strictObject({
   draft: draftSchema.optional(),
   // Optional until the direction labels migration is applied everywhere.
   direction_labels: directionLabelsSchema.optional(),
+  // Optional until the journal theme migration is applied everywhere.
+  journal_theme: z.enum(['midnight', 'candle', 'ink']).optional(),
   revision,
   updated_at: timestamp,
 });
@@ -94,6 +96,7 @@ export const patchSettingsSchema = z
     letter_name: letterNameSchema.optional(),
     draft: draftSchema.optional(),
     direction_labels: directionLabelsSchema.optional(),
+    journal_theme: z.enum(['midnight', 'candle', 'ink']).optional(),
     expected_revision: revision,
   })
   .refine((value) => Object.keys(value).length > 1);

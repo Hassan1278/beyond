@@ -1,7 +1,7 @@
 /**
  * The journal's colour themes. The palettes live in journal.css as token sets
- * under `:root[data-jtheme=…]`; this only remembers the choice (a display
- * setting, kept in this browser) and sets the attribute. Midnight is the default.
+ * under `:root[data-jtheme=…]`; this holds the choice for the visit and sets the
+ * attribute. The account keeps it (settings.journal_theme). Midnight is the default.
  */
 export type JournalTheme = 'midnight' | 'candle' | 'ink';
 
@@ -32,16 +32,26 @@ export const JOURNAL_THEMES: {
   },
 ];
 
-const KEY = 'beyond.journal-theme';
 const isTheme = (v: unknown): v is JournalTheme => JOURNAL_THEMES.some((t) => t.id === v);
 
+/* Not kept in this browser: the theme comes from the link (?theme=gold|blue, set by the
+   site) and, once signed in, from the account's settings. */
 let theme: JournalTheme = 'midnight';
+let pendingLinkTheme = false;
 try {
-  const saved = localStorage.getItem(KEY);
-  if (isTheme(saved)) theme = saved;
+  const v = new URLSearchParams(window.location.search).get('theme');
+  pendingLinkTheme = v === 'gold' || v === 'blue';
+  if (v === 'gold') theme = 'candle';
+  else if (v === 'blue') theme = 'midnight';
 } catch {
-  /* storage blocked: the default */
+  /* the default */
 }
+/** True when this visit's link asked for a theme, so the account should take it. */
+export const themeFromLink = (): boolean => pendingLinkTheme;
+/** Consume only after settings arrive, since the sign-in screen cleans the URL. */
+export const clearThemeFromLink = (): void => {
+  pendingLinkTheme = false;
+};
 
 export const journalTheme = (): JournalTheme => theme;
 
@@ -54,11 +64,6 @@ export function applyJournalTheme(): void {
 export function setJournalTheme(next: string): void {
   if (!isTheme(next)) return;
   theme = next;
-  try {
-    localStorage.setItem(KEY, next);
-  } catch {
-    /* still switches for this visit */
-  }
   applyJournalTheme();
 }
 

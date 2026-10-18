@@ -5,6 +5,8 @@
  * "encrypted", "end-to-end" or "fully secure" (see docs/privacy.md).
  */
 
+import { PRIVACY_FOOTNOTE, PRIVACY_POINTS, PRIVACY_TITLE, VOICE_NAMES } from '../copy/shared';
+
 export const WELCOME_STEPS = [
   {
     title: 'Journal and write freely, anytime.',
@@ -45,50 +47,34 @@ export const WELCOME_VOICES: {
 }[] = [
   {
     key: 'friend',
-    name: 'Friend',
+    name: VOICE_NAMES.friend,
     desc: 'Warm, direct, a little funny.',
     example: 'Hey, so about last night…',
   },
   {
     key: 'mentor',
-    name: 'Mentor',
+    name: VOICE_NAMES.mentor,
     desc: 'Clear, structured, honest.',
     example: 'Good morning. Three things stood out.',
   },
   {
     key: 'future',
-    name: 'Future you',
+    name: VOICE_NAMES.future,
     desc: 'Writes back from a few years ahead.',
     example: 'Hi. It’s you, a few years from now.',
   },
   {
     key: 'diary',
-    name: 'Just the notes',
+    name: VOICE_NAMES.diary,
     desc: 'A plain summary, no voice.',
     example: 'Sat 10 Oct, summary',
   },
 ];
 
-/** Screen 4: the privacy lines. */
+/** Screen 4: the privacy lines, from the one shared source (copy/shared.ts). */
 export const WELCOME_PRIVACY = {
-  heading: 'Privacy',
+  heading: PRIVACY_TITLE,
   subtitle: 'We value your privacy',
-  items: [
-    {
-      icon: 'lock',
-      title: 'Private to your account.',
-      text: 'Only you can open your journal. The AI sees a night only when you seal it or speak it, to write your letter.',
-    },
-    {
-      icon: 'memory',
-      title: 'You decide what Beyond remembers.',
-      text: 'See, edit, or forget anything, anytime.',
-    },
-    {
-      icon: 'clear',
-      title: 'Delete everything, anytime.',
-      text: 'Your journal, letters and memories are removed from Beyond right away.',
-    },
-  ],
-  note: 'Beyond is a journal, not a crisis service. If you ever need someone right now, help is one tap away in Settings.',
+  items: PRIVACY_POINTS,
+  note: PRIVACY_FOOTNOTE,
 };

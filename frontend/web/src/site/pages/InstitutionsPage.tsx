@@ -1,5 +1,6 @@
+import { useCopy } from '../copy';
 import type { ReactElement } from 'react';
-import { INSTITUTIONS } from '../../data/site';
+import { INSTITUTIONS } from '../../data/deployed';
 
 /**
  * The three audiences sit in a band divided by rules rather than cut into
@@ -7,24 +8,26 @@ import { INSTITUTIONS } from '../../data/site';
  * so this page can be about the institution rather than the individual.
  */
 export function InstitutionsPage(): ReactElement {
+  const t = useCopy();
   return (
     <section className="sec night">
       <div className="wrap">
         <div className="sec-head" data-reveal="lead">
-          <p className="eyebrow">For institutions</p>
-          <h2>Somewhere to put it down, provided by the people who look after you.</h2>
+          <p className="eyebrow">{t('For institutions')}</p>
+          <h2>{t('Somewhere to put it down, provided by the people who look after you.')}</h2>
           <p className="sub">
-            Universities, schools and employers can offer Beyond to the people in their care. Each
-            person gets their own private space, and the institution never sees inside it.
+            {t(
+              'Universities, schools and youth organisations can encourage a daily reflection habit. Each person uses their own private Beyond account. Entries, letters and memories stay personal.',
+            )}
           </p>
         </div>
 
         <div className="audiences">
           {INSTITUTIONS.map((s) => (
-            <section key={s.big} data-reveal="">
-              <p className="big">{s.big}</p>
-              <h3>{s.title}</h3>
-              <p>{s.body}</p>
+            <section key={t(s.big)} data-reveal="">
+              <p className="big">{t(s.big)}</p>
+              <h3>{t(s.title)}</h3>
+              <p>{t(s.body)}</p>
             </section>
           ))}
         </div>

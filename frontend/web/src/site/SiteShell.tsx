@@ -1,117 +1,122 @@
-/**
- * Nav, clock and footer around every site page.
- *
- * The long single-page version ran a clock from night to morning as you
- * scrolled. Here each page carries its own time and the clock tweens to it when
- * you move, so the journey survives the split.
- */
-import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
-import { Link } from '../router';
-import { CREDIT, PAGES } from '../data/site';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { CREDIT, SECTIONS } from '../data/landing';
+import { readTheme } from '../demo/theme';
 import { ThemePicker } from './ThemePicker';
-
-const toMin = (t: string): number => {
-  const [h, m] = t.split(':').map(Number);
-  return h * 60 + m;
-};
-
-const fmt = (mins: number): string => {
-  const m = ((Math.round(mins) % 1440) + 1440) % 1440;
-  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-};
-
-function Clock({ time }: { time: string }): ReactElement {
-  const [mins, setMins] = useState(() => toMin(time));
-  const raf = useRef(0);
-  const from = useRef(toMin(time));
-
-  useEffect(() => {
-    const target = toMin(time);
-    const start = performance.now();
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const dur = reduce ? 0 : 700;
-    let diff = (((target - from.current) % 1440) + 1440) % 1440;
-    if (diff > 720) diff -= 1440;
-    const base = from.current;
-
-    const step = (now: number): void => {
-      const k = dur ? Math.min(1, (now - start) / dur) : 1;
-      const eased = 1 - Math.pow(1 - k, 3);
-      const value = base + diff * eased;
-      setMins(value);
-      if (k < 1) raf.current = requestAnimationFrame(step);
-      else from.current = target;
-    };
-    raf.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf.current);
-  }, [time]);
-
-  const hour = Math.floor((((Math.round(mins) % 1440) + 1440) % 1440) / 60);
-  return (
-    <span
-      className={`clock${hour >= 6 && hour < 19 ? ' sun' : ''}`}
-      title="The site runs from night to morning"
-    >
-      <i />
-      <span>{fmt(mins)}</span>
-    </span>
-  );
-}
+import { useCopy } from './copy';
 
 export function SiteShell({
-  path,
-  time,
   children,
+  path,
+  lang,
+  setLang,
 }: {
-  path: string;
-  time: string;
   children: ReactNode;
-}): ReactElement {
-  const links = PAGES.filter((p) => p.nav);
-  const i = links.findIndex((p) => p.path === path);
-  const next = i >= 0 && i < links.length - 1 ? links[i + 1] : null;
-
+  path: string;
+  lang: 'en' | 'zh';
+  setLang: (lang: 'en' | 'zh') => void;
+}) {
+  const t = useCopy();
+  const active = path.slice(1);
+  const pages = [{ path: '/', nav: 'Home' }, ...SECTIONS];
+  const next =
+    pages[
+      (Math.max(
+        0,
+        pages.findIndex((p) => p.path === path),
+      ) +
+        1) %
+        pages.length
+    ];
+  const [theme, setTheme] = useState(readTheme);
+  const pill = useRef<HTMLDivElement>(null);
+  const app = `/app?theme=${theme === 'candle' ? 'gold' : 'blue'}`;
+  useEffect(() => {
+    const el = pill.current;
+    if (!el) return;
+    const position = () => {
+      const link = el.querySelector<HTMLElement>('[aria-current="page"]');
+      el.style.setProperty('--highlight-x', `${link?.offsetLeft ?? 0}px`);
+      el.style.setProperty('--highlight-w', `${link?.offsetWidth ?? 0}px`);
+      if (link && el.parentElement)
+        el.parentElement.scrollTo({
+          left: Math.max(
+            0,
+            link.offsetLeft - el.parentElement.clientWidth / 2 + link.offsetWidth / 2,
+          ),
+          behavior: 'instant',
+        });
+    };
+    position();
+    const observer = new ResizeObserver(position);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [active, lang]);
   return (
     <>
-      <nav className="nav" aria-label="Main">
-        <div className="nav-in">
-          <Link to="/" className="logo">
+      <a
+        className="skip-link"
+        href="#main"
+        onClick={(e) => {
+          e.preventDefault();
+          document.getElementById('main')?.focus();
+        }}
+      >
+        {t('Skip to content')}
+      </a>
+      <nav className="landing-nav" aria-label={t('Main navigation')}>
+        <div className="landing-nav-inner">
+          <a href="#/" className="logo">
             beyond.
-          </Link>
-          <div className="nav-links">
-            {links.map((p) => (
-              <Link key={p.path} to={p.path} className={p.path === path ? 'on' : undefined}>
-                {p.nav}
-              </Link>
-            ))}
-          </div>
-          <ThemePicker />
-          <Clock time={time} />
-          <a href="/app" className="btn btn-light btn-sm">
-            Open the app
           </a>
+          <div className="glass-scroll">
+            <div className="glass-nav" ref={pill}>
+              <span className="glass-highlight" aria-hidden="true" />
+              {SECTIONS.map((s) => (
+                <a
+                  key={s.id}
+                  href={`#${s.path}`}
+                  aria-current={active === s.id ? 'page' : undefined}
+                >
+                  {t(s.nav)}
+                </a>
+              ))}
+            </div>
+          </div>
+          <div className="landing-tools">
+            <ThemePicker onChange={setTheme} />
+            <button
+              className="language-toggle"
+              onClick={() => setLang(lang === 'en' ? 'zh' : 'en')}
+              aria-label={lang === 'en' ? '切換至繁體中文' : 'Switch to English'}
+            >
+              {lang === 'en' ? '繁中' : 'EN'}
+            </button>
+            <a href={app} className="btn btn-light btn-sm">
+              {t('Open Beyond App')}
+            </a>
+          </div>
         </div>
       </nav>
-
-      <main>{children}</main>
-
-      {next && (
-        <section className="sec night" style={{ paddingBlock: 0 }}>
-          <div className="next">
-            <span>
-              <span className="label">Next</span>
-              <Link to={next.path}>{next.title} &rarr;</Link>
-            </span>
-          </div>
-        </section>
-      )}
-
+      <main tabIndex={-1} id="main" data-app-href={app}>
+        {children}
+      </main>
+      <nav className="page-next" aria-label={t('Next page')}>
+        <a href={`#${next.path}`}>
+          <span>
+            <small>{t('Next')}</small>
+            <strong>{t(next.nav)}</strong>
+          </span>
+          <svg aria-hidden="true" viewBox="0 0 64 32">
+            <path d="M2 16h57M44 3l15 13-15 13" />
+          </svg>
+        </a>
+      </nav>
       <footer className="site-footer">
         <div className="foot-in">
-          <Link to="/" className="logo">
+          <a href="#/" className="logo">
             beyond.
-          </Link>
-          <p>{CREDIT}</p>
+          </a>
+          <p>{t(CREDIT)}</p>
         </div>
       </footer>
     </>

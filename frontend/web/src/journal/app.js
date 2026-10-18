@@ -14,7 +14,8 @@
 import SAMPLE_DATA from './sample.json';
 import SAMPLE_TODAY from './sample-today.json';
 import { uiLang, setUiLang, startTranslating } from './i18n';
-import { JOURNAL_THEMES, journalTheme, setJournalTheme, applyJournalTheme, themeSwatch } from './theme';
+import { JOURNAL_THEMES, journalTheme, setJournalTheme, applyJournalTheme, themeSwatch, themeFromLink, clearThemeFromLink } from './theme';
+import { CRISIS_LINES, AI_SENT, AI_NEVER, VOICE_NAMES, DELIVERY_DEFAULT, appToSite } from '../copy/shared';
 import { WELCOME_STEPS, WELCOME_REASONS, WELCOME_OTHER_MAX, WELCOME_VOICES, WELCOME_PRIVACY, LETTER_NAME_MAX } from './welcome';
 
 let started = false;
@@ -40,26 +41,21 @@ const SECTIONS = {
   improve: ['Try this', '改善', 'var(--ember)', '改善'], encourage: ['Encourage', '鼓勵', 'var(--gold)', '鼓励'],
 };
 const VOICES = {
-  friend: { name: 'Friend', desc: 'Warm, direct, a little funny.', example: 'Hey, so about last night…',
+  friend: { name: VOICE_NAMES.friend, desc: 'Warm, direct, a little funny.', example: 'Hey, so about last night…',
     prompt: 'Write as a warm, direct friend who is a little funny. Plain words, short sentences, no lecturing. Greeting like "Hey," and a short casual sign-off such as "Talk tonight,\\nB."',
     en: ['Hey,', 'Talk tonight,\nB.'], zh: ['Hi，', '今晚再傾，\nB.'], hans: ['嗨，', '今晚再聊，\nB.'] },
-  mentor: { name: 'Mentor', desc: 'Clear, structured, honest.', example: 'Good morning. Three things stood out.',
+  mentor: { name: VOICE_NAMES.mentor, desc: 'Clear, structured, honest.', example: 'Good morning. Three things stood out.',
     prompt: 'Write as a clear, honest mentor. Structured and calm, kind but not soft, no jargon. Greeting like "Good morning." and a brief sign-off such as "Until tonight."',
     en: ['Good morning.', 'Until tonight.'], zh: ['早晨。', '今晚見。'], hans: ['早上好。', '今晚见。'] },
-  future: { name: 'Future you', desc: 'Writes back from a few years ahead.', example: 'Hi. It’s you, a few years from now.',
+  future: { name: VOICE_NAMES.future, desc: 'Writes back from a few years ahead.', example: 'Hi. It’s you, a few years from now.',
     prompt: "Write as the person themselves, a few years from now, looking back on this day with kindness. Never predict specific outcomes, never claim to know what happened next, and never promise that things worked out — speak about what they can notice now. Greeting like \"Hi. It's you, a few years from now.\" and sign-off \"See you down the road,\\nYou\".",
     en: ['Hi. It’s you, a few years from now.', 'See you down the road,\nYou'], zh: ['你好，我係幾年後嘅你。', '路上見，\n你'], hans: ['你好，我是几年后的你。', '路上见，\n你'] },
-  diary: { name: 'Plain diary', desc: 'Just the summary. No voice.', example: 'Sat 10 Oct, summary',
+  diary: { name: VOICE_NAMES.diary, desc: 'Just the summary. No voice.', example: 'Sat 10 Oct, summary',
     prompt: 'No persona. Write plainly and briefly, like a neutral diary summary: short factual sentences, no warmth flourishes, no jokes. The greeting is just the date and the word "summary" (e.g. "Thu 8 Oct, summary"). Leave the sign-off empty.',
     en: ['', ''], zh: ['', ''], hans: ['', ''] },
 };
-const SUPPORT = [
-  { name: 'Emergency services · 緊急服務', phone: '999', note: 'If you or someone else is in immediate danger.' },
-  { name: 'Mental Health Support Hotline · 精神健康支援熱線', phone: '18111', note: '24 hours · Cantonese, English' },
-  { name: 'The Samaritans Hong Kong · 撒瑪利亞會', phone: '2896 0000', note: '24 hours · multilingual' },
-  { name: 'Suicide Prevention Services · 生命熱線', phone: '2382 0000', note: '24 hours · Cantonese' },
-  { name: 'Open Up · Open 噏 (online text support)', url: 'https://www.openup.hk', note: '24 hours · for young people' },
-];
+/* The one shared crisis list (shared/src/copy/crisis.ts), the same on the site and in letters. */
+const SUPPORT = CRISIS_LINES.map((c) => ({ name: `${c.name} · ${c.nameZh}`, phone: c.phone, note: c.hours || 'If you or someone else is in immediate danger.' }));
 const CRISIS = [/\bkill(ing)? myself\b/i, /\bsuicid(e|al)\b/i, /\bend (my life|it all)\b/i, /\bwant(ed)? to die\b/i, /\bself[- ]?harm\b/i, /\bhurt(ing)? myself\b/i, /\bcut(ting)? myself\b/i, /\bno reason to live\b/i, /\bbetter off dead\b/i, /\bdon'?t want to (be alive|live)\b/i, /自殺/, /想死/, /輕生/, /唔想(再)?活/, /不想(再)?活/, /傷害自己/, /割手/, /了結(自己|生命)/, /死咗算/, /死了算/];
 const hasCrisis = (t) => CRISIS.some((re) => re.test(t || ''));
 
@@ -78,8 +74,8 @@ const MONTH = ['January', 'February', 'March', 'April', 'May', 'June', 'July', '
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const fmtDay = (s) => { const d = parse(s); return `${WD[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`; };
 const hhmm = (d = new Date()) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-const deliverAtFor = (date) => { const [h, m] = ((typeof S !== 'undefined' && S.deliverTime) || '08:00').split(':').map(Number); const d = parse(date); d.setDate(d.getDate() + 1); d.setHours(h, m, 0, 0); return d.toISOString(); };
-const deliverTime = () => S.deliverTime || '08:00';
+const deliverAtFor = (date) => { const [h, m] = ((typeof S !== 'undefined' && S.deliverTime) || DELIVERY_DEFAULT).split(':').map(Number); const d = parse(date); d.setDate(d.getDate() + 1); d.setHours(h, m, 0, 0); return d.toISOString(); };
+const deliverTime = () => S.deliverTime || DELIVERY_DEFAULT;
 const atTime = (L) => (L?.deliverAt ? hhmm(new Date(L.deliverAt)) : deliverTime());
 const uid = (p) => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 const plural = (n, a, b = `${a}s`) => `${n} ${n === 1 ? a : b}`;
@@ -102,7 +98,7 @@ const OFFLINE = false;
 let AUTH = { auth: true, user: null };
 const isGuest = () => false;
 let storageOk = true;
-function fresh() { return { v: 2, onboarded: false, welcomeSeen: false, welcomeReasons: [], welcomeOther: null, letterName: null, mode: 'own', voice: 'friend', lang: 'auto', inputMode: 'type', deliverTime: '08:00', allowEarly: true, draft: '', letters: [], demoLetters: [], demoNights: [], sampleMeta: {}, notes: {}, dirs: {}, dirLabels: {}, todos: [], memories: [], memoryPaused: false, forgotten: [], hiddenSampleMem: [], savedAt: 0 }; }
+function fresh() { return { v: 2, onboarded: false, welcomeSeen: false, welcomeReasons: [], welcomeOther: null, letterName: null, mode: 'own', voice: 'friend', lang: 'auto', inputMode: 'type', deliverTime: DELIVERY_DEFAULT, allowEarly: true, draft: '', letters: [], demoLetters: [], demoNights: [], sampleMeta: {}, notes: {}, dirs: {}, dirLabels: {}, todos: [], memories: [], memoryPaused: false, forgotten: [], hiddenSampleMem: [], savedAt: 0 }; }
 /* Demo mode (the default): sample nights to try, Kit's fictional letters next to
    yours, and "Skip to morning". Letters are still written by the AI, as in
    Normal mode. Normal mode is just your own journal. */
@@ -445,6 +441,7 @@ const DEV = process.env.NODE_ENV !== 'production';
 // Development only: /app?onboarding=1 shows the welcome again, for demos and testing.
 let replayWelcome = DEV && new URLSearchParams(location.search).get('onboarding') === '1';
 let draftSupported = false; // the account can keep an unsealed draft
+let themeSupported = false; // the account keeps the colour theme
 let labelsSupported = false; // the account can keep renamed directions (until then they last for this visit)
 let welcomeSupported = false; // the account can store welcome_seen and the answers
 // Only a brand-new account sees the welcome: one that has finished it (or onboarded before it existed) never does again.
@@ -471,7 +468,7 @@ function welcomeOk() {
   if (W.step === 0) return W.ready;
   if (W.step === 1) return W.reasons.size > 0 || !!W.other.trim();
   if (W.step === 2) return !!W.voice;
-  if (W.step === 3) return true;
+  if (W.step === 3) return W.ready;
   return !!W.name.trim();
 }
 /* Demo mode: before the welcome, say plainly that this is a demo made for showing Beyond. */
@@ -492,7 +489,7 @@ function vWelcome() {
   const n = W.step; const per = 100 / (WELCOME_LAST + 1); const pct = (n + 1) * per; const from = W.shown >= 0 && W.shown !== n ? (W.shown + 1) * per : pct;
   const entering = W.shown !== n; W.shown = n;
   const again = n === 0 && W.seenFirst;
-  if (entering) { clearTimeout(W.timer); W.ready = again; if (n === 0 && !again) W.timer = setTimeout(() => { W.ready = true; if (n === 0) W.seenFirst = true; paintWelcome(); }, 3000); }
+  if (entering) { clearTimeout(W.timer); W.ready = again; if ((n === 0 && !again) || n === 3) W.timer = setTimeout(() => { W.ready = true; if (n === 0) W.seenFirst = true; paintWelcome(); }, 3000); }
   after.push(() => {
     const bar = $('.onb-bar i'); if (bar) requestAnimationFrame(() => { bar.style.width = `${pct}%`; });
     if (n === 1) $('#onb-other')?.addEventListener('input', (e) => { W.other = e.target.value; paintWelcome(); });
@@ -530,7 +527,7 @@ function vWelcome() {
       <div class="onb-body">${body}</div>
       <div class="onb-actions">
         ${n > 0 ? `<button class="btn onb-back" data-act="onb-back">${I.left}Back</button>` : ''}
-        ${n < WELCOME_LAST ? `<button class="btn amber onb-next" data-act="onb-next" ${ok ? '' : 'disabled aria-disabled="true"'}>Next${I.right}</button>` : ''}
+        ${n < WELCOME_LAST ? `<button class="btn amber onb-next" data-act="onb-next" ${ok ? '' : 'disabled aria-disabled="true"'}>${n === 3 ? 'I’m ready' : 'Next'}${I.right}</button>` : ''}
       </div>
     </section>`;
 }
@@ -2292,7 +2289,7 @@ function vSettings() {
       ${setRow('Demo mode', 'Kit’s fictional sample letters next to yours, for showing Beyond to others. Nights you seal are saved and answered by the AI in both modes.', `<button class="toggle" role="switch" aria-checked="${demoOn()}" data-act="toggle-sample"><span class="track"></span><span class="sr-only">Demo mode: Kit’s sample letters next to yours</span></button>`)}
     </section>
     <section class="set-card" id="look" aria-labelledby="set-look"><h2 class="set-sec" id="set-look">Colours</h2>
-      ${setRow('Colour theme', 'Only changes how Beyond looks on this device.', `<div class="jthemes" role="group" aria-label="Colour theme">${JOURNAL_THEMES.map((t) => `<button class="jtheme" data-jtheme-pick="${t.id}" aria-pressed="${journalTheme() === t.id}" aria-label="${t.name}" title="${t.note}"><span class="jtheme-dot" style="--sw:${themeSwatch(t.bands)}" aria-hidden="true"></span><span class="jtheme-name">${t.name}</span></button>`).join('')}</div>`)}
+      ${setRow('Colour theme', 'Saved to your account. The Beyond website opens in the same colours.', `<div class="jthemes" role="group" aria-label="Colour theme">${JOURNAL_THEMES.map((t) => `<button class="jtheme" data-jtheme-pick="${t.id}" aria-pressed="${journalTheme() === t.id}" aria-label="${t.name}" title="${t.note}"><span class="jtheme-dot" style="--sw:${themeSwatch(t.bands)}" aria-hidden="true"></span><span class="jtheme-name">${t.name}</span></button>`).join('')}</div>`)}
     </section>
     <section class="set-card" id="letters-settings" aria-labelledby="set-letters"><h2 class="set-sec" id="set-letters">Letters</h2>
       ${setRow('Who writes your letters', 'Applies to your next letter. The voice changes the tone only, never the facts.', `<div class="voices" role="group" aria-label="Letter voice">${voiceCards()}</div>`, 'is-wide')}
@@ -2306,7 +2303,7 @@ function vSettings() {
       ${setRow('What Beyond remembers', 'Each one shows where it came from. Edit or forget anything, any time.', `<button class="toggle" role="switch" aria-checked="${!!S.memoryPaused}" data-act="mem-pause"><span class="track"></span><span>Pause memory (letters won’t use it)</span></button>`)}
       <div class="set-block">${mems.length ? `<ul class="mem-list">${mems.map(memRow).join('')}</ul>` : '<p class="fine">Nothing yet. Beyond learns at most two small things from a letter, and only things you wrote.</p>'}
       <form class="mem-add" id="mem-add"><label class="sr-only" for="mem-new">Tell Beyond something to remember</label><input id="mem-new" class="login-in" placeholder="Tell Beyond something to remember…" maxlength="140"><button class="btn sm amber" type="submit">Remember</button></form></div>
-      ${setRow('What the AI sees', 'Only the entry it writes about, the headlines of a few earlier letters, and your memories (unless paused). Never letters you keep out of Growth.', `<p>${claudeState === 'checking' ? 'Connecting…' : claudeState === 'ready' ? `Letters are written by ${esc(aiLabel)} through Beyond’s letter service, after you seal a night.` : 'Beyond’s letter writer isn’t switched on yet. Sealed nights wait safely and are written as soon as it is.'}</p>`, 'is-text')}
+      ${setRow('What the AI sees', 'Exactly what the Privacy page on the Beyond website says.', `<div class="set-ai"><p class="set-ai-k">Sent to the letter writer when you seal a night</p><ul>${AI_SENT.map((x) => `<li>${esc(x)}</li>`).join('')}</ul><p class="set-ai-k">Never sent</p><ul>${AI_NEVER.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div><p>${claudeState === 'checking' ? 'Connecting…' : claudeState === 'ready' ? `Letters are written by ${esc(aiLabel)} through Beyond’s letter service, after you seal a night.` : 'Beyond’s letter writer isn’t switched on yet. Sealed nights wait safely and are written as soon as it is.'}</p>`, 'is-text')}
     </section>
     <section class="set-card" id="data" aria-labelledby="set-data"><h2 class="set-sec" id="set-data">Your data</h2>
       <p class="set-lead">Saved to your Beyond account, private to you. Nothing you write is kept in this browser.</p>
@@ -2367,7 +2364,7 @@ function vLogin() {
       <p class="fine" id="login-err" role="alert">${esc(loginNote)}</p>`}
       <p class="fine">${switches}</p>
       <p class="fine">${backend.configured ? 'Your journal is private to your account. Nothing you write is kept in this browser.' : 'This copy of Beyond isn’t connected to its backend yet.'}</p>
-      <p class="fine"><a class="link" href="/">About Beyond</a><span class="sp"></span><a class="link" href="/#/privacy">Privacy</a></p>
+      <p class="fine"><a class="link" href="/?theme=${appToSite(journalTheme())}">About Beyond</a><span class="sp"></span><a class="link" href="/?theme=${appToSite(journalTheme())}#/privacy">Privacy</a></p>
     </section>`;
 }
 async function exportJournal() {
@@ -2515,7 +2512,7 @@ document.addEventListener('click', async (ev) => {
     toastUndo(`Popped ${name}.`, () => { S.dirs = { ...(S.dirs || {}) }; if (before === undefined) delete S.dirs[k]; else S.dirs[k] = before; save(); if (route === 'identity') render(); });
     return;
   }
-  if (d.jthemePick) { setJournalTheme(d.jthemePick); return render(); }
+  if (d.jthemePick) { setJournalTheme(d.jthemePick); save(); return render(); }
   if (d.presentOpen) return closePresent(d.presentOpen);
   if (d.presentLater !== undefined) return closePresent();
   if (d.openenv) { el.disabled = true; return openEnvelope($('#env'), d.openenv); }
@@ -2624,8 +2621,8 @@ let ACCOUNT = { deletion: false, letters: false, voice: false };
 let syncing = false; let syncAgain = false;
 const SETTING_FIELDS = [['voice', 'voice'], ['lang', 'letter_language'], ['deliverTime', 'delivery_time'], ['allowEarly', 'allow_early'], ['memoryPaused', 'memory_paused'], ['onboarded', 'onboarded'], ['dirs', 'directions']];
 const WELCOME_FIELDS = [['welcomeSeen', 'welcome_seen'], ['welcomeReasons', 'welcome_reasons'], ['welcomeOther', 'welcome_other'], ['letterName', 'letter_name']];
-const settingFields = () => [...SETTING_FIELDS, ...(welcomeSupported ? WELCOME_FIELDS : []), ...(draftSupported ? [['draft', 'draft']] : []), ...(labelsSupported ? [['dirLabels', 'direction_labels']] : [])];
-const settingValue = (k) => (k === 'dirs' ? { ...(S.dirs || {}) } : k === 'dirLabels' ? { ...(S.dirLabels || {}) } : k === 'allowEarly' ? S.allowEarly !== false : k === 'memoryPaused' || k === 'onboarded' || k === 'welcomeSeen' ? !!S[k]
+const settingFields = () => [...SETTING_FIELDS, ...(welcomeSupported ? WELCOME_FIELDS : []), ...(draftSupported ? [['draft', 'draft']] : []), ...(labelsSupported ? [['dirLabels', 'direction_labels']] : []), ...(themeSupported ? [['jtheme', 'journal_theme']] : [])];
+const settingValue = (k) => (k === 'jtheme' ? journalTheme() : k === 'dirs' ? { ...(S.dirs || {}) } : k === 'dirLabels' ? { ...(S.dirLabels || {}) } : k === 'allowEarly' ? S.allowEarly !== false : k === 'memoryPaused' || k === 'onboarded' || k === 'welcomeSeen' ? !!S[k]
   : k === 'welcomeReasons' ? [...(S.welcomeReasons || [])] : k === 'welcomeOther' || k === 'letterName' ? S[k] || null
   : k === 'draft' ? (S.draft.trim() ? S.draft.slice(0, MAX_NIGHT) : null) : S[k]);
 function applySettings(s) {
@@ -2635,6 +2632,8 @@ function applySettings(s) {
   welcomeSupported = typeof s.welcome_seen === 'boolean';
   S.welcomeSeen = !!s.welcome_seen; S.welcomeReasons = [...(s.welcome_reasons || [])]; S.welcomeOther = s.welcome_other ?? null; S.letterName = s.letter_name ?? null;
   draftSupported = Object.hasOwn(s, 'draft');
+  themeSupported = Object.hasOwn(s, 'journal_theme');
+  if (themeSupported) { if (!themeFromLink()) setJournalTheme(s.journal_theme); clearThemeFromLink(); } // keep the link choice through sign-in, then save it
   labelsSupported = Object.hasOwn(s, 'direction_labels'); if (labelsSupported) S.dirLabels = { ...(s.direction_labels || {}) };
   if (draftSupported && s.draft && !S.draft.trim()) S.draft = s.draft; // unsealed words from last time
 }
@@ -2889,7 +2888,7 @@ async function signedIn(user) {
   try { ({ rest } = await loadAll()); }
   catch (e) { AUTH = { auth: true, user: null }; synced = null; loginNote = e?.code === 'unauthorized' || e?.code === 'forbidden' ? 'Please sign in again.' : 'Beyond couldn’t load your journal. Check your connection and try again.'; route = 'login'; render(); return; }
   try { history.replaceState(null, '', `/app${location.hash}`); } catch (e) { /* fine */ }
-  readHash(); start();
+  readHash(); start(); save(); // save: a theme handed over by the site's link goes to the account
   // the rest of the journal arrives a moment later: redraw unless someone is busy writing
   rest.then(() => {
     const busy = route === 'welcome' || document.querySelector('.bk-sealing, .overnight, .sheet-wrap, .present') || (route === 'tonight' && document.activeElement?.id === 'entry') || document.activeElement?.closest?.('form, .todo-in');
@@ -2909,7 +2908,7 @@ async function boot(callback) {
   let user = null;
   try { user = await backend.session(); } catch (e) { loginNote = 'Can’t reach Beyond. Check your connection.'; }
   if (user && backend.recovering()) { AUTH = { auth: true, user }; loginMode = 'reset'; route = 'login'; render(); return; }
-  if (!user) { route = 'login'; try { history.replaceState(null, '', `/app${location.search.includes('signup') ? '?signup=1' : ''}`); } catch (e) { /* fine */ } render(); return; }
+  if (!user) { route = 'login'; try { history.replaceState(null, '', `/app${location.search}`); } catch (e) { /* fine */ } render(); return; }
   return signedIn(user);
 }
 boot(location.pathname.startsWith('/auth/callback'));

@@ -1582,3 +1582,7 @@ main.v-identity:not(:has(.dir-head)) { max-width: 1360px; }
 .onb-demo .onb-sub { max-width: 46ch; line-height: 1.55; }
 .onb-demo-go { margin-top: 10px; min-height: 50px; padding-inline: 26px; display: inline-flex; gap: 8px; align-items: center; }
 .onb-demo-go svg { width: 16px; height: 16px; }
+/* Settings: what the AI sees, as two short lists */
+.set-ai { display: grid; gap: 4px; font-size: 13.5px; color: var(--soft); }
+.set-ai-k { font-weight: 600; color: var(--fg); margin-top: 4px; }
+.set-ai ul { margin: 0; padding-left: 18px; display: grid; gap: 2px; }

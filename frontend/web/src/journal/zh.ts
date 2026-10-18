@@ -1,3 +1,4 @@
+import { SHARED_ZH } from '../copy/zh';
 /**
  * Simplified Chinese for the journal app's own wording, written for Mandarin
  * readers: natural phrasing over word-for-word. Keys are the English exactly as
@@ -906,7 +907,7 @@ Object.assign(PHRASES, {
 });
 for (const [w, z] of Object.entries(WD)) PHRASES[w] = z;
 
-export const ZH: Record<string, string> = PHRASES;
+export const ZH: Record<string, string> = { ...PHRASES, ...SHARED_ZH };
 
 const nights = (k: string): string => `${k} 个晚上`;
 

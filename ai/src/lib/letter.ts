@@ -131,11 +131,11 @@ export function letterRequest(input: LetterInput): StructuredRequest {
     voice: VOICE_NAMES[input.voice],
     letter_language: LANGUAGE_NAMES[input.language],
     memories: input.memories,
-    past_entries: input.earlier_letters.map((l) => ({
+    earlier_letters: input.earlier_letters.map((l) => ({
       date: l.date,
-      title: l.headline,
+      headline: l.headline,
       themes: l.themes,
-      open_questions: l.openQuestions,
+      skipped_to_dos: l.stepsTheyMarkedNotForMe,
     })),
     step_feedback: input.earlier_letters.flatMap((l) =>
       l.stepsTheyMarkedNotForMe.map((text) => ({ step: text, feedback: 'Not for me' })),
@@ -202,8 +202,10 @@ function writtenIn(input: LetterInput, body: string): string {
   return (t.match(HANS) || []).length > (t.match(HANT) || []).length ? 'zh-hans' : 'zh-hant';
 }
 
+// The same three lines as the shared list in shared/src/copy/crisis.ts (the AI service
+// does not depend on the shared package); keep them in step.
 const SAFETY_CONTACTS =
-  'Emergency: 999\nShall We Talk / mental health support hotline: 18111 (24 hours)\nThe Samaritans Hong Kong: 2896 0000 (24 hours)\nOpen Up (online chat for young people): openup.hk';
+  'Mental Health Support Hotline: 18111 (24 hours)\nThe Samaritans Hong Kong: 2896 0000 (24 hours)\nEmergency: 999';
 const TONE: Record<string, string> = {
   heavy: 'difficult',
   good: 'positive',

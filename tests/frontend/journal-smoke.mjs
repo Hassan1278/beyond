@@ -55,6 +55,7 @@ const db = {
     welcome_other: null,
     draft: null,
     direction_labels: {},
+    journal_theme: 'midnight',
     revision: 1,
     updated_at: now(),
   },
@@ -483,12 +484,12 @@ try {
     'screen 3 has no example quotes, and the Settings note sits under everything',
   );
   await next.click();
-  await page.getByRole('heading', { name: 'Privacy', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'What you write stays yours', exact: true }).waitFor();
   at = await step();
   check(at.label === '4 of 5' && at.bar === '4', 'screen 4 of 5');
   check(
-    (await page.locator('.onb-privacy li').count()) === 3 && !(await next.isDisabled()),
-    'the privacy screen has three points and a plain Next',
+    (await page.locator('.onb-privacy li').count()) === 3 && (await next.isDisabled()),
+    'the privacy screen has three points and waits before I’m ready',
   );
   await shot(page, '02b-privacy');
   await next.click();
@@ -921,6 +922,13 @@ try {
     (await page.evaluate(() => document.documentElement.dataset.jtheme)) === 'ink',
     'Settings switches the colour theme',
   );
+  await page.waitForFunction(() => document.querySelector('a[href="/?theme=blue"]'));
+  check(
+    (await page.locator('a[href="/?theme=blue"]').count()) > 0,
+    'Ink falls back to blue on the site',
+  );
+  await page.waitForTimeout(450);
+  check(db.settings.journal_theme === 'ink', 'theme choice is persisted to the signed-in account');
   await page.locator('[data-jtheme-pick="midnight"]').click();
   check(
     (await page.evaluate(() => document.documentElement.dataset.jtheme)) === undefined,
@@ -1329,21 +1337,21 @@ try {
 
   console.log('site');
   await page.goto(`${ORIGIN}/#/`);
-  await page.locator('a[href="/app"]').first().waitFor();
+  await page.locator('a[href^="/app?theme="]').first().waitFor();
   check(true, 'the site links to the app');
   await shot(page, '12-site');
   for (const [path, words] of [
     ['/how', 'Say it whenever. Understand it tomorrow.'],
-    ['/privacy', 'Safe enough to be honest.'],
-    ['/institutions', 'Somewhere to put it down'],
-    ['/beta', 'Tonight, write without an audience.'],
+    ['/privacy', 'What you write stays yours'],
+    ['/institutions', 'Somewhere to put it down, provided by the people who look after you.'],
+    ['/beta', 'Say it whenever. Understand it tomorrow.'],
   ]) {
     await page.goto(`${ORIGIN}/#${path}`);
     await page.locator('main').getByText(words).first().waitFor({ timeout: 10000 });
   }
   check(true, 'every site page renders');
   await page.goto(`${ORIGIN}/#/app`);
-  await page.waitForURL(`${ORIGIN}/app`);
+  await page.waitForURL(`${ORIGIN}/app?theme=blue`);
   check(true, 'old #/app links open the app');
 
   check(errors.length === 0, `no page errors${errors.length ? `: ${errors.join(' | ')}` : ''}`);
