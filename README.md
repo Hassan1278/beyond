@@ -2,7 +2,20 @@
 
 A private journal for the web and every phone: write tonight, nothing replies, a letter arrives in the morning.
 
-The marketing site is at `/`. The journal app is at `/app`; on a phone it can be added to the home screen. Supabase handles accounts and Postgres. A separate API owns all product logic. An independent AI service writes the letters and stores nothing.
+> **Hackathon project.** Beyond was built by a student team for a hackathon. It is a working prototype on real infrastructure, not a finished product.
+
+## Try it
+
+**Live: [beyond-web-wheat.vercel.app](https://beyond-web-wheat.vercel.app)**
+
+- **Website:** [beyond-web-wheat.vercel.app](https://beyond-web-wheat.vercel.app)
+- **Journal app:** [beyond-web-wheat.vercel.app/app](https://beyond-web-wheat.vercel.app/app). Create an account (or use Google), go through the short welcome, write a night and seal it. In Demo mode, **Skip to morning** opens the letter once it's written, usually within a minute. On a phone, use **Add to Home Screen**.
+
+Please write fictional things when trying it: the AI provider sees what you seal.
+
+## How it works
+
+The marketing site is at `/`. The journal app is at `/app`; on a phone it can be added to the home screen. Supabase handles accounts and Postgres. A separate API owns all product logic. An independent AI service writes the letters (Claude, through OpenRouter) and stores nothing.
 
 ## Repository layout
 
@@ -65,20 +78,21 @@ Database tests need Docker: `npm run db:start && npm run db:test`.
 
 **Writing and letters.**
 
-- Write or speak a night and seal it.
-- A letter is written in the voice and language you chose. It quotes your exact words and ends with three small to-dos you can tick or skip.
-- Letters arrive at your chosen time, or right away if you allow it.
-- Kept letters build Patterns: month, year and Identity, with month and year notes written on request.
-- Memory shows what letters learned or what you told Beyond. You can edit, forget or pause it.
+- A short welcome on first sign-in: what brings you here, who writes your letters, privacy, your name.
+- Write or speak a night in a notebook-style journal and seal it. English, Cantonese and Mandarin, in any mix.
+- The next morning a letter arrives in the voice you chose: one flowing letter built around your own words, one question to think about and one small step. Doing the step earns a gold seal.
+- Identity is the home page: the directions your nights point to, today's step and your to-dos.
+- Growth shows your nights over the month and year. Memory shows what letters learned or what you told Beyond; you can edit, forget or pause it.
+- Demo mode (the default) adds Kit, a fictional student's journal, and sample nights to try. Normal mode is just your own journal.
 
 **Your data.** Download a copy, delete your journal, or delete your account. A safety check while writing, plus Hong Kong support contacts.
 
-**Behind it.** Everything runs on the real backend. The AI service is built and wired; its provider keys are empty until you add them.
+**Behind it.** Everything runs on the real backend: accounts, the database, the letter service and voice transcription are live.
 
-## What's left
+## Beyond the hackathon
 
-1. **Add the AI keys** in the `beyond-ai` Vercel project (see [AI service](docs/ai-service.md#turning-it-on)). Until then, letters wait in the queue.
-2. **Email.** Custom SMTP before more than a handful of sign-ups. Supabase's built-in mailer is rate-limited.
-3. **Review the AI provider's retention terms** before real users write.
+1. **Email.** Custom SMTP before more than a handful of sign-ups. Supabase's built-in mailer is rate-limited.
+2. **Review the AI provider's retention terms** before real users write.
+3. **Switch the default to Normal mode**, so new accounts start with only their own journal.
 
 Packages are private and must not be published to npm.
