@@ -51,6 +51,18 @@ describe('explicit private product inputs', () => {
     ).toBe(true);
     expect(patchSettingsSchema.safeParse({ expected_revision: 1, draft: null }).success).toBe(true);
   });
+  it('accepts a renamed direction and rejects unknown or empty ones', () => {
+    const ok = (direction_labels: unknown) =>
+      patchSettingsSchema.safeParse({ expected_revision: 1, direction_labels }).success;
+    expect(
+      ok({
+        'community-builder': { name: 'Fictional: The Connector', line: 'I bring people together.' },
+      }),
+    ).toBe(true);
+    expect(ok({ astronaut: { name: 'x', line: 'y' } })).toBe(false);
+    expect(ok({ 'maker-builder': { name: '   ', line: 'y' } })).toBe(false);
+    expect(ok({ 'maker-builder': { name: 'x'.repeat(41), line: 'y' } })).toBe(false);
+  });
   it('requires explicit approval and source choice', () => {
     const base = { text: 'Fictional memory', source_entry_id: null, idempotency_key: id };
     expect(createMemorySchema.safeParse(base).success).toBe(false);

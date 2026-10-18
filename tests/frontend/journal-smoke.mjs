@@ -54,6 +54,8 @@ const db = {
     welcome_reasons: [],
     welcome_other: null,
     draft: null,
+    direction_labels: {},
+    journal_theme: 'midnight',
     revision: 1,
     updated_at: now(),
   },
@@ -62,6 +64,7 @@ const db = {
   memories: [],
   notes: [],
   calls: [],
+  todos: [],
   // Server transcription starts switched off and is turned on while the page is open.
   transcribe: false,
   spoken: [],
@@ -157,6 +160,39 @@ async function api(route) {
     if (!db.transcribe) return err(route, 'not_ready', 503);
     db.spoken.push(new URL(req.url()).searchParams.get('lang'));
     return ok(route, { text: 'Fictional spoken words about the harbour.' });
+  }
+  if (path === '/todos' && req.method() === 'GET')
+    return ok(route, { items: db.todos, next_cursor: null });
+  if (path === '/todos' && req.method() === 'POST') {
+    const t = {
+      id: uuid(),
+      title: body.title,
+      completed: false,
+      revision: 1,
+      created_at: now(),
+      updated_at: now(),
+    };
+    db.todos.push(t);
+    return ok(route, t);
+  }
+  const tm = path.match(/^\/todos\/([0-9a-f-]{36})$/);
+  if (tm) {
+    const t = db.todos.find((x) => x.id === tm[1]);
+    if (!t) return err(route, 'not_found', 404);
+    if (req.method() === 'DELETE') {
+      db.todos = db.todos.filter((x) => x !== t);
+      return ok(route, { id: t.id });
+    }
+    if (req.method() === 'PATCH') {
+      if (body.expected_revision !== t.revision) return err(route, 'conflict', 409);
+      Object.assign(
+        t,
+        'completed' in body ? { completed: body.completed } : {},
+        'title' in body ? { title: body.title } : {},
+        { revision: t.revision + 1, updated_at: now() },
+      );
+    }
+    return ok(route, t);
   }
   if (path === '/letters' && req.method() === 'GET')
     return ok(route, { items: [...db.letters].reverse(), next_cursor: null });
@@ -254,9 +290,12 @@ async function api(route) {
     const meta = { format_version: 1, exported_at: now(), section };
     if (section === 'settings') return ok(route, { ...meta, settings: db.settings });
     if (section === 'notes') return ok(route, { ...meta, items: db.notes });
-    const items = { entries: db.entries, letters: db.letters, memories: db.memories, todos: [] }[
-      section
-    ];
+    const items = {
+      entries: db.entries,
+      letters: db.letters,
+      memories: db.memories,
+      todos: db.todos,
+    }[section];
     return ok(route, { ...meta, items, next_cursor: null });
   }
   return err(route, 'not_found', 404);
@@ -365,7 +404,7 @@ try {
   await shot(page, '01-login');
   // The main flow runs in Normal mode; Demo mode is checked further down.
   await page.evaluate(() =>
-    localStorage.setItem('beyond.prefs.v1', JSON.stringify({ mode: 'own' })),
+    localStorage.setItem('beyond.prefs.v1', JSON.stringify({ mode: 'own', modeV: 2 })),
   );
   await page.reload();
   await page.getByText('Write tonight. A letter by morning.').waitFor();
@@ -385,7 +424,7 @@ try {
   await page.getByRole('heading', { name: 'How Beyond works' }).waitFor();
   await shot(page, '02-welcome');
   let at = await step();
-  check(at.label === '1 of 4' && at.bar === '1', 'the welcome opens on screen 1 of 4');
+  check(at.label === '1 of 5' && at.bar === '1', 'the welcome opens on screen 1 of 5');
   check(await next.isDisabled(), 'Next waits while the three steps appear');
   check(!(await page.locator('.topbar').count()), 'the welcome comes before any tab');
   await page.waitForFunction(() => !document.querySelector('.onb-next')?.disabled, null, {
@@ -395,7 +434,7 @@ try {
   await next.click();
   await page.getByRole('heading', { name: 'What brings you here?' }).waitFor();
   at = await step();
-  check(at.label === '2 of 4' && at.bar === '2', 'screen 2 of 4');
+  check(at.label === '2 of 5' && at.bar === '2', 'screen 2 of 5');
   check(await next.isDisabled(), 'Next waits for an answer');
   await page.locator('[data-onb-reason="other"]').click();
   check(
@@ -416,7 +455,7 @@ try {
   await next.click();
   await page.getByRole('heading', { name: 'Who writes back each morning?' }).waitFor();
   at = await step();
-  check(at.label === '3 of 4' && at.bar === '3', 'screen 3 of 4');
+  check(at.label === '3 of 5' && at.bar === '3', 'screen 3 of 5');
   check(
     (await next.isDisabled()) && !(await page.locator('.onb-voice[aria-checked="true"]').count()),
     'no voice is chosen for you',
@@ -430,7 +469,7 @@ try {
   await page.locator('.onb-back').click();
   await page.getByRole('heading', { name: 'What brings you here?' }).waitFor();
   check(
-    (await step()).label === '2 of 4' &&
+    (await step()).label === '2 of 5' &&
       (await page.locator('.onb-opt[aria-checked="true"]').count()) === 3 &&
       (await page.locator('#onb-other').inputValue()) === 'Fictional: a new city',
     'Back returns to the last screen with every answer kept',
@@ -444,21 +483,29 @@ try {
       (await page.getByText('You can switch anytime in Settings.').isVisible()),
     'screen 3 has no example quotes, and the Settings note sits under everything',
   );
-  await page.fill('#onb-name', '  Kit  ');
   await next.click();
-  await page.getByRole('heading', { name: 'Privacy', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'What you write stays yours', exact: true }).waitFor();
   at = await step();
-  check(at.label === '4 of 4' && at.bar === '4', 'screen 4 of 4');
-  check(!(await page.locator('.onb-next').count()), 'the last screen has no Next');
+  check(at.label === '4 of 5' && at.bar === '4', 'screen 4 of 5');
   check(
-    (await page.locator('.onb-privacy li').count()) === 3,
-    'the privacy screen has three points',
+    (await page.locator('.onb-privacy li').count()) === 3 && (await next.isDisabled()),
+    'the privacy screen has three points and waits before I’m ready',
   );
-  check(!(await page.locator('.onb-ready.is-shown').count()), '“I’m ready” waits a moment');
-  await page.locator('.onb-ready.is-shown').waitFor({ timeout: 6000 });
   await shot(page, '02b-privacy');
+  await next.click();
+  await page.getByRole('heading', { name: 'What’s your name?' }).waitFor();
+  at = await step();
+  check(at.label === '5 of 5' && at.bar === '5', 'screen 5 of 5 asks your name');
+  check(
+    !(await page.locator('.onb-next').count()) &&
+      !(await page.locator('.onb-ready.is-shown').count()),
+    'the last screen has no Next, and “I’m ready” waits for a name',
+  );
+  await page.fill('#onb-name', '  Kit  ');
+  await page.locator('.onb-ready.is-shown').waitFor({ timeout: 6000 });
+  await shot(page, '02c-name');
   await page.getByRole('button', { name: 'I’m ready' }).click();
-  await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Kit, who are you becoming…' }).waitFor();
   await sleep(700);
   check(
     db.settings.welcome_seen === true &&
@@ -473,6 +520,14 @@ try {
   await page.reload();
   await page.locator('.topbar').waitFor();
   check(!(await page.locator('.onb').count()), 'after a reload the welcome does not come back');
+  db.settings.welcome_seen = false;
+  await page.reload();
+  await page.locator('.topbar').waitFor();
+  check(
+    !(await page.locator('.onb').count()),
+    'an account that has onboarded before never sees the welcome on a later sign-in',
+  );
+  db.settings.welcome_seen = true;
   await page.locator('.tab[data-go="tonight"]').click();
   await page.locator('#entry').waitFor();
   check(
@@ -631,11 +686,21 @@ try {
   check(db.settings.draft === null, 'sealing clears the draft');
   await page.locator('.bk-edge.prev').click();
   await page.locator('.bk-page.is-day').waitFor();
-  check(
-    (await page.locator('.bk-page.is-day .bk-entries li').count()) === 2 &&
-      (await page.locator('.bk-page.is-day .bk-time').count()) === 2,
-    'both sealings that night are on the day’s page, each with its time',
-  );
+  {
+    // two sealings in different minutes are two entries; in the same minute they read as one, on new lines
+    const times = (db.letters[0].entry.text.match(/\[(\d\d:\d\d)\]/) || [])[1];
+    const firstAt = new Date(db.entries[0].created_at);
+    const same =
+      times ===
+      `${String(firstAt.getHours()).padStart(2, '0')}:${String(firstAt.getMinutes()).padStart(2, '0')}`;
+    const text = await page.locator('.bk-page.is-day .bk-entries').innerText();
+    check(
+      text.includes('harbour') &&
+        text.includes('grandma') &&
+        (await page.locator('.bk-page.is-day .bk-time').count()) === (same ? 1 : 2),
+      'both sealings that night are on the day’s page, with their times (one entry if in the same minute)',
+    );
+  }
   await page.locator('.bk-sd.is-today').click();
 
   console.log('letter arrives');
@@ -687,8 +752,9 @@ try {
   await page.locator('.tab[data-go="letters"]').click();
   await page.getByRole('heading', { name: 'Letters', exact: true }).waitFor();
   check(
-    await page.locator('.lp-card').getByText('A calm walk by the harbour').isVisible(),
-    'the newest letter is a small card at the top of Letters',
+    (await page.locator('.lp-card .lp-read').count()) === 1 &&
+      !(await page.locator('.lp-card').getByText('A calm walk by the harbour').count()),
+    'the newest letter is a small pill with Read, without its title',
   );
   check(
     (await page.locator('.lp-head').boundingBox()).height < 200 &&
@@ -705,8 +771,19 @@ try {
     'the letter is also in All letters',
   );
   check(
-    await page.getByText('1 letter so far').isVisible(),
-    'Letters says how many letters so far',
+    (await page.locator('#lp-time').inputValue()) === '08:00' &&
+      (await page.getByText('Receive your morning letters at').isVisible()),
+    'Letters says when morning letters arrive',
+  );
+  await page.locator('#lp-time').selectOption('08:30');
+  for (let t = 0; t < 30 && db.settings.delivery_time !== '08:30'; t++) await sleep(100);
+  check(db.settings.delivery_time === '08:30', 'the arrival time can be changed right there');
+  await page.locator('#lp-time').selectOption('08:00');
+  for (let t = 0; t < 30 && db.settings.delivery_time !== '08:00'; t++) await sleep(100);
+  check(
+    /^[A-Z][a-z]+ \d{1,2}$/.test(await page.locator('.lc-date b').first().innerText()) &&
+      !(await page.locator('#arch-results .lc-line').count()),
+    'each letter shows its date in words and just its title',
   );
 
   console.log('search all letters');
@@ -725,34 +802,81 @@ try {
   await page.fill('#arch-q', 'nothing like this');
   await page.getByText('Nothing matches').waitFor();
   await page.fill('#arch-q', '');
-  await page.locator('[data-act="arch-gold"]').click();
-  await sleep(300);
   check(
-    await page.locator('#arch-results').getByText('A calm walk by the harbour').isVisible(),
-    'the gold seal filter shows the letter whose small step was done',
+    (await page.locator('#arch-month').count()) === 1 &&
+      !(await page.locator('[data-act="arch-gold"], #arch-theme').count()),
+    'only the month filter is left',
   );
-  await page.locator('[data-act="arch-gold"]').click();
   await shot(page, '08-letters');
 
   console.log('identity, patterns');
   await page.locator('.tab[data-go="identity"]').click();
-  await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Kit, who are you becoming…' }).waitFor();
   check(
     await page.getByText('more nights to see your first direction').first().isVisible(),
     'Identity has its own tab and says when a direction will appear',
   );
+  check(
+    (await page.locator('.id-step .id-k').innerText()) === 'Actionable Step' &&
+      (await page.locator('.id-todos .id-k').innerText()) === 'To-Do List' &&
+      (await page.locator('.id-layout > .id-do .id-step + .id-todos').count()) === 1 &&
+      (await page.locator('.id-step .id-step-t').innerText()).includes('Walk ten minutes') &&
+      (await page.locator('.id-step.is-done').count()) === 1,
+    'Identity shows today’s step from the morning’s letter, done because it was done in the letter',
+  );
+  check(
+    (await page.locator('.todo-list.is-lines .todo-i.is-empty .todo-in').count()) === 4 &&
+      (await page.locator('[data-todo-more]').count()) === 1,
+    'the to-do list is four empty lines to write on, with a + for more',
+  );
+  await page.locator('[data-todo-new]').first().fill('Fictional: call grandma');
+  await page.locator('[data-todo-new]').first().press('Enter');
+  await page.locator('.todo-in[data-todo-id]').first().waitFor();
+  check(
+    db.todos.length === 1 &&
+      db.todos[0].title === 'Fictional: call grandma' &&
+      (await page.locator('.todo-in[data-todo-id]').inputValue()) === 'Fictional: call grandma',
+    'writing on a line adds a to-do to the account',
+  );
+  await page.locator('.todo-in[data-todo-id]').fill('Fictional: call grandma tonight');
+  await page.locator('.todo-in[data-todo-id]').press('Enter');
+  for (let t = 0; t < 30 && db.todos[0].title !== 'Fictional: call grandma tonight'; t++)
+    await sleep(100);
+  check(
+    db.todos[0].title === 'Fictional: call grandma tonight',
+    'a to-do can be edited on its line',
+  );
+  await page.locator('.todo-i:not(.is-empty) .todo-check').first().click();
+  for (let t = 0; t < 30 && !db.todos[0].completed; t++) await sleep(100);
+  check(db.todos[0].completed === true, 'ticking a to-do is saved');
+  for (let k = 0; k < 5; k++)
+    await page
+      .locator('[data-todo-more]')
+      .click()
+      .catch(() => {});
+  check(
+    (await page.locator('.todo-list.is-lines .todo-i').count()) === 7 &&
+      !(await page.locator('[data-todo-more]').count()),
+    '+ adds lines up to seven',
+  );
+  await page.locator('.todo-in[data-todo-id]').fill('');
+  await page.locator('.todo-in[data-todo-id]').press('Enter');
+  for (let t = 0; t < 30 && db.todos.length; t++) await sleep(100);
+  check(db.todos.length === 0, 'clearing a line removes its to-do');
   await page.locator('.tab[data-go="growth"]').click();
-  await page.getByRole('heading', { name: 'Growth', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Patterns', exact: true }).waitFor();
   check(
     (await page.locator('.tab[data-go="growth"]').innerText()).trim() === 'Growth' &&
       !(await page.locator('[data-go="patterns"]').count()) &&
       !(await page.getByText('Your patterns, not their highlight reel.').count()),
-    'Patterns is now Growth',
+    'the Growth tab’s page is called Patterns',
   );
   check(
     (await page.locator('.g-card').count()) === 5 &&
       (await page.locator('.g-card .g-t').count()) === 5 &&
-      (await page.locator('.g-card .g-sub').count()) === 4 &&
+      (await page.locator('.g-card .g-sub').count()) === 5 &&
+      (await page.locator('#g-stars').innerText()) === 'Journalling Progress' &&
+      (await page.locator('#g-alive').innerText()) === 'Energy map' &&
       (await page.locator('.g-card').first().getAttribute('aria-labelledby')) === 'g-stars' &&
       (await page.locator('#g-compass').innerText()) === 'Passion compass' &&
       !(await page.getByText('Threads that last').count()) &&
@@ -781,7 +905,7 @@ try {
   );
   await shot(page, '09-growth');
   await page.locator('.brand').click();
-  await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Kit, who are you becoming…' }).waitFor();
   check(true, 'the Beyond mark returns to Identity, the home page');
   await page.locator('.lang-btn').click();
   await page.locator('.tab[data-go="tonight"]').getByText('日记').waitFor();
@@ -798,6 +922,13 @@ try {
     (await page.evaluate(() => document.documentElement.dataset.jtheme)) === 'ink',
     'Settings switches the colour theme',
   );
+  await page.waitForFunction(() => document.querySelector('a[href="/?theme=blue"]'));
+  check(
+    (await page.locator('a[href="/?theme=blue"]').count()) > 0,
+    'Ink falls back to blue on the site',
+  );
+  await page.waitForTimeout(450);
+  check(db.settings.journal_theme === 'ink', 'theme choice is persisted to the signed-in account');
   await page.locator('[data-jtheme-pick="midnight"]').click();
   check(
     (await page.evaluate(() => document.documentElement.dataset.jtheme)) === undefined,
@@ -907,7 +1038,12 @@ try {
   );
   await page.locator('.skip-morning').click();
   await page.getByRole('button', { name: 'Open it' }).click({ timeout: 20000 });
-  await page.getByText('What you set down tonight').waitFor();
+  await page.locator('.lt-body').waitFor();
+  check(
+    !/[\u201c\u201d"]/.test(await page.locator('.lt-body').innerText()) &&
+      (await page.locator('.headline').innerText()) === 'A day worth remembering',
+    'the demo letter reads as a personal letter, with no quotation marks',
+  );
   check(
     await page.getByText('Demo mode: a pre-written sample letter').isVisible(),
     'Demo mode shows a labelled demo letter built from the night’s own words',
@@ -931,6 +1067,14 @@ try {
     ),
     'Kit’s sample days are pages in the book, marked sample',
   );
+  await page.locator('.bk-sd:not(.is-today)').last().click();
+  await page.locator('.bk-page.is-day').waitFor();
+  check(
+    (await page.locator('.bk-page.is-day .bk-entries').innerText()).includes('days until the DSE'),
+    'in Demo mode, today’s page shows the student’s entries from earlier today',
+  );
+  await sd.click();
+  await page.locator(`.bk-page.is-day[data-page="${kitDate}"]`).waitFor();
   const kitWords = (await page.locator('.bk-page.is-day .bk-entries p').first().innerText()).slice(
     0,
     40,
@@ -948,6 +1092,11 @@ try {
   check(
     (await page.locator('.words-d .words').innerText()).includes(kitWords),
     'a Kit day’s words match its letter',
+  );
+  check(
+    !/[\u201c\u201d"]/.test(await page.locator('.lt-body').innerText()) &&
+      (await page.locator('.lt-body p').count()) >= 3,
+    'Kit’s letter is a flowing personal letter with no quotation marks',
   );
   await page.locator('[data-letter-back-book]').click();
   await page.locator(`.bk-page[data-page="${kitDate}"]`).waitFor();
@@ -1000,6 +1149,21 @@ try {
       (await page.locator('.g-rank-row').count()) >= 3,
     'Demo mode fills every Growth card from Kit’s letters',
   );
+  check(
+    (await page.locator('.g-stars .ns-star').count()) >= 10 &&
+      !(await page.locator('.g-quad').count()) &&
+      (await page.locator('.g-stars .ns-star[data-star]').count()) >= 10,
+    'in Demo mode most days have a star, and every star opens a letter',
+  );
+  await page.locator('.g-stars .ns-star[data-star]').nth(3).click({ force: true });
+  await page.locator('.letter, .env-stage').first().waitFor();
+  check(
+    (await page.locator('[data-letter-back-growth]').count()) === 1,
+    'a star opens its letter with a way back to Growth',
+  );
+  await page.locator('[data-letter-back-growth]').click();
+  await page.locator('.g-stars').waitFor();
+  check(page.url().endsWith('#growth'), 'Back from that letter returns to Growth, not Letters');
   await shot(page, '11c-growth-month');
   await page.locator('[data-ptab="year"]').click();
   await page.locator('.g-film').waitFor();
@@ -1033,9 +1197,48 @@ try {
     'the page has the timeline and a box for each journal',
   );
   check(
-    (await page.locator('#dir-try').count()) === 1,
-    'Try it shows suggestions from its letters',
+    (await page.locator('#dir-steps').count()) === 1 &&
+      (await page.locator('#dir-journals').innerText()) === 'Your letters about this',
+    'the page has its letters and its actionable steps',
   );
+  await page.fill('#dir-step-new', 'Fictional: ask about volunteering');
+  await page.locator('#dir-step-add button[type="submit"]').click();
+  await page
+    .locator('.g-card:has(#dir-steps)')
+    .getByText('Fictional: ask about volunteering')
+    .waitFor();
+  check(
+    db.todos.some((t) => t.title === '[community-builder] Fictional: ask about volunteering'),
+    'a step added here is a to-do tagged with this direction',
+  );
+  await page.locator('.dir-custom').click();
+  await page.locator('#dir-edit').waitFor();
+  check(await page.locator('#dir-edit-save').isDisabled(), 'Save waits for a change');
+  await page.fill('#dir-edit-name', 'Fictional: The Connector');
+  check(!(await page.locator('#dir-edit-save').isDisabled()), 'a real change lights Save up');
+  await page.fill('#dir-edit-name', 'Community Builder');
+  check(await page.locator('#dir-edit-save').isDisabled(), 'changing it back turns Save off again');
+  await page.locator('[data-dir-edit-cancel]').click();
+  check(
+    (await page.locator('.dir-name').innerText()) === 'Community Builder',
+    'Cancel backs out without saving',
+  );
+  await page.locator('.dir-custom').click();
+  await page.fill('#dir-edit-name', 'Fictional: The Connector');
+  await page.fill('#dir-edit-line', 'Fictional: I bring people together.');
+  await page.locator('#dir-edit-save').click();
+  await page.getByRole('heading', { name: 'Fictional: The Connector' }).waitFor();
+  for (let t = 0; t < 30 && !db.settings.direction_labels['community-builder']; t++)
+    await sleep(100);
+  check(
+    db.settings.direction_labels['community-builder']?.name === 'Fictional: The Connector',
+    'a confirmed direction can be renamed and the name is saved to the account',
+  );
+  await page.locator('.dir-custom').click();
+  await page.locator('[data-dir-edit-reset]').click();
+  await page.getByRole('heading', { name: 'Community Builder' }).waitFor();
+  await page.locator('.g-card:has(#dir-steps) .todo-x').first().click();
+  for (let t = 0; t < 30 && db.todos.length; t++) await sleep(100);
   await page.locator('.dir-j').first().click();
   await page.locator('.letter, .env-stage').first().waitFor();
   await page.locator('[data-letter-back-dir="community-builder"]').click();
@@ -1101,6 +1304,25 @@ try {
   await page.goto(`${ORIGIN}/app#identity/astronaut`);
   await page.locator('#stage').waitFor();
   check(page.url().endsWith('#identity'), 'an unknown direction link goes to the map');
+  db.settings.onboarded = false;
+  db.settings.welcome_seen = false;
+  await page.reload();
+  await page.locator('.onb-demo').waitFor();
+  check(
+    await page.getByText('Demo version').isVisible(),
+    'in Demo mode the welcome starts by saying this is a demo',
+  );
+  await page.locator('[data-act="onb-demo-go"]').click();
+  await page.getByRole('heading', { name: 'How Beyond works' }).waitFor();
+  check(true, 'Start the demo goes on to the welcome');
+  db.settings.onboarded = true;
+  db.settings.welcome_seen = true;
+  await page.reload();
+  await page.locator('.topbar').waitFor();
+  check(
+    (await page.locator('.brand .demo-badge').count()) === 1,
+    'Demo mode shows a Demo badge by the logo',
+  );
   await page.locator('.gear-btn[data-go="settings"]').click();
   await page.locator('[data-act="toggle-sample"]').click();
   await page.locator('.tab[data-go="tonight"]').click();
@@ -1115,21 +1337,21 @@ try {
 
   console.log('site');
   await page.goto(`${ORIGIN}/#/`);
-  await page.locator('a[href="/app"]').first().waitFor();
+  await page.locator('a[href^="/app?theme="]').first().waitFor();
   check(true, 'the site links to the app');
   await shot(page, '12-site');
   for (const [path, words] of [
     ['/how', 'Say it whenever. Understand it tomorrow.'],
-    ['/privacy', 'Safe enough to be honest.'],
-    ['/institutions', 'Somewhere to put it down'],
-    ['/beta', 'Tonight, write without an audience.'],
+    ['/privacy', 'What you write stays yours'],
+    ['/institutions', 'Somewhere to put it down, provided by the people who look after you.'],
+    ['/beta', 'Say it whenever. Understand it tomorrow.'],
   ]) {
     await page.goto(`${ORIGIN}/#${path}`);
     await page.locator('main').getByText(words).first().waitFor({ timeout: 10000 });
   }
   check(true, 'every site page renders');
   await page.goto(`${ORIGIN}/#/app`);
-  await page.waitForURL(`${ORIGIN}/app`);
+  await page.waitForURL(`${ORIGIN}/app?theme=blue`);
   check(true, 'old #/app links open the app');
 
   check(errors.length === 0, `no page errors${errors.length ? `: ${errors.join(' | ')}` : ''}`);

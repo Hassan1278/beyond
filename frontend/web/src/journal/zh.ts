@@ -1,3 +1,4 @@
+import { SHARED_ZH } from '../copy/zh';
 /**
  * Simplified Chinese for the journal app's own wording, written for Mandarin
  * readers: natural phrasing over word-for-word. Keys are the English exactly as
@@ -792,6 +793,74 @@ Object.assign(PHRASES, {
   'Draft saved': '草稿已保存',
   'Open in your journal': '在日记里打开',
   'Last night’s letter': '昨晚的来信',
+  Demo: '演示',
+  'Demo version': '演示版',
+  'Welcome to the Beyond demo': '欢迎来到 Beyond 演示版',
+  'This version is for showing how Beyond works. Kit’s journal, letters and patterns are fictional examples. Anything you write here is saved to this account, just like the real app.':
+    '这个版本用来展示 Beyond 怎样运作。Kit 的日记、来信和规律都是虚构的例子。你在这里写的内容，会像正式版一样保存到这个账户。',
+  'Start the demo': '开始体验',
+  'What’s your name?': '你叫什么名字？',
+  'Your name': '你的名字',
+  'Your name or a nickname': '你的名字或昵称',
+  'Your letters will call you this. You can change it in Settings.':
+    '来信会这样称呼你。之后可以在设置里修改。',
+  'Journalling Progress': '日记进度',
+  'Each star is a day you journaled. Every day you become a better person.':
+    '每颗星是你写日记的一天。每一天，你都在变得更好。',
+  'Discover your passions.': '发现你的热情所在。',
+  'Energy map': '能量地图',
+  'Find out what energizes and drains you.': '看看什么让你充满能量，什么让你疲惫。',
+  'Energizing · bored': '有能量 · 无聊',
+  'Energizing · absorbed': '有能量 · 投入',
+  'Draining · bored': '消耗 · 无聊',
+  'Draining · absorbed': '消耗 · 投入',
+  'Days journaled': '写日记的天数',
+  'Add a line': '加一行',
+  'New to-do': '新的待办',
+  'To-do': '待办',
+  'Who are you becoming…': '你正在成为谁……',
+  'Identity constellation': '身份星图',
+  'Every bubble is a growing identity that keeps showing up in your journal.':
+    '每个泡泡都是一个在你日记里反复出现、正在成长的身份。',
+  'Confirm, pop, or customize: you choose which ones to grow into.':
+    '确认、戳破或自定义：由你决定要成长成哪一个。',
+  You: '你',
+  'Actionable Step': '可行的一步',
+  'To-Do List': '待办清单',
+  'Actionable step and to-do list': '可行的一步和待办清单',
+  'Today’s goal and your to-dos': '今天的目标和你的待办',
+  'Your next letter brings one goal for the day. It shows here.':
+    '下一封信会带来今天的一个目标，会显示在这里。',
+  'Your to-dos': '你的待办',
+  'Your next letter brings one small step for the day. It shows here.':
+    '下一封信会带来今天的一小步，会显示在这里。',
+  'Anything you want to do, big or small. Add one below.': '想做的事，大小都可以。在下面添加。',
+  'Add a to-do…': '添加待办……',
+  'Add a to-do': '添加待办',
+  Add: '添加',
+  'Show all': '显示全部',
+  Customize: '自定义',
+  Name: '名称',
+  Description: '描述',
+  'Use the original': '用回原来的',
+  'Back to the original name.': '已用回原来的名称。',
+  'Saved.': '已保存。',
+  'Your letters about this': '关于这个方向的来信',
+  'Actionable steps': '可行的小步',
+  'Steps from your letters about this, and your own. They show on your Identity page too.':
+    '来自相关来信的小步，以及你自己加的。它们也会显示在自我页面上。',
+  'Steps from your letters about this will gather here. You can add your own too.':
+    '相关来信里的小步会汇集在这里。你也可以自己添加。',
+  'Add a step for this…': '为这个方向加一小步……',
+  'Receive your morning letters at': '每天早上收信时间',
+  'Search your letters': '搜索你的来信',
+  'All months': '全部月份',
+  'Read last night’s letter': '读昨晚的来信',
+  'Each star is a letter. The line climbs every night you write and stays level when you skip one.':
+    '每颗星是一封信。你每写一晚，线就往上爬一格；没写的那天，线保持持平。',
+  Day: '日期',
+  'Couldn’t add that. Check your connection.': '没能添加，请检查网络连接。',
+  'Couldn’t delete that. Check your connection.': '没能删除，请检查网络连接。',
   'Passion compass': '热情罗盘',
   'Write anything': '想写什么都可以',
   'Settings sections': '设置分类',
@@ -838,12 +907,46 @@ Object.assign(PHRASES, {
 });
 for (const [w, z] of Object.entries(WD)) PHRASES[w] = z;
 
-export const ZH: Record<string, string> = PHRASES;
+export const ZH: Record<string, string> = { ...PHRASES, ...SHARED_ZH };
 
 const nights = (k: string): string => `${k} 个晚上`;
 
 /** Wording with a date, count or name in it. Content (headlines, quotes) passes through as is. */
 export const ZH_PATTERNS: [RegExp, (...m: string[]) => string][] = [
+  [/^(.+), who are you becoming…$/s, (n) => `${n}，你正在成为谁……`],
+  [/^(\d) of 5$/, (k) => `${k} / 5`],
+  [/^Done: (.+)$/s, (t) => `完成：${t}`],
+  [
+    /^Up to (\d+) to-dos\. Tick one off or clear one first\.$/,
+    (k) => `最多 ${k} 个待办。先完成或清掉一个吧。`,
+  ],
+  [
+    /^(\d+) days? journaled so far this (month|year)$/,
+    (k, x) => `${x === 'month' ? '这个月' : '今年'}目前写了 ${k} 天日记`,
+  ],
+  [new RegExp(`^${MONTHS} (\\d{1,2})$`), (m, d) => `${mo(m)}${d}日`],
+  [
+    /^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)( · (sample|demo letter))?$/,
+    (w, x, t) => `${WD[w]}${x ? ` · ${t === 'sample' ? '示例' : '演示信'}` : ''}`,
+  ],
+  [
+    new RegExp(
+      `^(From this morning’s letter|From your letter for ${DAY})(, sample)? · (\\d+) min$`,
+    ),
+    (a, w, d, m, smp, n) =>
+      `${a.startsWith('From this') ? '来自今早的来信' : `来自${day(w, d, m)}的来信`}${smp ? '，示例' : ''} · ${n} 分钟`,
+  ],
+  [
+    new RegExp(`^Read your latest letter, from ${DAY}$`),
+    (w, d, m) => `读最新的来信（${day(w, d, m)}）`,
+  ],
+  [/^Letters about (.+)$/, (t) => `关于${theme(t)}的来信`],
+  [/^Delete (.+)$/s, (t) => `删除：${t}`],
+  [/^Add a step for (.+)$/, (t) => `为${dir(t)}加一小步`],
+  [
+    /^(\d+) letters? so far this (month|year)$/,
+    (k, x) => `${x === 'month' ? '这个月' : '今年'}目前 ${k} 封信`,
+  ],
   [
     /^\s*– (Past journal|Earlier today)$/,
     (k) => ` – ${k === 'Past journal' ? '过去的日记' : '今天早些时候'}`,

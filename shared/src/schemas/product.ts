@@ -30,6 +30,14 @@ export const directionsSchema = z.partialRecord(
   directionKeySchema,
   z.enum(['suggested', 'confirmed', 'dismissed', 'removed']),
 );
+/** A confirmed direction's own name and one-line description, chosen by the person. */
+export const directionLabelsSchema = z.partialRecord(
+  directionKeySchema,
+  z.strictObject({
+    name: z.string().trim().min(1).max(40),
+    line: z.string().trim().min(1).max(160),
+  }),
+);
 /** First sign-in welcome, screen 2: what brought the person to Beyond. */
 export const welcomeReasonSchema = z.enum(['want', 'mind', 'behind', 'write', 'lookback', 'other']);
 const welcomeReasonsSchema = z
@@ -64,6 +72,10 @@ export const settingsSchema = z.strictObject({
   letter_name: letterNameSchema.optional(),
   // Optional until the drafts migration is applied everywhere.
   draft: draftSchema.optional(),
+  // Optional until the direction labels migration is applied everywhere.
+  direction_labels: directionLabelsSchema.optional(),
+  // Optional until the journal theme migration is applied everywhere.
+  journal_theme: z.enum(['midnight', 'candle', 'ink']).optional(),
   revision,
   updated_at: timestamp,
 });
@@ -83,6 +95,8 @@ export const patchSettingsSchema = z
     welcome_other: welcomeOtherSchema.optional(),
     letter_name: letterNameSchema.optional(),
     draft: draftSchema.optional(),
+    direction_labels: directionLabelsSchema.optional(),
+    journal_theme: z.enum(['midnight', 'candle', 'ink']).optional(),
     expected_revision: revision,
   })
   .refine((value) => Object.keys(value).length > 1);

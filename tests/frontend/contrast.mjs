@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
-const THEMES = ['candle', 'bloom'];
+const THEMES = ['candle', 'night'];
 
 /* --------------------------------------------------------------- parsing */
 
@@ -154,25 +154,6 @@ for (const id of THEMES) {
   palettes[id] = { ...base, ...own };
 }
 
-/* The Wrapped cards put light text on the lighter end of their own gradient,
-   which is where it is hardest to read. Read the first stop of each straight
-   out of the data, so this checks what actually ships. */
-const contentTs = await readFile(join(root, 'frontend/web/src/demo/content.ts'), 'utf8');
-for (const [, quarter] of contentTs.matchAll(/quarter: '([^']+)'/g)) {
-  const at = contentTs.indexOf(`quarter: '${quarter}'`);
-  const grad = /grad:\s*'([^']+)'/.exec(contentTs.slice(at))?.[1] ?? '';
-  const stop = /color-mix\(in srgb,\s*var\(--([\w-]+)\)\s*([\d.]+)%,\s*var\(--([\w-]+)\)\s*\)/.exec(
-    grad,
-  );
-  if (!stop) continue;
-  MIXED.push([
-    'paper',
-    [stop[1], Number(stop[2]), stop[3]],
-    `${quarter} Wrapped, at its lightest`,
-    4.5,
-  ]);
-}
-
 let failures = 0;
 const missing = [];
 
@@ -206,7 +187,9 @@ for (const id of THEMES) {
 }
 
 console.log('\ndistinctness  (CIE76 dE between themes; 10 is a clear difference)');
-for (const token of HEAVY) {
+// The two app near-black surfaces intentionally remain close. Exact app token
+// parity below replaces the old arbitrary separation requirement for --night.
+for (const token of HEAVY.filter((token) => token !== 'night')) {
   const parts = [];
   let worst = Infinity;
   for (let i = 0; i < THEMES.length; i++) {
@@ -270,4 +253,27 @@ if (missing.length) {
 }
 
 console.log(failures ? `\n${failures} problem(s)` : '\nall clear');
-process.exit(failures ? 1 : 0);
+process.exitCode = failures ? 1 : 0;
+
+const journalCss = await readFile(join(root, 'frontend/web/src/journal/journal.css'), 'utf8');
+const midnight = journalCss.slice(
+  journalCss.indexOf('--night:'),
+  journalCss.indexOf('/* Colour themes'),
+);
+for (const [siteToken, appToken] of [
+  ['night', 'night'],
+  ['night-2', 'night-2'],
+  ['night-3', 'night-3'],
+  ['night-line', 'night-line'],
+  ['paper', 'paper'],
+  ['ink', 'paper-ink'],
+  ['ink-soft', 'paper-soft'],
+  ['ink-faint', 'paper-faint'],
+  ['paper-line', 'paper-rule'],
+  ['dawn', 'amber'],
+]) {
+  const match = midnight.match(new RegExp('--' + appToken + ':\\s*(#[0-9a-f]+)'));
+  if (!match || palettes.night[siteToken] !== match[1])
+    throw new Error('Midnight token drift: ' + siteToken);
+}
+console.log('Blue uses the journal Midnight tokens exactly.');

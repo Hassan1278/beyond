@@ -1,71 +1,43 @@
 'use client';
-/**
- * The marketing site, with hash routes so it works on any static host.
- *
- *   #/ #/problem #/how ...   short site pages
- *   /app                     the journal itself (its own page, real accounts)
- *
- * Old #/app links go straight to /app. The interactive pieces on the site
- * (one tonight, patterns) use clearly fictional demo content only.
- */
-import { useEffect, type ReactElement } from 'react';
-import { PAGES } from './data/site';
-import { DemoProvider } from './demo/store';
+import { useEffect, useState } from 'react';
 import { SiteShell } from './site/SiteShell';
-import { HomePage } from './site/pages/HomePage';
-import { ProblemPage } from './site/pages/ProblemPage';
-import { HowPage } from './site/pages/HowPage';
-import { WhyPage } from './site/pages/WhyPage';
-import { PrivacyPage } from './site/pages/PrivacyPage';
-import { InstitutionsPage } from './site/pages/InstitutionsPage';
-import { BetaPage } from './site/pages/BetaPage';
+import { LandingPage } from './site/LandingPage';
 import { useRoute } from './router';
-import { useRouteTransition, useRevealOnScroll } from './site/motion';
+import { MOVED } from './data/landing';
+import { useAppHref } from './demo/theme';
+import { CopyContext } from './site/copy';
+import { useRevealOnScroll } from './site/motion';
 
-const SITE: Record<string, () => ReactElement> = {
-  '/': HomePage,
-  '/problem': ProblemPage,
-  '/how': HowPage,
-  '/why': WhyPage,
-  '/privacy': PrivacyPage,
-  '/institutions': InstitutionsPage,
-  '/beta': BetaPage,
-};
-
-/** Old links keep working after the restructure. */
-const MOVED: Record<string, string> = {
-  '/patterns': '/how',
-  '/schools': '/institutions',
-};
-
-function Routes(): ReactElement | null {
-  const path = useRoute();
-  const isApp = path === '/app' || path.startsWith('/app/');
-  const resolved = MOVED[path] ?? path;
-  const { shown, leaving } = useRouteTransition(resolved, 220);
-  useRevealOnScroll(shown);
-
-  useEffect(() => {
-    if (isApp) window.location.replace('/app');
-    else document.body.dataset.mode = 'site';
-  }, [isApp, path]);
-
-  if (isApp) return null;
-  const Page = SITE[shown] ?? HomePage;
-  const navMeta = PAGES.find((p) => p.path === resolved) ?? PAGES[0];
-  return (
-    <SiteShell path={navMeta.path} time={navMeta.time}>
-      <div className={`page${leaving ? ' is-leaving' : ''}`} key={shown}>
-        <Page />
-      </div>
-    </SiteShell>
+export default function SiteApp() {
+  const [lang, setLang] = useState<'en' | 'zh'>(() =>
+    new URLSearchParams(location.search).get('lang') === 'zh' ? 'zh' : 'en',
   );
-}
-
-export default function SiteApp(): ReactElement {
+  const route = useRoute();
+  const path = MOVED[route] ?? route;
+  const app = useAppHref();
+  useRevealOnScroll(path + lang);
+  useEffect(() => {
+    if (route.startsWith('/app')) {
+      location.replace(app);
+      return;
+    }
+    if (MOVED[route]) history.replaceState(history.state, '', `${location.search}#${path}`);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [route, path, app]);
+  useEffect(() => {
+    document.body.dataset.mode = 'site';
+    document.documentElement.lang = lang === 'zh' ? 'zh-Hant' : 'en';
+    const url = new URL(location.href);
+    url.searchParams.set('lang', lang);
+    history.replaceState(history.state, '', url);
+  }, [lang]);
   return (
-    <DemoProvider>
-      <Routes />
-    </DemoProvider>
+    <CopyContext.Provider value={lang}>
+      <SiteShell path={path} lang={lang} setLang={setLang}>
+        <div className="page" key={path}>
+          <LandingPage path={path} />
+        </div>
+      </SiteShell>
+    </CopyContext.Provider>
   );
 }

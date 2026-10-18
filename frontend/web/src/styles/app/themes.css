@@ -1,4 +1,5 @@
-/* Two palettes: Candle (the app's own) and Bloom.
+/* Two palettes, shared with the journal app: Candle (Gold) and Night (Blue,
+ * the app's Midnight).
  *
  * Every theme redefines the same token set, so nothing in the rest of the CSS
  * needs to know which one is active. Each keeps the structure the design
@@ -46,31 +47,32 @@
   --warm: #f3c68e;
 }
 
-/* Bloom - aubergine night, blush paper, a hot rose dawn. */
-:root[data-theme='bloom'] {
-  --night: #27102f;
-  --night-2: #341740;
-  --night-3: #452055;
-  --night-line: #5f2d70;
-  --paper: #fae2ee;
-  --paper-2: #f4cfe2;
-  --paper-hi: #fef5fa;
-  --paper-line: #dca6c4;
-  --ink: #1d0c22;
-  --ink-soft: #6a3650;
-  --ink-faint: #834e6b;
-  --moon: #d7a5c0;
-  --mist: #cf9cb7;
-  --dusk: #a76ede;
-  --dawn: #ff6fa5;
-  --ok: #3f8f6a;
-  --alert: #e04865;
-  --phone: #341740;
-  --g1: #2e1338;
-  --g2: #4a1a4e;
-  --g3: #611d5d;
-  --g4: #a53789;
-  --warm: #ffb6d0;
+/* Blue - the journal app's Midnight, with its exact tokens: deep navy night,
+   cool paper, a periwinkle dawn. */
+:root[data-theme='night'] {
+  --night: #0b0d17;
+  --night-2: #121527;
+  --night-3: #1a1e35;
+  --night-line: #282d4b;
+  --paper: #e9ebf7;
+  --paper-2: #dfe2f2;
+  --paper-hi: #f5f6ff;
+  --paper-line: #c8cce6;
+  --ink: #181b31;
+  --ink-soft: #474c6e;
+  --ink-faint: #575c80;
+  --moon: #a9aecb;
+  --mist: #a9aecb;
+  --dusk: #8fa2ff;
+  --dawn: #b3b8ff;
+  --ok: #4f8a5e;
+  --alert: #b4513a;
+  --phone: #121527;
+  --g1: #0f1220;
+  --g2: #151a33;
+  --g3: #1f2550;
+  --g4: #5c63d8;
+  --warm: #b3b8ff;
 }
 
 /* ------------------------------------------------------------- the picker */

@@ -2,6 +2,7 @@
  * The hero. The noise is real: every word is a button, and quieting them is the
  * argument the rest of the site makes in prose.
  */
+import { useCopy } from './copy';
 import { useState, type CSSProperties, type ReactElement } from 'react';
 
 interface Word {
@@ -69,49 +70,63 @@ const WORDS: Word[] = [
 ];
 
 export function NoiseHero(): ReactElement {
-  const [gone, setGone] = useState<string[]>([]);
+  const t = useCopy();
   const [quiet, setQuiet] = useState(false);
-
-  const allQuiet = quiet || gone.length === WORDS.length;
-  const hint = allQuiet
-    ? 'Quiet. Now, what’s actually on your mind?'
-    : gone.length
-      ? `${gone.length} of ${WORDS.length} quieted`
-      : 'Click any word to quiet it';
-
   return (
-    <header className={`hero night${quiet ? ' quiet' : ''}`}>
-      <div className="noise">
-        {WORDS.map((w) => (
-          <button
-            type="button"
+    <header className={`hero night noise-experience${quiet ? ' is-quiet' : ''}`}>
+      <div className="noise" aria-hidden="true">
+        {WORDS.map((w, i) => (
+          <span
             key={w.text}
-            className={`word${w.small ? ' m-hide' : ''}${gone.includes(w.text) ? ' gone' : ''}`}
-            style={w.style}
-            aria-label={`Quiet "${w.text}"`}
-            onClick={() => setGone((g) => (g.includes(w.text) ? g : [...g, w.text]))}
+            className={`word${w.small ? ' m-hide' : ''}`}
+            style={
+              {
+                ...w.style,
+                '--fly-x': `${i % 2 ? 1 : -1}00vw`,
+                '--fly-y': `${i % 3 === 0 ? -1 : 1}00vh`,
+                '--fly-delay': `${i * 12}ms`,
+              } as CSSProperties
+            }
           >
-            {w.text}
-          </button>
+            {t(w.text)}
+          </span>
         ))}
       </div>
-
-      <div className="center">
-        <p className="eyebrow">The Great Distraction</p>
-        <h1>Everyone is telling you who to become.</h1>
+      <div className="quiet-wave" aria-hidden="true" />
+      {!quiet && (
+        <button
+          type="button"
+          className="quiet-trigger"
+          aria-hidden="true"
+          tabIndex={-1}
+          onClick={() => setQuiet(true)}
+        />
+      )}
+      <div className="center" key={quiet ? 'quiet' : 'noise'}>
+        <p className="eyebrow">beyond.</p>
+        <h1>
+          {t(quiet ? 'Now you can hear yourself.' : 'Everyone is telling you who to become.')}
+        </h1>
         <p className="lede">
-          Beyond gives you a space to step away from the noise, understand your own thoughts, and
-          decide what actually matters.
+          {t(
+            quiet
+              ? 'No one telling you who to be. Just a little space to find out.'
+              : 'Beyond gives you a space to step away from the noise, understand your own thoughts, and decide what actually matters.',
+          )}
         </p>
-        <div className="ctas" style={{ justifyContent: 'center' }}>
-          <button type="button" className="btn btn-light" onClick={() => setQuiet(true)}>
-            Step beyond the noise &rarr;
+        {!quiet && (
+          <button type="button" className="quiet-cta" onClick={() => setQuiet(true)}>
+            <span aria-hidden="true">✧</span> {t('Remove all noise')}
           </button>
-        </div>
+        )}
+        {quiet && (
+          <button className="quiet-replay" onClick={() => setQuiet(false)}>
+            {t('Bring the noise back')}
+          </button>
+        )}
       </div>
-
       <p className="hint" aria-live="polite">
-        {hint}
+        {t(quiet ? 'Quiet. Take a breath.' : 'Click anywhere to quiet the noise')}
       </p>
     </header>
   );

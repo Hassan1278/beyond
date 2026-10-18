@@ -4,77 +4,50 @@
   "date": "2025-06-20",
   "entries": [
    {
+    "id": "e_d01_1",
+    "t": "16:20",
+    "text": "Last Form 5 exam done. Chem paper 2 was a disaster, I left the whole last question blank."
+   },
+   {
     "id": "e_d01",
     "t": "23:40",
-    "text": "Last DSE paper today. Everyone went to celebrate in Mong Kok and I went along, but I felt strangely empty. For six years the plan was just “get through the exam”. Now there's no plan. What am I supposed to want next?"
+    "text": "Everyone went to Mong Kok to celebrate and I went along but I felt empty the whole time. One year until the DSE. Everyone in my class seems to already know what they want to study and I don't even know what I'm good at. 我真係唔知自己想點。"
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "The exams ended, and so did the plan",
-   "recap": "You wrote that your last DSE paper was today. You went out to celebrate with everyone, but felt strangely empty, because for six years the only plan was getting through the exam.",
-   "analysis": [
-    {
-     "lens": "feeling",
-     "title": "Empty after a long push",
-     "text": "It might be that the emptiness is what's left when a goal you carried for years suddenly disappears. That's tiredness and space, not failure.",
-     "quote": "I felt strangely empty",
-     "entryId": "e_d01"
-    },
-    {
-     "lens": "need",
-     "title": "A new question, not an answer",
-     "text": "You're asking what to want next. You don't need to answer it this week; noticing the question is already a start.",
-     "quote": "What am I supposed to want next?",
-     "entryId": "e_d01"
-    }
-   ],
-   "challenge": {
-    "issue": "No plan after the exams",
-    "cause": "For six years the plan was decided for you, so having nothing scheduled can feel like falling, even though it's just a pause."
+   "title": "One year to go, and no plan yet",
+   "headline": "One year to go, and no plan yet",
+   "body": "Hey Kit,\n\nYour last Form 5 exam finished this afternoon, and you left the final chem question blank. Then you went out to Mong Kok with everyone and felt empty the whole time, because the DSE is now exactly a year away and you still don't know what you want.\n\nThat emptiness is honest. It's what happens when the next big thing is close enough to feel, but not clear enough to plan for. Not knowing yet isn't the same as being behind. Most people who look sure are just louder about it.\n\nYou don't need a five-year plan tonight. You need a few slow days to breathe after exams.\n\nTalk soon,\nYour friend",
+   "reflection_question": "What did you enjoy this year, even a little, outside of marks?",
+   "small_step": {
+    "text": "Sleep in tomorrow without setting an alarm",
+    "minutes": 15,
+    "category": "rest"
    },
-   "advice": {
-    "text": "Give yourself a week with no plan on purpose. Do things you've postponed, and write down anything that makes you lose track of time.",
-    "why": "You asked what to want next; small clues come before big answers."
-   },
-   "encouragement": "You went out with everyone even though you felt empty. You didn't hide from the day.",
    "steps": [
     {
      "text": "Sleep in tomorrow without setting an alarm",
      "kind": "rest",
-     "minutes": 30,
-     "why": "Six years of pressure deserves a slow morning."
-    },
-    {
-     "text": "List three things you postponed because of the DSE",
-     "kind": "reflection",
-     "minutes": 10,
-     "why": "Clues about what you want often hide there."
-    },
-    {
-     "text": "Message one friend to plan something fun, not useful",
-     "kind": "connection",
-     "minutes": 5,
-     "why": "Celebrate the end with someone."
+     "minutes": 15,
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "What did you enjoy this year, even a little, outside of marks?"
+   ],
+   "night_type": "mixed",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "uncertainty",
     "study"
    ],
-   "openQuestions": [
-    "What am I supposed to want next?"
-   ],
-   "wins": [],
-   "tone": "mixed",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
-     "name": "Celebrating after the DSE",
+     "name": "Celebrating after exams",
      "energy": -1,
      "absorption": -1
     }
@@ -85,7 +58,13 @@
     "matters": [],
     "within_reach": []
    },
-   "interests": []
+   "interests": [],
+   "remember": [],
+   "tone": "mixed",
+   "evidence": [
+    "I felt empty the whole time",
+    "I don't even know what I'm good at"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -100,72 +79,42 @@
   "entries": [
    {
     "id": "e_d02",
-    "t": "22:15",
-    "text": "Hiked Dragon's Back with my cousin. We didn't talk about results or the future at all, just snacks and the view. First day in weeks my head felt quiet."
+    "t": "21:55",
+    "text": "Hiked Lion Rock with my cousin. We didn't talk about grades or the DSE once, just snacks and the view over Kowloon. First day in weeks my head felt quiet."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
+   "title": "A hike that didn't need to be useful",
    "headline": "A hike that didn't need to be useful",
-   "recap": "You hiked Dragon's Back with your cousin. You didn't talk about results or the future, and it was the first day in weeks that your head felt quiet.",
-   "analysis": [
-    {
-     "lens": "pattern",
-     "title": "Quiet came from being outside",
-     "text": "It might be that moving and being outdoors gives your mind a break that scrolling doesn't.",
-     "quote": "First day in weeks my head felt quiet",
-     "entryId": "e_d02"
-    },
-    {
-     "lens": "context",
-     "title": "A day without the future in it",
-     "text": "Not talking about results seems to have been part of what made it restful.",
-     "quote": "We didn't talk about results or the future at all",
-     "entryId": "e_d02"
-    }
-   ],
-   "challenge": {
-    "issue": "Nothing needs fixing",
-    "cause": "A good day. The only thing to notice is what made it good."
+   "body": "Hey Kit,\n\nYou climbed Lion Rock with your cousin and, for a whole afternoon, nobody mentioned grades or the DSE. Just snacks, the view over Kowloon, and a head that finally felt quiet.\n\nNotice where that quiet came from. It wasn't from having answers. It came from being outside, with someone easy, doing something that didn't need to be useful. After weeks of revision, your mind rested the moment it had something real in front of it.\n\nThat's worth remembering when the revision days get loud again.\n\nTalk soon,\nYour friend",
+   "reflection_question": "Where else could you find an afternoon that doesn’t need to be useful?",
+   "small_step": {
+    "text": "Save a photo from the hike as your lock screen",
+    "minutes": 2,
+    "category": "rest"
    },
-   "advice": {
-    "text": "Keep one outdoor afternoon a week while you wait for results.",
-    "why": "It was the first day in weeks your head felt quiet."
-   },
-   "encouragement": "You said yes to a plan that had no purpose except a good day. That's a skill worth keeping.",
    "steps": [
     {
      "text": "Save a photo from the hike as your lock screen",
      "kind": "rest",
      "minutes": 2,
-     "why": "A small reminder of the quiet."
-    },
-    {
-     "text": "Thank your cousin for the day",
-     "kind": "connection",
-     "minutes": 2,
-     "why": "Good days are worth saying out loud."
-    },
-    {
-     "text": "Pick the next trail you'd like to try",
-     "kind": "exploration",
-     "minutes": 10,
-     "why": "Something to look forward to."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "Where else could you find an afternoon that doesn’t need to be useful?"
+   ],
+   "night_type": "good",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "nature",
     "rest",
     "family"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "positive",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
      "name": "Hiking with my cousin",
@@ -185,6 +134,11 @@
    },
    "interests": [
     "hiking"
+   ],
+   "remember": [],
+   "tone": "positive",
+   "evidence": [
+    "my head felt quiet"
    ]
   },
   "actions": {
@@ -200,78 +154,46 @@
   "entries": [
    {
     "id": "e_d03",
-    "t": "23:05",
-    "text": "Results came out. Good enough for business, and Mum says business is the safer choice. I reordered my choices mostly by what my score fits. I don't hate it. I just don't feel anything about it, and I don't know if that's normal."
+    "t": "20:10",
+    "text": "Report card came. Chem 42, Maths 55. Mum looked at it for a long time and said maybe I should go to a tutorial centre over summer. Dad said medicine is still possible if I work hard. I don't even want medicine. I just want to stop feeling like I'm failing."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "Results day: good enough, but not a reason",
-   "recap": "Your results came out, good enough for business, and your mum thinks business is the safer choice. You reordered your choices mostly by what your score fits, and you wrote that you don't feel anything about it.",
-   "analysis": [
-    {
-     "lens": "feeling",
-     "title": "Neutral is information too",
-     "text": "Not feeling anything about a choice might mean it hasn't become yours yet, not that it's wrong.",
-     "quote": "I just don't feel anything about it",
-     "entryId": "e_d03"
-    },
-    {
-     "lens": "context",
-     "title": "A safe choice, made under pressure",
-     "text": "It sounds like the decision was shaped by scores and by what feels safe to your family. That's common, and it can still turn into something you care about.",
-     "quote": "Mum says business is the safer choice",
-     "entryId": "e_d03"
-    }
-   ],
-   "challenge": {
-    "issue": "Choosing a major without feeling anything",
-    "cause": "The choice was made from your score and safety, so there hasn't been a moment yet where it felt like your own."
+   "title": "A report card, and other people’s plans",
+   "headline": "A report card, and other people’s plans",
+   "body": "Hey Kit,\n\nThe report card came today, and the numbers weren't the ones you hoped for. Your mum went quiet and suggested a tutorial centre, your dad said medicine is still possible, and you sat there thinking you don't even want medicine. You just want to stop feeling like you're failing.\n\nTwo different things are tangled together here. One is your marks, which can move a lot in a year. The other is a future your parents are imagining for you, which might not be yours at all. Both feel heavy tonight, but only the first one is a problem to solve this summer.\n\nThe second is a conversation, and you're allowed to take your time getting ready for it.\n\nTalk soon,\nYour friend",
+   "reflection_question": "If marks weren’t part of it, which subject would you keep?",
+   "small_step": {
+    "text": "Pick one subject topic you actually find interesting and read about it for fun",
+    "minutes": 15,
+    "category": "exploration"
    },
-   "advice": {
-    "text": "Before term starts, look for one course or society inside business that sounds a little interesting. You don't need passion yet, just one thread to pull.",
-    "why": "You said you don't feel anything about it yet."
-   },
-   "encouragement": "You were honest with yourself on a day when it would have been easier to say “it's fine”.",
    "steps": [
     {
-     "text": "Read the course list and star one module that sounds interesting",
+     "text": "Pick one subject topic you actually find interesting and read about it for fun",
      "kind": "exploration",
      "minutes": 15,
-     "why": "One thread to pull."
-    },
-    {
-     "text": "Tell Mum one thing you're unsure about",
-     "kind": "connection",
-     "minutes": 10,
-     "why": "She can only help with what she knows."
-    },
-    {
-     "text": "Go for a walk after dinner",
-     "kind": "rest",
-     "minutes": 20,
-     "why": "Results day is a lot."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "If marks weren’t part of it, which subject would you keep?"
+   ],
+   "night_type": "mixed",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "uncertainty",
     "family",
     "study"
    ],
-   "openQuestions": [
-    "Is it normal not to feel anything about my major?"
-   ],
-   "wins": [],
-   "tone": "mixed",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
-     "name": "Choosing courses by score",
-     "energy": -1,
+     "name": "Looking at my report card",
+     "energy": -2,
      "absorption": 0
     }
    ],
@@ -280,10 +202,15 @@
     "good_at": [],
     "matters": [],
     "within_reach": [
-     "a business degree"
+     "a summer tutorial course"
     ]
    },
-   "interests": []
+   "interests": [],
+   "remember": [],
+   "tone": "mixed",
+   "evidence": [
+    "I just want to stop feeling like I'm failing"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -297,72 +224,42 @@
   "entries": [
    {
     "id": "e_d04",
-    "t": "23:30",
-    "text": "Hei is leaving for Manchester, Ching got into a uni in Taiwan, Sam is going to a different uni here. Our group of four will be in four places. Everyone seems excited about their plans and I'm just going where my results took me."
+    "t": "23:05",
+    "text": "Hei told us his family is moving to Manchester in the summer. Ching already knows she wants law and Sam is doing extra Maths M2. Our group of four is splitting up and everyone seems to have a plan except me."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "Four friends, four different places",
-   "recap": "You wrote that Hei is going to Manchester, Ching to Taiwan and Sam to another university in Hong Kong, so your group of four will be in four different places. Everyone seems excited, and you feel like you're just going where your results took you.",
-   "analysis": [
-    {
-     "lens": "context",
-     "title": "A group that's changing shape",
-     "text": "It might be the change in the group, more than the plans themselves, that feels heavy.",
-     "quote": "Our group of four will be in four places",
-     "entryId": "e_d04"
-    },
-    {
-     "lens": "pattern",
-     "title": "Measuring by excitement",
-     "text": "Their excitement is visible; their doubts probably aren't. Comparing your inside with their outside can make you feel behind.",
-     "quote": "I'm just going where my results took me",
-     "entryId": "e_d04"
-    }
-   ],
-   "challenge": {
-    "issue": "Comparing your path with your friends'",
-    "cause": "Everyone is announcing plans at the same moment, and yours doesn't come with a story yet."
+   "title": "Four friends, four directions",
+   "headline": "Four friends, four directions",
+   "body": "Hey Kit,\n\nHei is moving to Manchester, Ching already knows she wants law, Sam is adding Maths M2, and it feels like everyone has a plan except you.\n\nIt's easy to compare your quiet uncertainty with their clear announcements. But a plan said out loud isn't the same as a plan that works, and none of them knows yet how next year will actually feel. What's real tonight is that your group is changing, and one of your closest friends is leaving. That's a loss, not just a comparison.\n\nIt's worth marking it together while you still can.\n\nTalk soon,\nYour friend",
+   "reflection_question": "What do you want to keep from this friendship, even from far away?",
+   "small_step": {
+    "text": "Suggest a date for one last dinner with the four of you",
+    "minutes": 5,
+    "category": "connection"
    },
-   "advice": {
-    "text": "Plan one last evening together before everyone leaves, and ask each friend what they're nervous about.",
-    "why": "Excited plans often hide nervous ones, too."
-   },
-   "encouragement": "You care about this group enough to notice it changing. That kind of loyalty travels with you.",
    "steps": [
     {
      "text": "Suggest a date for one last dinner with the four of you",
      "kind": "connection",
      "minutes": 5,
-     "why": "Mark the change together."
-    },
-    {
-     "text": "Write one thing you're curious about at uni",
-     "kind": "reflection",
-     "minutes": 5,
-     "why": "Your plan can start small."
-    },
-    {
-     "text": "Mute the group's story updates for tonight",
-     "kind": "rest",
-     "minutes": 1,
-     "why": "Less comparing before sleep."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "What do you want to keep from this friendship, even from far away?"
+   ],
+   "night_type": "mixed",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "friendship",
     "comparison",
     "uncertainty"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "mixed",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [],
    "compass": {
     "loves": [],
@@ -372,7 +269,12 @@
     ],
     "within_reach": []
    },
-   "interests": []
+   "interests": [],
+   "remember": [],
+   "tone": "mixed",
+   "evidence": [
+    "everyone seems to have a plan except me"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -387,73 +289,41 @@
   "entries": [
    {
     "id": "e_d05",
-    "t": "22:50",
-    "text": "Got the BBA offer today. Mum was so relieved she cried a bit. I'm relieved too. But when people ask “what do you want to do with business?” I have no answer."
+    "t": "22:30",
+    "text": "Mum signed me up for the summer intensive at the tutorial centre in Mong Kok. Six weeks, four days a week. I said thanks because I know it's expensive. But when my aunt asked what I want to study at uni I just said not sure and everyone looked at me."
    }
   ],
   "content": {
-   "voice": "friend",
+   "version": 3,
+   "voice": "mentor",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "The offer came: relief, and a question mark",
-   "recap": "You got the BBA offer. Your mum was so relieved she cried a bit, and you're relieved too. But when people ask what you want to do with business, you have no answer.",
-   "analysis": [
-    {
-     "lens": "feeling",
-     "title": "Two things can be true",
-     "text": "Relief and uncertainty arrived together. Neither cancels the other.",
-     "quote": "I'm relieved too",
-     "entryId": "e_d05"
-    },
-    {
-     "lens": "need",
-     "title": "You don't owe anyone an answer yet",
-     "text": "It might help to remember that most first-years don't know either. The question is fair; the deadline people imply isn't real.",
-     "quote": "I have no answer",
-     "entryId": "e_d05"
-    }
-   ],
-   "challenge": {
-    "issue": "Being asked for a plan you don't have",
-    "cause": "People ask out of habit, and the question makes it feel like you should already know."
+   "title": "Six weeks of summer, and a question you couldn’t answer",
+   "headline": "Six weeks of summer, and a question you couldn’t answer",
+   "body": "Good morning, Kit.\n\nYour mum signed you up for six weeks at the tutorial centre, and you thanked her because you know what it costs. Then your aunt asked what you want to study at uni, you said you're not sure, and everyone looked at you.\n\nLet's separate two things. The summer course is about the next twelve months of marks, and it's a reasonable step. The uni question is about the next ten years, and nobody should expect you to answer it at a family dinner. A short, honest line you can say without feeling judged will take a lot of pressure out of those moments.\n\nThe real answer will come from what you notice this year. Keep track of it.\n\nAll the best,\nYour mentor",
+   "reflection_question": "What would an honest one-line answer sound like right now?",
+   "small_step": {
+    "text": "Write your one-line answer to the uni question",
+    "minutes": 5,
+    "category": "focus"
    },
-   "advice": {
-    "text": "Prepare one honest, easy reply for when people ask, like “I'm going to explore first”. It's true, and it takes the pressure off.",
-    "why": "You wrote that you have no answer."
-   },
-   "encouragement": "You let yourself feel relieved. After this year, that matters.",
    "steps": [
     {
-     "text": "Write your one-line answer to “what will you do with it?”",
-     "kind": "practical",
+     "text": "Write your one-line answer to the uni question",
+     "kind": "focus",
      "minutes": 5,
-     "why": "Ready for the next time someone asks."
-    },
-    {
-     "text": "Celebrate the offer with Mum, properly",
-     "kind": "connection",
-     "minutes": 30,
-     "why": "She was relieved too."
-    },
-    {
-     "text": "Look up two societies at your new uni",
-     "kind": "exploration",
-     "minutes": 10,
-     "why": "Somewhere to start."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "What would an honest one-line answer sound like right now?"
+   ],
+   "night_type": "mixed",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "uncertainty",
     "family"
    ],
-   "openQuestions": [
-    "What do I want to do with business?"
-   ],
-   "wins": [],
-   "tone": "mixed",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [],
    "compass": {
     "loves": [],
@@ -462,10 +332,15 @@
      "Mum"
     ],
     "within_reach": [
-     "the BBA offer"
+     "the summer intensive"
     ]
    },
-   "interests": []
+   "interests": [],
+   "remember": [],
+   "tone": "mixed",
+   "evidence": [
+    "I know it's expensive"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -479,71 +354,41 @@
   "entries": [
    {
     "id": "e_d06",
-    "t": "23:55",
-    "text": "Saw Hei off at the airport tonight. On the bus home I realised I'll start uni without knowing a single person there. I kept rereading our old photos."
+    "t": "23:50",
+    "text": "Saw Hei off at the airport tonight. His mum cried, he didn't. On the bus home I realised I'll start Form 6 without him in the next seat. I kept scrolling our old photos from Form 1."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
+   "title": "Saying goodbye at the airport",
    "headline": "Saying goodbye at the airport",
-   "recap": "You saw Hei off at the airport tonight. On the bus home you realised you'll start university without knowing anyone there, and you kept rereading old photos.",
-   "analysis": [
-    {
-     "lens": "feeling",
-     "title": "Missing someone before term starts",
-     "text": "It might be that rereading the photos was a way to stay close to something that's changing.",
-     "quote": "I kept rereading our old photos",
-     "entryId": "e_d06"
-    },
-    {
-     "lens": "context",
-     "title": "Starting from zero",
-     "text": "Walking into a place where you know no one is genuinely hard. It's also the most common way a first year begins.",
-     "quote": "without knowing a single person there",
-     "entryId": "e_d06"
-    }
-   ],
-   "challenge": {
-    "issue": "Starting somewhere new alone",
-    "cause": "Your closest friends are leaving at the same time you're starting over, so the gap feels bigger."
+   "body": "Hey Kit,\n\nYou saw Hei off at the airport tonight. His mum cried, he didn't, and on the bus home it hit you: Form 6 will start without him in the next seat. Then you scrolled back through your photos from Form 1.\n\nBoth things are true at once. You're losing the easy closeness of having him there every day, and you're heading into the hardest school year without your usual person. Missing him this much isn't weakness. It's what a good friendship looks like when it changes.\n\nA message for when his plane lands keeps the thread warm.\n\nTalk soon,\nYour friend",
+   "reflection_question": "What made it so easy to be yourself around Hei?",
+   "small_step": {
+    "text": "Send Hei a message for when the plane lands",
+    "minutes": 2,
+    "category": "connection"
    },
-   "advice": {
-    "text": "Choose one orientation event to go to, and decide beforehand that talking to one person counts as a success.",
-    "why": "You'll start without knowing anyone, so one person is a real start."
-   },
-   "encouragement": "You went to the airport. Showing up for a friend on a hard night says a lot about you.",
    "steps": [
     {
      "text": "Send Hei a message for when the plane lands",
      "kind": "connection",
      "minutes": 2,
-     "why": "Distance doesn't end a friendship."
-    },
-    {
-     "text": "Pick one orientation event to attend",
-     "kind": "practical",
-     "minutes": 5,
-     "why": "One is enough."
-    },
-    {
-     "text": "Get to bed before 1am",
-     "kind": "rest",
-     "minutes": 1,
-     "why": "Big feelings are heavier when tired."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "What made it so easy to be yourself around Hei?"
+   ],
+   "night_type": "heavy",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "friendship",
     "loneliness"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "difficult",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
      "name": "Rereading old photos",
@@ -559,7 +404,12 @@
     ],
     "within_reach": []
    },
-   "interests": []
+   "interests": [],
+   "remember": [],
+   "tone": "difficult",
+   "evidence": [
+    "without him in the next seat"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -572,75 +422,50 @@
   "date": "2025-09-02",
   "entries": [
    {
+    "id": "e_d07_1",
+    "t": "12:45",
+    "text": "Tutorial centre lunch break. Everyone already in their school groups. Ate a pineapple bun by the window and went back early."
+   },
+   {
     "id": "e_d07",
-    "t": "23:20",
-    "text": "Orientation day. Hundreds of people, cheers, games. Everyone was shouting and I just smiled and followed. I talked to maybe two people and I don't remember their names. Came home exhausted from pretending to be fine."
+    "t": "22:40",
+    "text": "First day of the summer intensive. 80 people in one room watching the star tutor on a big screen. Everyone was laughing at his jokes and copying notes. I didn't talk to anyone. Came home exhausted from pretending to keep up."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "Orientation was loud, and you felt invisible",
-   "recap": "You went to orientation: hundreds of people, cheers and games. You smiled and followed along, talked to maybe two people, and came home exhausted from pretending to be fine.",
-   "analysis": [
-    {
-     "lens": "feeling",
-     "title": "Tired from performing",
-     "text": "It might be that keeping a smile on in a loud crowd took more energy than the games themselves.",
-     "quote": "exhausted from pretending to be fine",
-     "entryId": "e_d07"
-    },
-    {
-     "lens": "strength",
-     "title": "Two people is not zero",
-     "text": "You still talked to two people on a day designed for extroverts.",
-     "quote": "I talked to maybe two people",
-     "entryId": "e_d07"
-    }
-   ],
-   "challenge": {
-    "issue": "Crowds make it hard to connect",
-    "cause": "Big loud events reward people who are comfortable shouting; quieter people usually connect better in small groups."
+   "title": "Eighty people, and nobody to talk to",
+   "headline": "Eighty people, and nobody to talk to",
+   "body": "Hey Kit,\n\nEighty students in one room, a star tutor on a big screen, everyone laughing at his jokes, and you ate a pineapple bun alone by the window at lunch. You came home tired from pretending to keep up.\n\nBig rooms like that are built for listening, not for meeting anyone, so talking to nobody isn't a failure. It's what the room allows. If you want people around you this summer, you'll probably find them somewhere smaller, where there's something to do together.\n\nSo this week, look for one small group, even just two people revising the same topic.\n\nTalk soon,\nYour friend",
+   "reflection_question": "Where do you feel most like yourself around new people?",
+   "small_step": {
+    "text": "Find one small group or study partner this week",
+    "minutes": 10,
+    "category": "exploration"
    },
-   "advice": {
-    "text": "Look for small-group settings this week: a tutorial, a society with a hands-on activity, a lunch with one person.",
-    "why": "Two conversations happened even in the noise."
-   },
-   "encouragement": "You went, stayed, and talked to two people. That's a real first day.",
    "steps": [
     {
-     "text": "Find one small-group activity this week",
+     "text": "Find one small group or study partner this week",
      "kind": "exploration",
      "minutes": 10,
-     "why": "Easier than a crowd."
-    },
-    {
-     "text": "Have a quiet dinner on your own terms",
-     "kind": "rest",
-     "minutes": 30,
-     "why": "Recover from the noise."
-    },
-    {
-     "text": "Say hi to someone you recognise from orientation",
-     "kind": "connection",
-     "minutes": 2,
-     "why": "Faces become names slowly."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "Where do you feel most like yourself around new people?"
+   ],
+   "night_type": "heavy",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "loneliness",
     "friendship"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "difficult",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
-     "name": "Orientation games",
+     "name": "Big lecture at the tutorial centre",
      "energy": -2,
      "absorption": -1
     }
@@ -651,7 +476,12 @@
     "matters": [],
     "within_reach": []
    },
-   "interests": []
+   "interests": [],
+   "remember": [],
+   "tone": "difficult",
+   "evidence": [
+    "exhausted from pretending to keep up"
+   ]
   },
   "actions": {
    "step.1": "tried"
@@ -664,79 +494,49 @@
   "entries": [
    {
     "id": "e_d08",
-    "t": "22:40",
-    "text": "First group project. The other four already know each other from the same hall. They were nice but I felt like a guest in their group. I did my part well though, the slide I made was the one the tutor liked."
+    "t": "21:35",
+    "text": "Revised chem with three classmates at the library. They're close from the same class, I felt like a guest. But I was the one who explained the titration question and they all got it after."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "A group project with four strangers",
-   "recap": "Your first group project is with four people who already know each other from hall. They were nice, but you felt like a guest. Your slide was the one the tutor liked.",
-   "analysis": [
-    {
-     "lens": "feeling",
-     "title": "Outside an existing circle",
-     "text": "Feeling like a guest might be about joining a group that formed before you arrived, not about you.",
-     "quote": "I felt like a guest in their group",
-     "entryId": "e_d08"
-    },
-    {
-     "lens": "strength",
-     "title": "Your work spoke for you",
-     "text": "On a day you felt on the outside, you still did good work that got noticed.",
-     "quote": "the slide I made was the one the tutor liked",
-     "entryId": "e_d08"
-    }
-   ],
-   "challenge": {
-    "issue": "Joining a group that already exists",
-    "cause": "They share a hall and a routine, so their closeness came from time together, which you haven't had yet."
+   "title": "A guest at the table, and the one who explained it",
+   "headline": "A guest at the table, and the one who explained it",
+   "body": "Hey Kit,\n\nYou revised chem with three classmates today. They're close from the same class and you felt like a guest. But you were the one who explained the titration question, and after that, they all got it.\n\nHold on to both halves. Feeling like an outsider is real, and it's been following you since Hei left. At the same time, you understood something well enough to make it click for three other people. That's not small, especially in a subject you've been struggling with.\n\nBelonging usually grows from time together outside the work. Grabbing food after the next session is an easy start.\n\nTalk soon,\nYour friend",
+   "reflection_question": "What helped you understand that question well enough to explain it?",
+   "small_step": {
+    "text": "Suggest grabbing food after the next revision session",
+    "minutes": 2,
+    "category": "connection"
    },
-   "advice": {
-    "text": "Suggest one small thing to the group, like getting food after the next meeting. Shared time is how you stop being a guest.",
-    "why": "Their closeness came from time together."
-   },
-   "encouragement": "Your slide was the one the tutor liked. You brought something real.",
    "steps": [
     {
-     "text": "Suggest grabbing food after the next meeting",
+     "text": "Suggest grabbing food after the next revision session",
      "kind": "connection",
      "minutes": 2,
-     "why": "Time together builds the bond."
-    },
-    {
-     "text": "Write down what you liked about making that slide",
-     "kind": "reflection",
-     "minutes": 5,
-     "why": "A clue about what you enjoy."
-    },
-    {
-     "text": "Take a break from screens before bed",
-     "kind": "rest",
-     "minutes": 20,
-     "why": "A long day."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "What helped you understand that question well enough to explain it?"
+   ],
+   "night_type": "mixed",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "study",
     "loneliness"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "mixed",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
-     "name": "Group project",
+     "name": "Group revision",
      "energy": -1,
      "absorption": 0
     },
     {
-     "name": "Making slides",
+     "name": "Explaining a chem question",
      "energy": 1,
      "absorption": 1
     }
@@ -744,12 +544,17 @@
    "compass": {
     "loves": [],
     "good_at": [
-     "making a slide the tutor liked"
+     "explaining things clearly"
     ],
     "matters": [],
     "within_reach": []
    },
-   "interests": []
+   "interests": [],
+   "remember": [],
+   "tone": "mixed",
+   "evidence": [
+    "they all got it after"
+   ]
   },
   "actions": {
    "step.1": "tried",
@@ -762,84 +567,48 @@
   "date": "2025-09-17",
   "entries": [
    {
+    "id": "e_d09_1",
+    "t": "08:40",
+    "text": "MTR to Mong Kok again. Someone's backpack in my face for the whole ride. Organic chem at 9."
+   },
+   {
     "id": "e_d09",
-    "t": "23:12",
-    "text": "Third week of uni. Everyone already seems to have their group. At lunch I sat alone again and pretended to be busy on my phone. In secondary school I never had to think about who to eat with. My friends are all at different unis now and our group chat is getting quieter. I picked this major because my results fit, not because I really wanted it. Sometimes I wonder if I'm even in the right place.\n\n其實我好想識多啲朋友，但係唔知點樣開始。將來想做咩，我都仲未知。"
+    "t": "23:15",
+    "text": "Halfway through summer. I study alone at the library every afternoon and pretend I'm busy on my phone at lunch. The old group chat is getting quieter since Hei left. Sometimes I wonder if I'm even the kind of person who's good at school.\n\n其實我好想有人陪我溫書，但係唔知點開口。將來想讀咩，我都仲未知。"
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "Three weeks in, and still looking for your people",
-   "recap": "You wrote that three weeks into uni, everyone seems to have found their group, and you ate lunch alone again, pretending to be busy on your phone. Your school friends are at different unis, the group chat is getting quieter, and you're not sure this major is really yours. You also said you'd like to make more friends, but don't know where to start.",
-   "analysis": [
-    {
-     "lens": "context",
-     "title": "Your whole world reset at once",
-     "text": "It might be less about you and more about timing: a new campus, no shared routine yet, and your old friends scattered, all in the same few weeks. Many first-years are quietly looking for their people right now, even the ones who look settled.",
-     "quote": "My friends are all at different unis now",
-     "entryId": "e_d09"
-    },
-    {
-     "lens": "pattern",
-     "title": "Two big questions got tangled",
-     "text": "Feeling alone and doubting your major showed up in the same entry. Loneliness might be making the bigger question, what you want to do, feel more urgent than it needs to be this week.",
-     "quote": "將來想做咩，我都仲未知",
-     "entryId": "e_d09"
-    }
-   ],
-   "challenge": {
-    "issue": "Feeling alone in a brand-new place",
-    "cause": "Your social world changed all at once, and the built-in friendships of secondary school are gone. Feeling lonely in the first weeks is a very common part of that change. It isn't a sign that something is wrong with you."
+   "title": "Halfway through summer, and still on your own",
+   "headline": "Halfway through summer, and still on your own",
+   "body": "Hey Kit,\n\nHalfway through summer: an MTR ride with a backpack in your face, afternoons alone at the library, lunch spent pretending to be busy on your phone. The group chat is quieter since Hei left, and you're wondering if you're even the kind of person who's good at school. You also wrote, in Cantonese, that you really want someone to revise with but don't know how to ask.\n\nThat last line matters most. You're not alone because something is wrong with you. Before, friendship came with the timetable. This summer you have to choose a door and knock, and nobody tells you which one. That's hard for almost everyone.\n\nStarting from something you're curious about makes the first knock easier.\n\nTalk soon,\nYour friend",
+   "reflection_question": "Which club or activity would you join if nobody was watching?",
+   "small_step": {
+    "text": "Look up two summer activities you’re genuinely curious about",
+    "minutes": 10,
+    "category": "exploration"
    },
-   "advice": {
-    "text": "Pick one society or activity you're genuinely curious about, not the one that looks best, and go to one session this week. Uni friendships usually grow from doing something together again and again, more than from one perfect conversation. A simple question about the activity is enough to start.",
-    "why": "You said you want to make friends but don't know where to start."
-   },
-   "encouragement": "You named exactly what's hard: lunch, the quiet group chat, the major. Not just “everything”. Knowing which piece hurts is how you start changing one of them.",
    "steps": [
     {
-     "text": "Star two societies you're genuinely curious about",
+     "text": "Look up two summer activities you’re genuinely curious about",
      "kind": "exploration",
      "minutes": 10,
-     "why": "Start from interest, not from what looks impressive."
-    },
-    {
-     "text": "Ask one classmate a question after tutorial",
-     "kind": "connection",
-     "minutes": 2,
-     "why": "Small, low-stakes contact is how most friendships start."
-    },
-    {
-     "text": "Send an old friend a voice message about your week",
-     "kind": "connection",
-     "minutes": 5,
-     "why": "The group chat went quiet, but the friendships didn't end."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "Which club or activity would you join if nobody was watching?"
+   ],
+   "night_type": "heavy",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "loneliness",
     "uncertainty",
     "friendship",
     "study"
-   ],
-   "openQuestions": [
-    "Am I in the right place?"
-   ],
-   "wins": [],
-   "tone": "difficult",
-   "safetyConcern": false,
-   "remember": [
-    {
-     "text": "Just started university; school friends went to other unis",
-     "entryId": "e_d09"
-    },
-    {
-     "text": "Picked the major for the results, still unsure about it",
-     "entryId": "e_d09"
-    }
    ],
    "activities": [
     {
@@ -852,11 +621,21 @@
     "loves": [],
     "good_at": [],
     "matters": [
-     "making friends"
+     "having people around"
     ],
     "within_reach": []
    },
-   "interests": []
+   "interests": [],
+   "remember": [
+    {
+     "text": "Form 5 student in Hong Kong, DSE next year",
+     "entryId": "e_d09"
+    }
+   ],
+   "tone": "difficult",
+   "evidence": [
+    "I study alone at the library"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -870,73 +649,48 @@
   "date": "2025-09-20",
   "entries": [
    {
+    "id": "e_d10_1",
+    "t": "17:50",
+    "text": "Standing near the meeting point for the school photo club walk in Sham Shui Po. Four people already there laughing. Thinking about pretending I was just walking past."
+   },
+   {
     "id": "e_d10",
-    "t": "23:45",
-    "text": "Went to the photography society's first walk in Sham Shui Po. I almost turned back at the door. Stayed. Didn't talk much, but a girl called Wing showed me how she shoots shop signs at night. I took one photo I actually like."
+    "t": "23:30",
+    "text": "Stayed. Didn't talk much, but Wing from 5D showed me how she shoots shop signs at night. I took one photo I actually like. Forgot about chem for three hours."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "You almost turned back at the door",
-   "recap": "You went to the photography society's first walk in Sham Shui Po. You almost turned back at the door but stayed, Wing showed you how she shoots shop signs at night, and you took one photo you actually like.",
-   "analysis": [
-    {
-     "lens": "strength",
-     "title": "The hardest part was the door",
-     "text": "It might be that the moment before walking in is the hardest part for you, and you got through it.",
-     "quote": "I almost turned back at the door",
-     "entryId": "e_d10"
-    },
-    {
-     "lens": "pattern",
-     "title": "Doing something together",
-     "text": "Talking was easier when there was something to do with your hands and eyes.",
-     "quote": "I took one photo I actually like",
-     "entryId": "e_d10"
-    }
-   ],
-   "challenge": {
-    "issue": "Nothing needs fixing",
-    "cause": "You did the hard thing. The only risk is not going back next time."
+   "title": "You almost turned back",
+   "headline": "You almost turned back",
+   "body": "Hey Kit,\n\nAt ten to six you were standing near the meeting point in Sham Shui Po, ready to pretend you were just walking past. You stayed. Wing from 5D showed you how she shoots shop signs at night, you took one photo you actually like, and you forgot about chem for three hours.\n\nLook at what happened there. Two weeks ago you wrote that you didn't know how to start, and today you started. The hardest part wasn't the walk; it was the thirty seconds at the meeting point, and you got through them.\n\nGoing once is brave. Going again is how it becomes yours.\n\nTalk soon,\nYour friend",
+   "reflection_question": "What helped you stay instead of walking past?",
+   "small_step": {
+    "text": "Sign up for the next photo walk",
+    "minutes": 2,
+    "category": "focus"
    },
-   "advice": {
-    "text": "Go to the next walk too, and show Wing the photo you liked.",
-    "why": "Friendships grow from doing things again and again."
-   },
-   "encouragement": "You stayed when you wanted to leave. That's the whole skill, really.",
    "steps": [
     {
      "text": "Sign up for the next photo walk",
-     "kind": "practical",
+     "kind": "focus",
      "minutes": 2,
-     "why": "Again is how it becomes yours."
-    },
-    {
-     "text": "Send Wing the photo you liked",
-     "kind": "connection",
-     "minutes": 2,
-     "why": "A small, easy hello."
-    },
-    {
-     "text": "Print or save your favourite shot",
-     "kind": "rest",
-     "minutes": 5,
-     "why": "Keep the proof that you went."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "What helped you stay instead of walking past?"
+   ],
+   "night_type": "mixed",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "loneliness",
     "creativity",
     "friendship"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "mixed",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
      "name": "Photo walk",
@@ -951,11 +705,16 @@
     "good_at": [],
     "matters": [],
     "within_reach": [
-     "the photography society"
+     "the school photo club"
     ]
    },
    "interests": [
     "photography"
+   ],
+   "remember": [],
+   "tone": "mixed",
+   "evidence": [
+    "Forgot about chem for three hours"
    ]
   },
   "actions": {
@@ -971,71 +730,41 @@
   "entries": [
    {
     "id": "e_d11",
-    "t": "23:58",
-    "text": "Friday night alone in my room. Everyone's stories are high table dinners and hall parties. I know it's only the highlights, but it still feels like everyone found their place except me."
+    "t": "23:55",
+    "text": "Friday night revising alone. Everyone's stories are Cheung Chau trips and BBQs. I know it's only the highlights, but it still feels like everyone else gets a summer and I get past papers."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "Another Friday night in your room",
-   "recap": "You spent Friday night alone in your room while stories showed dinners and hall parties. You know it's only the highlights, but it still feels like everyone found their place except you.",
-   "analysis": [
-    {
-     "lens": "pattern",
-     "title": "Stories make Fridays heavier",
-     "text": "It might be that Friday-night scrolling turns a quiet evening into a comparison.",
-     "quote": "it still feels like everyone found their place except me",
-     "entryId": "e_d11"
-    },
-    {
-     "lens": "strength",
-     "title": "You already see the trick",
-     "text": "You noticed it's only the highlights. That awareness is useful, even when the feeling stays.",
-     "quote": "I know it's only the highlights",
-     "entryId": "e_d11"
-    }
-   ],
-   "challenge": {
-    "issue": "Comparing your night with everyone's highlights",
-    "cause": "Stories show the best ten seconds of other people's evenings, so a quiet night can look lonelier than it is."
+   "title": "Another Friday night with past papers",
+   "headline": "Another Friday night with past papers",
+   "body": "Hey Kit,\n\nFriday night, past papers on your desk, and everyone's stories full of Cheung Chau trips and BBQs. You know it's only the highlights, and it still felt like everyone else got a summer while you got past papers.\n\nYou're comparing your whole evening with the best thirty seconds of theirs. That's not a fair fight, and you already know it. What's real is that a week ago you walked into a photo walk you almost skipped. Your summer has more in it than this one night suggests.\n\nNext Friday doesn't need to be a party. It just needs to include one thing you chose.\n\nTalk soon,\nYour friend",
+   "reflection_question": "What would a Friday night you actually enjoy look like?",
+   "small_step": {
+    "text": "Put one plan that isn’t revision in next Friday",
+    "minutes": 5,
+    "category": "focus"
    },
-   "advice": {
-    "text": "Plan next Friday in advance: the photo walk, a call with a friend, or a film you've been saving. A planned quiet night feels different from an empty one.",
-    "why": "Unplanned Fridays seem to be when comparing hits hardest."
-   },
-   "encouragement": "You went to the photo walk last week even though this feeling was there. You're not standing still.",
    "steps": [
     {
-     "text": "Put one plan in your calendar for next Friday",
-     "kind": "practical",
+     "text": "Put one plan that isn’t revision in next Friday",
+     "kind": "focus",
      "minutes": 5,
-     "why": "A chosen evening."
-    },
-    {
-     "text": "Turn off stories notifications for the weekend",
-     "kind": "rest",
-     "minutes": 1,
-     "why": "Less comparing."
-    },
-    {
-     "text": "Reply to Wing's message from the walk",
-     "kind": "connection",
-     "minutes": 2,
-     "why": "One thread to keep warm."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "What would a Friday night you actually enjoy look like?"
+   ],
+   "night_type": "heavy",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "loneliness",
     "comparison"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "difficult",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
      "name": "Scrolling stories",
@@ -1049,7 +778,12 @@
     "matters": [],
     "within_reach": []
    },
-   "interests": []
+   "interests": [],
+   "remember": [],
+   "tone": "difficult",
+   "evidence": [
+    "everyone else gets a summer"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -1063,72 +797,42 @@
   "entries": [
    {
     "id": "e_d12",
-    "t": "22:30",
-    "text": "Second photo walk. Wing saved me a seat on the minibus and said “thought you'd come”. Such a small thing. After weeks of feeling alone, it made my whole day."
+    "t": "22:20",
+    "text": "Second photo walk. Wing saved me a seat on the minibus and said she thought I'd come. Such a small thing. After weeks of studying alone, it made my whole day."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
+   "title": "Someone saved you a seat",
    "headline": "Someone saved you a seat",
-   "recap": "On the second photo walk, Wing saved you a seat on the minibus and said “thought you'd come”. After weeks of feeling alone, it made your whole day.",
-   "analysis": [
-    {
-     "lens": "feeling",
-     "title": "Being expected",
-     "text": "It might be that what mattered most was someone expecting you to show up.",
-     "quote": "thought you'd come",
-     "entryId": "e_d12"
-    },
-    {
-     "lens": "pattern",
-     "title": "Going back worked",
-     "text": "This happened because you went a second time.",
-     "quote": "After weeks of feeling alone, it made my whole day",
-     "entryId": "e_d12"
-    }
-   ],
-   "challenge": {
-    "issue": "Nothing needs fixing",
-    "cause": "A good day that grew from going back."
+   "body": "Hey Kit,\n\nSecond photo walk, and Wing had saved you a seat on the minibus. She said she thought you'd come. Such a small thing, and it made your whole day.\n\nIt made your day because it answered the question you've been carrying all summer: does anyone notice if I'm there? Someone did. And it happened because you went back a second time. Most friendships start like this, with small things repeated until they aren't small anymore.\n\nYou don't have to wait for Wing to make the next move.\n\nTalk soon,\nYour friend",
+   "reflection_question": "What small thing could you do that would make someone else’s day?",
+   "small_step": {
+    "text": "Ask Wing to get bubble tea after the next walk",
+    "minutes": 2,
+    "category": "connection"
    },
-   "advice": {
-    "text": "Ask Wing if she'd like to grab food after the next walk.",
-    "why": "One friendship can grow from one seat."
-   },
-   "encouragement": "You went back after a hard Friday. That's why there was a seat for you.",
    "steps": [
     {
-     "text": "Ask Wing to get food after the next walk",
+     "text": "Ask Wing to get bubble tea after the next walk",
      "kind": "connection",
      "minutes": 2,
-     "why": "Grow the friendship a little."
-    },
-    {
-     "text": "Write down how it felt to be expected",
-     "kind": "reflection",
-     "minutes": 5,
-     "why": "Remember this on harder days."
-    },
-    {
-     "text": "Edit your favourite photo from today",
-     "kind": "exploration",
-     "minutes": 15,
-     "why": "Enjoy the thing you share."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "What small thing could you do that would make someone else’s day?"
+   ],
+   "night_type": "good",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "friendship",
     "creativity",
     "loneliness"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "positive",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
      "name": "Photo walk",
@@ -1148,6 +852,11 @@
    },
    "interests": [
     "photography"
+   ],
+   "remember": [],
+   "tone": "positive",
+   "evidence": [
+    "it made my whole day"
    ]
   },
   "actions": {
@@ -1162,79 +871,52 @@
   "date": "2025-10-11",
   "entries": [
    {
+    "id": "e_d13_1",
+    "t": "16:10",
+    "text": "Mock test at the tutorial centre. Chem 38 again. The two guys next to me compared their scores the whole break and talked about needing 5** for med."
+   },
+   {
     "id": "e_d13",
-    "t": "23:25",
-    "text": "Accounting midterm next week. People in my class already talk about Big 4 internships like it's obvious. I sat there thinking: is this really what I want, or just what I'm supposed to want?"
+    "t": "23:20",
+    "text": "Lying in bed thinking: do I actually want any of this? Or am I just doing what everyone expects? I don't hate studying. I just don't know what it's for."
    }
   ],
   "content": {
-   "voice": "friend",
+   "version": 3,
+   "voice": "mentor",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "Is business really yours?",
-   "recap": "With an accounting midterm next week, people in your class already talk about Big 4 internships like it's obvious. You wondered whether this is what you want, or what you're supposed to want.",
-   "analysis": [
-    {
-     "lens": "pattern",
-     "title": "Other people's certainty",
-     "text": "Their confidence might be making your uncertainty feel like a problem, when it's just an honest question.",
-     "quote": "like it's obvious",
-     "entryId": "e_d13"
-    },
-    {
-     "lens": "strength",
-     "title": "The sharper question",
-     "text": "You separated what you want from what you're supposed to want. That's a question worth keeping.",
-     "quote": "is this really what I want, or just what I'm supposed to want?",
-     "entryId": "e_d13"
-    }
-   ],
-   "challenge": {
-    "issue": "Comparing your certainty with your classmates'",
-    "cause": "Talk about internships makes one path look like the only one, so not wanting it yet feels like falling behind."
+   "title": "Do you actually want this?",
+   "headline": "Do you actually want this?",
+   "body": "Good morning, Kit.\n\nA mock test today, chem at 38 again, and a break spent listening to two boys compare scores and talk about needing top grades for medicine. Then, in bed, the real question: do you want any of this, or are you doing what everyone expects?\n\nThat's a good question to ask, and you don't have to answer it under exam pressure. Here's another way to look at it. This summer, your best moments have been a photo walk, a seat saved on a minibus, and explaining titration so well that three people got it. None of them were about a score. That doesn't mean marks don't matter; it means your clues about yourself are coming from somewhere else right now.\n\nCollect those clues for a while before you decide anything.\n\nAll the best,\nYour mentor",
+   "reflection_question": "Which moments this week did you actually enjoy, and what were you doing?",
+   "small_step": {
+    "text": "Write down two moments you enjoyed this week",
+    "minutes": 5,
+    "category": "reflection"
    },
-   "advice": {
-    "text": "Don't decide anything about your major this week. Notice which parts of your week you enjoy, inside or outside business, and write them down.",
-    "why": "You asked what you want; evidence from your own week helps."
-   },
-   "encouragement": "You asked yourself a hard question in the middle of a busy week. That's how direction starts.",
    "steps": [
     {
      "text": "Write down two moments you enjoyed this week",
      "kind": "reflection",
      "minutes": 5,
-     "why": "Evidence from your own life."
-    },
-    {
-     "text": "Study 40 minutes for the midterm, then stop",
-     "kind": "practical",
-     "minutes": 40,
-     "why": "Steady, not panicked."
-    },
-    {
-     "text": "Skip the internship chat for tonight",
-     "kind": "rest",
-     "minutes": 1,
-     "why": "Less noise."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "Which moments this week did you actually enjoy, and what were you doing?"
+   ],
+   "night_type": "mixed",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "uncertainty",
     "study",
     "comparison"
    ],
-   "openQuestions": [
-    "Is this really what I want, or just what I'm supposed to want?"
-   ],
-   "wins": [],
-   "tone": "mixed",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
-     "name": "Accounting revision",
-     "energy": -1,
+     "name": "Mock test",
+     "energy": -2,
      "absorption": -1
     }
    ],
@@ -1246,7 +928,12 @@
     ],
     "within_reach": []
    },
-   "interests": []
+   "interests": [],
+   "remember": [],
+   "tone": "mixed",
+   "evidence": [
+    "I just don't know what it's for"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -1259,72 +946,47 @@
   "date": "2025-10-14",
   "entries": [
    {
+    "id": "e_d14_1",
+    "t": "15:40",
+    "text": "第一次去社區中心做義工，好緊張，唔知啲細路會唔會鍾意我。"
+   },
+   {
     "id": "e_d14",
-    "t": "21:50",
-    "text": "今日第一次去做義工，幫基層小朋友溫功課。有個細路一開始話自己好蠢，最後識做分數加減，佢好開心。我教完竟然唔覺得攰，仲好想下個禮拜再去。"
+    "t": "21:30",
+    "text": "今日幫基層小朋友溫功課。有個細路一開始話自己好蠢，最後識做分數加減，佢好開心。我教完竟然唔覺得攰，仲想下個禮拜再去。"
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "zh-hant",
-   "greeting": "Hi，",
-   "signoff": "今晚再傾，\nB.",
+   "title": "教識一個細路，你自己都好開心",
    "headline": "教識一個細路，你自己都好開心",
-   "recap": "你今日第一次去做義工，幫基層小朋友溫功課。有個細路一開始話自己好蠢，最後識做分數加減，好開心；你教完唔覺得攰，仲想下個禮拜再去。",
-   "analysis": [
-    {
-     "lens": "pattern",
-     "title": "有啲嘢會畀你能量",
-     "text": "或者教人嘅時候，你會忘記自己嘅擔心。好少嘢做完之後會令你唔覺得攰。",
-     "quote": "我教完竟然唔覺得攰",
-     "entryId": "e_d14"
-    },
-    {
-     "lens": "strength",
-     "title": "你幫佢改咗對自己嘅睇法",
-     "text": "佢由覺得自己蠢，變成識做分數。呢個轉變入面有你。",
-     "quote": "佢好開心",
-     "entryId": "e_d14"
-    }
-   ],
-   "challenge": {
-    "issue": "冇嘢需要修正",
-    "cause": "今日係好日子。唯一要留意嘅係：呢種「唔覺得攰」係一個好重要嘅線索。"
+   "body": "Kit：\n\n今日第一次去社區中心做義工，你出門前仲好擔心啲細路會唔會鍾意你。結果有個細路一開始話自己好蠢，到最後識做分數加減，佢好開心，而你教完竟然唔覺得攰，仲想下個禮拜再去。\n\n留意吓呢種感覺。成個暑假你都覺得自己唔夠好，但今日你喺一個陌生地方幫到一個人，仲越做越有精神。呢個唔係偶然，係值得記住嘅線索。\n\n趁仲記得呢種感覺，早啲報名下次嘅時段啦。\n\n遲啲再傾，\n你嘅朋友",
+   "reflection_question": "今日教書嘅時候，邊一刻你最投入？",
+   "small_step": {
+    "text": "報名下個禮拜嘅義工時段",
+    "minutes": 3,
+    "category": "focus"
    },
-   "advice": {
-    "text": "下個禮拜再去，教完之後寫低邊一刻你最投入。",
-    "why": "你話你好想再去。"
-   },
-   "encouragement": "你主動去咗一個完全陌生嘅地方幫人，仲教識咗一個細路。",
    "steps": [
     {
      "text": "報名下個禮拜嘅義工時段",
-     "kind": "practical",
+     "kind": "focus",
      "minutes": 3,
-     "why": "趁仲記得呢種感覺。"
-    },
-    {
-     "text": "寫低今日最投入嘅一刻",
-     "kind": "reflection",
-     "minutes": 5,
-     "why": "線索要記低。"
-    },
-    {
-     "text": "同屋企人講吓今日發生咩事",
-     "kind": "connection",
-     "minutes": 10,
-     "why": "好事都值得分享。"
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "今日教書嘅時候，邊一刻你最投入？"
+   ],
+   "night_type": "good",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "community",
     "learning"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "positive",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
      "name": "Tutoring kids",
@@ -1348,6 +1010,11 @@
    },
    "interests": [
     "tutoring"
+   ],
+   "remember": [],
+   "tone": "positive",
+   "evidence": [
+    "教完竟然唔覺得攰"
    ]
   },
   "actions": {
@@ -1363,71 +1030,41 @@
   "entries": [
    {
     "id": "e_d15",
-    "t": "23:40",
-    "text": "Old group chat has been silent for a week. Hei posts London photos, Ching is busy. I typed a message three times and deleted it. I miss having people who just know me."
+    "t": "23:35",
+    "text": "The old group chat has been silent for a week. Hei posts Manchester photos, Ching is busy with law summer camp. I typed a message three times and deleted it. I miss having people who just know me."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
+   "title": "The group chat went quiet again",
    "headline": "The group chat went quiet again",
-   "recap": "Your old group chat has been silent for a week. Hei posts photos, Ching is busy, and you typed a message three times and deleted it. You miss having people who just know you.",
-   "analysis": [
-    {
-     "lens": "feeling",
-     "title": "Missing being known",
-     "text": "It might be the ease of old friends you miss most: not having to explain yourself.",
-     "quote": "I miss having people who just know me",
-     "entryId": "e_d15"
-    },
-    {
-     "lens": "pattern",
-     "title": "Holding back the message",
-     "text": "Deleting the message might be about not wanting to seem needy. Most people are glad to get one.",
-     "quote": "I typed a message three times and deleted it",
-     "entryId": "e_d15"
-    }
-   ],
-   "challenge": {
-    "issue": "Old friendships drifting",
-    "cause": "Everyone is busy adjusting to new places at once, so silence is about timing, not about how much they care."
+   "body": "Hey Kit,\n\nThe old group chat has been silent for a week. Hei posts photos from Manchester, Ching is busy, and you typed a message three times before deleting it. You miss having people who just know you.\n\nThat kind of missing is heavy, and it's fair. Old friendships don't end because they go quiet; they just stop having a reason to talk every day. Usually someone has to send the first small thing, and it doesn't need to be a big message. A photo from your week says I'm still here without asking for anything.\n\nIt can be you who restarts it.\n\nTalk soon,\nYour friend",
+   "reflection_question": "What would you want your old friends to know about your life now?",
+   "small_step": {
+    "text": "Send the group one photo from your week",
+    "minutes": 2,
+    "category": "connection"
    },
-   "advice": {
-    "text": "Send the message, even a short one. A photo from your week is enough.",
-    "why": "You typed it three times; part of you wants to send it."
-   },
-   "encouragement": "You're keeping the old friendships in mind while building new ones. That takes care.",
    "steps": [
     {
      "text": "Send the group one photo from your week",
      "kind": "connection",
      "minutes": 2,
-     "why": "An easy way back in."
-    },
-    {
-     "text": "Suggest a call time for the weekend",
-     "kind": "connection",
-     "minutes": 2,
-     "why": "Time zones need a plan."
-    },
-    {
-     "text": "Go to bed before midnight",
-     "kind": "rest",
-     "minutes": 1,
-     "why": "Missing people feels worse when tired."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "What would you want your old friends to know about your life now?"
+   ],
+   "night_type": "heavy",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "loneliness",
     "friendship"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "difficult",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
      "name": "Texting old friends",
@@ -1443,7 +1080,12 @@
     ],
     "within_reach": []
    },
-   "interests": []
+   "interests": [],
+   "remember": [],
+   "tone": "difficult",
+   "evidence": [
+    "I miss having people who just know me"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -1457,74 +1099,44 @@
   "entries": [
    {
     "id": "e_d16",
-    "t": "23:35",
-    "text": "Formal dinner at hall. I sat with people the whole night and still felt alone. But walking back, Wing texted to ask if I'm coming Saturday. I said yes straight away."
+    "t": "23:10",
+    "text": "Family dinner for my uncle's birthday. Everyone asked about JUPAS and whether I'm aiming for med like my cousin. I smiled the whole night and felt completely alone at a full table. Walking home, Wing texted asking if I'm coming Saturday. I said yes straight away."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "Lonely even at a full table",
-   "recap": "At the hall formal dinner you sat with people all night and still felt alone. Walking back, Wing texted to ask about Saturday, and you said yes straight away.",
-   "analysis": [
-    {
-     "lens": "feeling",
-     "title": "Alone in a crowd",
-     "text": "It might be that being around people isn't the same as being with your people yet.",
-     "quote": "still felt alone",
-     "entryId": "e_d16"
-    },
-    {
-     "lens": "pattern",
-     "title": "Where you said yes",
-     "text": "The quick yes says something about where you feel at home.",
-     "quote": "I said yes straight away",
-     "entryId": "e_d16"
-    }
-   ],
-   "challenge": {
-    "issue": "Feeling alone among people",
-    "cause": "Formal dinners are big and scripted, so they rarely feel close, especially this early."
+   "title": "Alone at a full table",
+   "headline": "Alone at a full table",
+   "body": "Hey Kit,\n\nYour uncle's birthday dinner: a full table, everyone asking about JUPAS and whether you're aiming for medicine like your cousin, and you smiling all night while feeling completely alone. Then on the walk home, Wing texted about Saturday, and you said yes straight away.\n\nThat contrast tells you something. Being surrounded by people isn't the same as being with your people, and you felt the difference clearly tonight. The yes came fast because Saturdays have started to feel like yours.\n\nYou don't need to fix the family dinners yet. Keep showing up for the thing that already works.\n\nTalk soon,\nYour friend",
+   "reflection_question": "What’s different about the people you feel at home with?",
+   "small_step": {
+    "text": "Bring your camera to Saturday’s walk",
+    "minutes": 2,
+    "category": "exploration"
    },
-   "advice": {
-    "text": "Put more of your energy where you said yes straight away, and less into events that drain you.",
-    "why": "Your answer to Wing came easily."
-   },
-   "encouragement": "You went to the dinner and you said yes to Saturday. You're giving people a chance.",
    "steps": [
     {
-     "text": "Bring your camera to Saturday's walk",
+     "text": "Bring your camera to Saturday’s walk",
      "kind": "exploration",
      "minutes": 2,
-     "why": "Do the thing you enjoy."
-    },
-    {
-     "text": "Thank Wing for asking",
-     "kind": "connection",
-     "minutes": 1,
-     "why": "Small warmth goes far."
-    },
-    {
-     "text": "Skip one event next week that drains you",
-     "kind": "rest",
-     "minutes": 1,
-     "why": "Spend energy where it counts."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "What’s different about the people you feel at home with?"
+   ],
+   "night_type": "mixed",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "loneliness",
     "friendship"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "mixed",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
-     "name": "Hall formal dinner",
+     "name": "Family dinner",
      "energy": -1,
      "absorption": -1
     }
@@ -1537,7 +1149,12 @@
      "Saturday walks"
     ]
    },
-   "interests": []
+   "interests": [],
+   "remember": [],
+   "tone": "mixed",
+   "evidence": [
+    "felt completely alone at a full table"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -1552,74 +1169,44 @@
   "entries": [
    {
     "id": "e_d17",
-    "t": "22:20",
-    "text": "Stayed after my psychology elective to ask Dr Lam why kids decide they're “bad at maths” so early. She lit up and lent me a book. It's the first class this term where I forgot to check the time."
+    "t": "22:15",
+    "text": "First week of Form 6. Stayed after Bio to ask Ms Lam why some kids decide they're bad at maths so young. She got really excited and lent me a book about how kids learn. First lesson this year where I didn't check the clock."
    }
   ],
   "content": {
-   "voice": "friend",
+   "version": 3,
+   "voice": "mentor",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
+   "title": "You stayed after class to ask a question",
    "headline": "You stayed after class to ask a question",
-   "recap": "You stayed after your psychology elective to ask Dr Lam why kids decide they're “bad at maths” so early. She lent you a book, and it's the first class this term where you forgot to check the time.",
-   "analysis": [
-    {
-     "lens": "pattern",
-     "title": "Time disappeared",
-     "text": "Forgetting the time might be one of the clearest signs of real interest.",
-     "quote": "I forgot to check the time",
-     "entryId": "e_d17"
-    },
-    {
-     "lens": "context",
-     "title": "A question from Tuesdays",
-     "text": "Your question seems to come from the kids you tutor. Your week is starting to connect.",
-     "quote": "She lit up and lent me a book",
-     "entryId": "e_d17"
-    }
-   ],
-   "challenge": {
-    "issue": "Nothing needs fixing",
-    "cause": "A curious day. Worth noticing what sparked it."
+   "body": "Good morning, Kit.\n\nFirst week of Form 6, and you stayed after Biology to ask Ms Lam why some kids decide so young that they're bad at maths. She got excited and lent you a book about how kids learn. It was the first lesson this year where you didn't check the clock.\n\nNotice the thread. A few weeks ago you watched a child go from calling himself stupid to getting fractions right, and it stayed with you enough to ask a teacher about it. That's what real curiosity looks like: it follows you out of the room.\n\nA book from someone who cares about the same question is a good next step.\n\nAll the best,\nYour mentor",
+   "reflection_question": "What is it about how kids learn that keeps pulling you back?",
+   "small_step": {
+    "text": "Read the first chapter of Ms Lam’s book",
+    "minutes": 15,
+    "category": "exploration"
    },
-   "advice": {
-    "text": "Read the first chapter of the book this week, and note one idea you could try with the kids.",
-    "why": "Your question came from tutoring."
-   },
-   "encouragement": "You stayed and asked. That's how a class becomes a door.",
    "steps": [
     {
-     "text": "Read the first chapter of Dr Lam's book",
+     "text": "Read the first chapter of Ms Lam’s book",
      "kind": "exploration",
-     "minutes": 30,
-     "why": "Follow the curiosity."
-    },
-    {
-     "text": "Note one idea to try with the kids",
-     "kind": "practical",
-     "minutes": 5,
-     "why": "Connect the two."
-    },
-    {
-     "text": "Thank Dr Lam by email",
-     "kind": "connection",
-     "minutes": 3,
-     "why": "Keep the door open."
+     "minutes": 15,
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "What is it about how kids learn that keeps pulling you back?"
+   ],
+   "night_type": "good",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "learning",
     "uncertainty"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "positive",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
-     "name": "Psychology elective",
+     "name": "Talking to Ms Lam after Bio",
      "energy": 2,
      "absorption": 2
     }
@@ -1633,11 +1220,16 @@
      "why kids give up on maths"
     ],
     "within_reach": [
-     "Dr Lam’s book"
+     "Ms Lam’s book"
     ]
    },
    "interests": [
     "psychology"
+   ],
+   "remember": [],
+   "tone": "positive",
+   "evidence": [
+    "didn't check the clock"
    ]
   },
   "actions": {
@@ -1651,72 +1243,47 @@
   "date": "2025-11-04",
   "entries": [
    {
+    "id": "e_d18_1",
+    "t": "16:30",
+    "text": "Drew pizza slices on paper for a fractions game. Is that too childish for Primary 4? Bringing it anyway."
+   },
+   {
     "id": "e_d18",
-    "t": "21:45",
+    "t": "21:40",
     "text": "Tutoring again. Jason ran to the door shouting my name. He got 7/10 on his fractions quiz and showed me first. I think this is the part of my week I look forward to most."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
+   "title": "The kid who remembered your name",
    "headline": "The kid who remembered your name",
-   "recap": "At tutoring, Jason ran to the door shouting your name. He got 7/10 on his fractions quiz and showed you first. You think this is the part of your week you look forward to most.",
-   "analysis": [
-    {
-     "lens": "pattern",
-     "title": "The best part of your week",
-     "text": "It might be worth noticing that helping someone learn is what you look forward to most.",
-     "quote": "this is the part of my week I look forward to most",
-     "entryId": "e_d18"
-    },
-    {
-     "lens": "strength",
-     "title": "Trust was built",
-     "text": "Being shown the quiz first means you matter to him.",
-     "quote": "showed me first",
-     "entryId": "e_d18"
-    }
-   ],
-   "challenge": {
-    "issue": "Nothing needs fixing",
-    "cause": "A warm day. Just notice what made it so."
+   "body": "Hey Kit,\n\nYou spent the afternoon drawing pizza slices for a fractions game, worried it was too childish. Then Jason ran to the door shouting your name, got 7 out of 10 on his quiz, and showed you first.\n\nYour worry about the game and his excitement at the door sit side by side, and the excitement won. You also wrote that this is the part of your week you look forward to most. In a term where school mostly makes you feel behind, that's a big sentence. It's the second time tutoring has left you with more energy than you started with.\n\nThat's worth paying attention to.\n\nTalk soon,\nYour friend",
+   "reflection_question": "What do you look forward to on Tuesdays that you don’t get anywhere else?",
+   "small_step": {
+    "text": "Read one more chapter of the book",
+    "minutes": 15,
+    "category": "exploration"
    },
-   "advice": {
-    "text": "Ask the centre whether there's a way to help a little more, if you'd like to.",
-    "why": "It's the part of the week you look forward to."
-   },
-   "encouragement": "You kept showing up every week. That's why he ran to the door.",
    "steps": [
     {
      "text": "Read one more chapter of the book",
      "kind": "exploration",
-     "minutes": 25,
-     "why": "Keep following it."
-    },
-    {
-     "text": "Write down what you did that helped Jason",
-     "kind": "reflection",
-     "minutes": 5,
-     "why": "Name your own skill."
-    },
-    {
-     "text": "Tell Wing about Jason's quiz",
-     "kind": "connection",
-     "minutes": 2,
-     "why": "Share the good news."
+     "minutes": 15,
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "What do you look forward to on Tuesdays that you don’t get anywhere else?"
+   ],
+   "night_type": "good",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "community",
     "learning"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "positive",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
      "name": "Tutoring kids",
@@ -1738,6 +1305,11 @@
    },
    "interests": [
     "tutoring"
+   ],
+   "remember": [],
+   "tone": "positive",
+   "evidence": [
+    "the part of my week I look forward to most"
    ]
   },
   "actions": {
@@ -1753,71 +1325,41 @@
   "entries": [
    {
     "id": "e_d19",
-    "t": "23:30",
-    "text": "Video call with Hei and Ching tonight. We've all changed a bit. It made me miss them, but I didn't feel lost after hanging up. I have my own Saturdays now."
+    "t": "23:25",
+    "text": "Video call with Hei and Ching. Hei's accent is already changing lol. It made me miss them but I didn't feel lost after hanging up. I have my own Saturdays now."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
+   "title": "Missing old friends, without the ache",
    "headline": "Missing old friends, without the ache",
-   "recap": "You had a video call with Hei and Ching. You've all changed a bit, and it made you miss them, but you didn't feel lost after hanging up, because you have your own Saturdays now.",
-   "analysis": [
-    {
-     "lens": "feeling",
-     "title": "Missing without sinking",
-     "text": "It might be that missing people feels different when you also have people here.",
-     "quote": "I didn't feel lost after hanging up",
-     "entryId": "e_d19"
-    },
-    {
-     "lens": "context",
-     "title": "A life of your own",
-     "text": "Your Saturdays seem to have become something that's yours.",
-     "quote": "I have my own Saturdays now",
-     "entryId": "e_d19"
-    }
-   ],
-   "challenge": {
-    "issue": "Nothing needs fixing",
-    "cause": "A good call. Old friends and new ones can both fit."
+   "body": "Hey Kit,\n\nA video call with Hei and Ching tonight. Hei's accent is already changing, everyone's a little different, and it made you miss them. But you didn't feel lost when it ended. You have your own Saturdays now.\n\nA couple of months ago, a quiet group chat could knock your whole week sideways. Tonight you could miss them and still feel steady. Nothing about the friendship got smaller; you just have somewhere to stand on this side too.\n\nA regular call keeps the old friendship alive without it having to carry everything.\n\nTalk soon,\nYour friend",
+   "reflection_question": "What helped you feel steady after the call this time?",
+   "small_step": {
+    "text": "Suggest a monthly call date",
+    "minutes": 3,
+    "category": "focus"
    },
-   "advice": {
-    "text": "Put a monthly call with the group in everyone's calendar.",
-    "why": "Keeping the old friendships is easier with a rhythm."
-   },
-   "encouragement": "You reached out and you have Saturdays. Two months ago, neither was true.",
    "steps": [
     {
      "text": "Suggest a monthly call date",
-     "kind": "practical",
+     "kind": "focus",
      "minutes": 3,
-     "why": "A rhythm for old friendships."
-    },
-    {
-     "text": "Send them a photo from Saturday",
-     "kind": "connection",
-     "minutes": 2,
-     "why": "Let them see your new life."
-    },
-    {
-     "text": "Sleep in a bit tomorrow",
-     "kind": "rest",
-     "minutes": 30,
-     "why": "Late call."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "What helped you feel steady after the call this time?"
+   ],
+   "night_type": "mixed",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "friendship",
     "loneliness"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "mixed",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
      "name": "Video call with old friends",
@@ -1833,7 +1375,12 @@
     ],
     "within_reach": []
    },
-   "interests": []
+   "interests": [],
+   "remember": [],
+   "tone": "mixed",
+   "evidence": [
+    "didn't feel lost after hanging up"
+   ]
   },
   "actions": {
    "step.0": "tried",
@@ -1848,74 +1395,44 @@
   "entries": [
    {
     "id": "e_d20",
-    "t": "23:10",
-    "text": "Helped Wing run the newbie photo walk. A guy was standing alone at the door, exactly like me in my first week. I walked over and asked what camera he uses. By the end he was laughing with everyone."
+    "t": "22:55",
+    "text": "Helped Wing run the photo club walk for the new Form 4s. One boy was standing alone at the gate, exactly like me in summer. I walked over and asked what phone he shoots on. By the end he was laughing with everyone."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "You walked over to the person at the door",
-   "recap": "You helped Wing run the newbie photo walk. A guy was standing alone at the door, like you were in your first week. You walked over, asked about his camera, and by the end he was laughing with everyone.",
-   "analysis": [
-    {
-     "lens": "strength",
-     "title": "You became the person you needed",
-     "text": "You recognised someone standing where you stood two months ago, and you did for him what Wing did for you.",
-     "quote": "exactly like me in my first week",
-     "entryId": "e_d20"
-    },
-    {
-     "lens": "pattern",
-     "title": "A simple question again",
-     "text": "The same small opener that worked for you worked for him.",
-     "quote": "I walked over and asked what camera he uses",
-     "entryId": "e_d20"
-    }
-   ],
-   "challenge": {
-    "issue": "Nothing needs fixing",
-    "cause": "A day worth remembering exactly as it was."
+   "title": "You walked over to the boy at the gate",
+   "headline": "You walked over to the boy at the gate",
+   "body": "Hey Kit,\n\nYou helped Wing run the photo club walk for the new Form 4s, and you noticed a boy standing alone at the gate, exactly like you in summer. You walked over, asked what phone he shoots on, and by the end he was laughing with everyone.\n\nThink about where you were a couple of months ago: almost walking past the meeting point in Sham Shui Po. Today you were the one making someone else's first time easier. You noticed him because you remember exactly how it feels.\n\nKeep the welcome going, so his second walk is easier than his first.\n\nTalk soon,\nYour friend",
+   "reflection_question": "How does it feel to be the one who makes it easier for someone else?",
+   "small_step": {
+    "text": "Add the new member to the club group chat",
+    "minutes": 2,
+    "category": "connection"
    },
-   "advice": {
-    "text": "Notice how it felt to help someone feel welcome. It might be telling you something about what you like doing.",
-    "why": "You did it without being asked."
-   },
-   "encouragement": "You walked over. In your first week, you almost turned back at the door.",
    "steps": [
     {
-     "text": "Add the new member to the society group",
+     "text": "Add the new member to the club group chat",
      "kind": "connection",
      "minutes": 2,
-     "why": "Keep the welcome going."
-    },
-    {
-     "text": "Write how it felt to welcome someone",
-     "kind": "reflection",
-     "minutes": 5,
-     "why": "A clue worth keeping."
-    },
-    {
-     "text": "Back up today's photos",
-     "kind": "practical",
-     "minutes": 5,
-     "why": "Keep the day."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "How does it feel to be the one who makes it easier for someone else?"
+   ],
+   "night_type": "good",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "community",
     "friendship"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "positive",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
-     "name": "Running the newbie photo walk",
+     "name": "Running the Form 4 photo walk",
      "energy": 2,
      "absorption": 1
     }
@@ -1932,6 +1449,11 @@
    },
    "interests": [
     "photography"
+   ],
+   "remember": [],
+   "tone": "positive",
+   "evidence": [
+    "exactly like me in summer"
    ]
   },
   "actions": {
@@ -1946,9 +1468,14 @@
   "date": "2025-11-18",
   "entries": [
    {
+    "id": "e_d26_1",
+    "t": "20:05",
+    "text": "Telling myself I'll edit just one photo from Saturday before starting chem."
+   },
+   {
     "id": "e_d26",
-    "t": "23:55",
-    "text": "Spent the whole evening editing photos from Saturday's walk. Started at eight and suddenly it was midnight. Wing said my shot of the dai pai dong lights was her favourite. I printed three and stuck them above my desk."
+    "t": "23:50",
+    "text": "It's midnight. I edited the whole set. Wing said my shot of the dai pai dong lights was her favourite. I printed three and stuck them above my desk. Didn't do the chem. Kind of guilty, kind of don't care."
    }
   ],
   "content": {
@@ -1957,7 +1484,7 @@
    "language": "en",
    "title": "The evening that disappeared",
    "headline": "The evening that disappeared",
-   "body": "Hey {{name}},\n\nYou sat down to edit Saturday's photos at eight, and the next time you looked up it was midnight. Nobody asked you to do it, and nothing was due.\n\nThat's worth noticing. Most of your nights this term have been about other people: the kids on Tuesdays, Wing, the guy at the door. This one was just you and the dai pai dong lights, and the hours went by without you checking. Three of those photos are on the wall above your desk now, which says something on its own.\n\nTalk tonight,\nYour friend",
+   "body": "Hey Kit,\n\nYou sat down at eight to edit one photo before starting chem, and the next time you looked up it was midnight. The chem didn't happen, you feel a bit guilty, and three of those photos are now on the wall above your desk.\n\nThat's worth noticing, guilt and all. Most of your evenings this term are about getting through things. This one was just you and the dai pai dong lights, and the hours went by without you checking. Things that make time disappear like that are rare, and they're clues about what you care about.\n\nThe chem still matters. It can sit next to this instead of replacing it.\n\nTalk soon,\nYour friend",
    "reflection_question": "What else makes the time disappear like that for you?",
    "small_step": {
     "text": "Pick one photo and try editing it a completely different way",
@@ -1978,14 +1505,9 @@
    "night_type": "good",
    "safety_flag": "none",
    "safetyConcern": false,
-   "tone": "positive",
    "themes": [
     "creativity",
     "friendship"
-   ],
-   "evidence": [
-    "editing photos from Saturday's walk",
-    "suddenly it was midnight"
    ],
    "activities": [
     {
@@ -2007,7 +1529,11 @@
    "interests": [
     "photography"
    ],
-   "remember": []
+   "remember": [],
+   "tone": "positive",
+   "evidence": [
+    "I edited the whole set"
+   ]
   },
   "actions": {},
   "private": false
@@ -2017,84 +1543,56 @@
   "date": "2025-11-22",
   "entries": [
    {
+    "id": "e_d21_1",
+    "t": "22:40",
+    "text": "First term test results. Chem 45, better but still bad. Bio 78, best mark I've had in years. Looked up uni programmes after dinner. Psychology at HKU, CUHK, PolyU. Is it stupid to want that when everyone says business is safer?"
+   },
+   {
     "id": "e_d21",
-    "t": "23:50",
-    "text": "Midterms. I enjoy the psychology elective more than any business course. Does that mean I chose wrong? Or is there a way to combine them? I don't want to quit, I just want it to feel like mine."
+    "t": "00:35",
+    "text": "Still awake. Found out some unis let you combine psychology with business or education. Didn't know that was a thing."
    }
   ],
   "content": {
-   "voice": "friend",
+   "version": 3,
+   "voice": "future",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "The major question came back",
-   "recap": "During midterms you noticed you enjoy the psychology elective more than any business course. You wondered whether that means you chose wrong, or whether there's a way to combine them. You don't want to quit; you want it to feel like yours.",
-   "analysis": [
-    {
-     "lens": "need",
-     "title": "Ownership, not escape",
-     "text": "It might be that what you want isn't a different major, but a version of this one that feels like yours.",
-     "quote": "I just want it to feel like mine",
-     "entryId": "e_d21"
-    },
-    {
-     "lens": "pattern",
-     "title": "A both-and question",
-     "text": "You're asking about combining, not choosing. That opens more doors than a yes or no.",
-     "quote": "Or is there a way to combine them?",
-     "entryId": "e_d21"
-    }
-   ],
-   "challenge": {
-    "issue": "Doubting the major again",
-    "cause": "Midterms make every course feel like a verdict, and the elective you enjoy makes the contrast sharper."
+   "title": "The JUPAS question came back",
+   "headline": "The JUPAS question came back",
+   "body": "Hi Kit,\n\nIt's you, a few years from now. I remember this night: first term results, chem slowly climbing, biology suddenly your best subject in years. You spent the evening reading about psychology programmes, wondering if it's silly to want that when everyone says business is safer. You were still up past midnight when you found out some unis let you combine them.\n\nI won't tell you how JUPAS turns out, but I'll tell you what I'm glad you noticed. You weren't asking what sounds impressive. You were asking what would feel like yours. And you'd been collecting the answer for weeks without realising it: Ms Lam's book, the kids on Tuesdays, the way you light up when someone finally understands something.\n\nYou don't have to choose tonight. Find one real person who has done the combination.\n\nWith love,\nYou, later",
+   "reflection_question": "If both halves could fit together, what would that look like?",
+   "small_step": {
+    "text": "Ask someone you know who studies psychology what it’s really like",
+    "minutes": 5,
+    "category": "connection"
    },
-   "advice": {
-    "text": "Talk to one senior student who combined business with something else, and ask how they did it.",
-    "why": "Real examples beat guessing."
-   },
-   "encouragement": "You didn't jump to quitting. You asked a more careful question.",
    "steps": [
     {
-     "text": "Ask the society chat if anyone minors in psychology",
+     "text": "Ask someone you know who studies psychology what it’s really like",
      "kind": "connection",
-     "minutes": 3,
-     "why": "Find a real example."
-    },
-    {
-     "text": "Look up the psychology minor requirements",
-     "kind": "exploration",
-     "minutes": 15,
-     "why": "Know the options."
-    },
-    {
-     "text": "Take a proper break after your last midterm",
-     "kind": "rest",
-     "minutes": 60,
-     "why": "Midterms are heavy."
+     "minutes": 5,
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "If both halves could fit together, what would that look like?"
+   ],
+   "night_type": "mixed",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "uncertainty",
     "learning",
     "study"
    ],
-   "openQuestions": [
-    "Does that mean I chose wrong?",
-    "Is there a way to combine them?"
-   ],
-   "wins": [],
-   "tone": "mixed",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
-     "name": "Psychology elective",
+     "name": "Biology",
      "energy": 1,
      "absorption": 2
     },
     {
-     "name": "Business courses",
+     "name": "Chemistry revision",
      "energy": -1,
      "absorption": -1
     }
@@ -2108,11 +1606,17 @@
      "wanting it to be mine"
     ],
     "within_reach": [
-     "a psychology minor"
+     "psychology at uni"
     ]
    },
    "interests": [
     "psychology"
+   ],
+   "remember": [],
+   "tone": "mixed",
+   "evidence": [
+    "Bio 78",
+    "Is it stupid to want that"
    ]
   },
   "actions": {
@@ -2127,71 +1631,41 @@
   "entries": [
    {
     "id": "e_d22",
-    "t": "22:05",
-    "text": "The centre asked if I'd help plan next term's tutoring schedule. Me! Two months ago I didn't know anyone on campus. I said yes."
+    "t": "21:55",
+    "text": "The community centre asked if I can help plan the Tuesday sessions for the younger kids. Me! A few months ago I could barely explain chem to myself. I said yes."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "Asked to help run tutoring next term",
-   "recap": "The tutoring centre asked you to help plan next term's schedule, and you said yes. Two months ago you didn't know anyone on campus.",
-   "analysis": [
-    {
-     "lens": "context",
-     "title": "How far two months went",
-     "text": "It might be worth seeing the distance between your first weeks and now.",
-     "quote": "Two months ago I didn't know anyone on campus",
-     "entryId": "e_d22"
-    },
-    {
-     "lens": "strength",
-     "title": "Trusted with more",
-     "text": "Being asked means people have noticed how you show up.",
-     "quote": "I said yes",
-     "entryId": "e_d22"
-    }
-   ],
-   "challenge": {
-    "issue": "Nothing needs fixing",
-    "cause": "A proud day. Let it count."
+   "title": "Asked to help run the Tuesday sessions",
+   "headline": "Asked to help run the Tuesday sessions",
+   "body": "Hey Kit,\n\nThe community centre asked you to help plan the Tuesday sessions, and you said yes. A few months ago, you felt like you couldn't even explain chem to yourself.\n\nLook at how that happened. Nobody handed it to you because of your marks. You kept turning up on Tuesdays, Jason ran to the door shouting your name, and the people running the centre noticed. Trust like that is built slowly, and you built it.\n\nBefore it starts, it's worth finding out exactly what you've said yes to, so it fits around your revision.\n\nTalk soon,\nYour friend",
+   "reflection_question": "What would you change about the sessions if it was up to you?",
+   "small_step": {
+    "text": "Ask what planning the sessions involves",
+    "minutes": 5,
+    "category": "exploration"
    },
-   "advice": {
-    "text": "Ask what planning involves, and keep it small enough to still enjoy tutoring.",
-    "why": "Keep the part you love at the centre."
-   },
-   "encouragement": "They asked you because you kept coming back, week after week.",
    "steps": [
     {
-     "text": "Ask what planning the schedule involves",
+     "text": "Ask what planning the sessions involves",
      "kind": "exploration",
      "minutes": 5,
-     "why": "Know what you said yes to."
-    },
-    {
-     "text": "Tell Mum the news",
-     "kind": "connection",
-     "minutes": 5,
-     "why": "She'll be glad."
-    },
-    {
-     "text": "Celebrate with something small tonight",
-     "kind": "rest",
-     "minutes": 15,
-     "why": "Let it count."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "What would you change about the sessions if it was up to you?"
+   ],
+   "night_type": "good",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "community",
     "achievement"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "positive",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
      "name": "Planning tutoring",
@@ -2211,6 +1685,11 @@
    },
    "interests": [
     "tutoring"
+   ],
+   "remember": [],
+   "tone": "positive",
+   "evidence": [
+    "I said yes"
    ]
   },
   "actions": {
@@ -2226,75 +1705,45 @@
   "entries": [
    {
     "id": "e_d23",
-    "t": "23:15",
-    "text": "Had coffee with Joyce, a Year 3 in BBA who minors in psychology and interns at a youth NGO. She said business skills are exactly what non-profits are missing. I didn't know that was a path."
+    "t": "22:50",
+    "text": "Had bubble tea with my cousin Joyce, she's Year 3 at uni doing psychology and business and interns at a youth NGO. She said a lot of students choose JUPAS by score and only figure it out later, and that's okay. She said what I do on Tuesdays is basically what her NGO does. I didn't know that was a path."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "A Year 3 showed you a path you hadn't seen",
-   "recap": "You had coffee with Joyce, a Year 3 doing BBA with a psychology minor who interns at a youth NGO. She told you business skills are exactly what non-profits are missing, a path you didn't know existed.",
-   "analysis": [
-    {
-     "lens": "pattern",
-     "title": "A new door, not a U-turn",
-     "text": "It might be that your major and your interests aren't opposites after all.",
-     "quote": "I didn't know that was a path",
-     "entryId": "e_d23"
-    },
-    {
-     "lens": "context",
-     "title": "Real examples help",
-     "text": "Hearing from someone a few steps ahead made the question concrete.",
-     "quote": "business skills are exactly what non-profits are missing",
-     "entryId": "e_d23"
-    }
-   ],
-   "challenge": {
-    "issue": "Nothing needs fixing",
-    "cause": "You found information by asking. The question is still open, and that's fine."
+   "title": "Your cousin showed you a path you hadn’t seen",
+   "headline": "Your cousin showed you a path you hadn’t seen",
+   "body": "Hey Kit,\n\nBubble tea with your cousin Joyce, who's in her third year studying psychology and business and interning at a youth NGO. She told you lots of people choose JUPAS by score and only figure things out later, and that what you do on Tuesdays is basically what her NGO does. You hadn't known that was even a path.\n\nOnly a week ago you were wondering if wanting psychology was silly. Tonight someone showed you one way the pieces fit together, and she's only a few years ahead of you. You don't have to copy her route, but it's proof your mix of interests isn't a mistake.\n\nSmall next steps are enough. Read about one programme and see how it feels.\n\nTalk soon,\nYour friend",
+   "reflection_question": "Which part of Joyce’s path made you sit up the most?",
+   "small_step": {
+    "text": "Read about one psychology programme’s first-year courses",
+    "minutes": 15,
+    "category": "exploration"
    },
-   "advice": {
-    "text": "Write down what you'd want to learn more about before deciding anything about a minor.",
-    "why": "Keep it an exploration, not a decision yet."
-   },
-   "encouragement": "You asked the society chat, and you met Joyce. You turned a worry into a conversation.",
    "steps": [
     {
-     "text": "Read about the minor's first course",
+     "text": "Read about one psychology programme’s first-year courses",
      "kind": "exploration",
      "minutes": 15,
-     "why": "One step closer to knowing."
-    },
-    {
-     "text": "Write three questions you'd ask a youth NGO",
-     "kind": "reflection",
-     "minutes": 10,
-     "why": "Keep exploring."
-    },
-    {
-     "text": "Thank Joyce and ask to keep in touch",
-     "kind": "connection",
-     "minutes": 3,
-     "why": "A good person to know."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "Which part of Joyce’s path made you sit up the most?"
+   ],
+   "night_type": "good",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "learning",
     "uncertainty",
     "career"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "positive",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
-     "name": "Coffee with a Year 3",
+     "name": "Bubble tea with Joyce",
      "energy": 2,
      "absorption": 1
     }
@@ -2306,12 +1755,17 @@
      "helping young people"
     ],
     "within_reach": [
-     "a psychology minor",
+     "psychology at uni",
      "youth NGO work"
     ]
    },
    "interests": [
     "youth work"
+   ],
+   "remember": [],
+   "tone": "positive",
+   "evidence": [
+    "I didn't know that was a path"
    ]
   },
   "actions": {
@@ -2326,71 +1780,41 @@
   "entries": [
    {
     "id": "e_d24",
-    "t": "21:30",
-    "text": "Last tutoring session of the term. The kids made me a card: “Thank you for teaching us fractions!” Jason drew me holding a camera. I'm keeping it on my desk."
+    "t": "21:20",
+    "text": "Last Tuesday session before the kids' exams. They made me a card that says thank you for teaching us fractions. Jason drew me holding a camera. Keeping it on my desk next to the photos."
    }
   ],
   "content": {
+   "version": 3,
    "voice": "friend",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
-   "headline": "The last tutoring session of term",
-   "recap": "At the last tutoring session of the term, the kids made you a card thanking you for teaching them fractions. Jason drew you holding a camera, and you're keeping it on your desk.",
-   "analysis": [
-    {
-     "lens": "feeling",
-     "title": "Something to keep",
-     "text": "It might be that this card is proof of a term you built yourself.",
-     "quote": "I'm keeping it on my desk",
-     "entryId": "e_d24"
-    },
-    {
-     "lens": "context",
-     "title": "They see all of you",
-     "text": "Jason knows you as the tutor and the photographer.",
-     "quote": "Jason drew me holding a camera",
-     "entryId": "e_d24"
-    }
-   ],
-   "challenge": {
-    "issue": "Nothing needs fixing",
-    "cause": "A good end to the term."
+   "title": "A card from the kids",
+   "headline": "A card from the kids",
+   "body": "Hey Kit,\n\nThe last session before the kids' exams, and they made you a card thanking you for teaching them fractions. Jason drew you holding a camera. It's on your desk now, next to the photos.\n\nThink about what that drawing means. A boy who once wouldn't even try fractions remembered both of your worlds, the tutor and the photographer. In a year when school often makes you feel behind, you became someone a nine-year-old draws. That happened one Tuesday at a time.\n\nKeep the card where you'll see it on the harder revision days.\n\nTalk soon,\nYour friend",
+   "reflection_question": "What do you want to remember about these Tuesdays when exams get loud?",
+   "small_step": {
+    "text": "Photograph the card",
+    "minutes": 2,
+    "category": "focus"
    },
-   "advice": {
-    "text": "Take a photo of the card and keep it with this letter.",
-    "why": "Some days are worth keeping twice."
-   },
-   "encouragement": "You kept going every Tuesday for two months. The card is what that looks like.",
    "steps": [
     {
      "text": "Photograph the card",
-     "kind": "practical",
+     "kind": "focus",
      "minutes": 2,
-     "why": "Keep it twice."
-    },
-    {
-     "text": "Write one line about this term",
-     "kind": "reflection",
-     "minutes": 5,
-     "why": "Mark how far you came."
-    },
-    {
-     "text": "Rest before finals",
-     "kind": "rest",
-     "minutes": 30,
-     "why": "You earned it."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "What do you want to remember about these Tuesdays when exams get loud?"
+   ],
+   "night_type": "good",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "community",
     "friendship"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "positive",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
      "name": "Tutoring kids",
@@ -2412,6 +1836,11 @@
    },
    "interests": [
     "tutoring"
+   ],
+   "remember": [],
+   "tone": "positive",
+   "evidence": [
+    "thank you for teaching us fractions"
    ]
   },
   "actions": {
@@ -2426,73 +1855,48 @@
   "date": "2025-12-12",
   "entries": [
    {
+    "id": "e_d25_1",
+    "t": "18:45",
+    "text": "Photo walk in Kennedy Town at sunset. Wing brought egg tarts for everyone."
+   },
+   {
     "id": "e_d25",
-    "t": "23:20",
-    "text": "Three months ago I ate lunch alone and wondered if I was in the wrong place. Now I have Wing and the Saturday walks and the kids on Tuesdays. I still don't know what job I want. But I know I like helping people figure things out. Maybe that's enough of a direction for now."
+    "t": "23:15",
+    "text": "Six months ago I sat in Mong Kok feeling empty after Form 5 exams. Now I have Wing, the Saturday walks and the kids on Tuesdays. My chem is still bad and I still don't know my JUPAS choices. But I know I like helping people figure things out. Maybe that's enough of a direction for now."
    }
   ],
   "content": {
-   "voice": "friend",
+   "version": 3,
+   "voice": "future",
    "language": "en",
-   "greeting": "Hey,",
-   "signoff": "Talk tonight,\nB.",
+   "title": "You don't need the whole map yet",
    "headline": "You don't need the whole map yet",
-   "recap": "You looked back three months, to eating lunch alone and wondering if you were in the wrong place. Now you have Wing, the Saturday walks and the kids on Tuesdays. You still don't know what job you want, but you know you like helping people figure things out.",
-   "analysis": [
-    {
-     "lens": "pattern",
-     "title": "A direction, not a destination",
-     "text": "It might be that knowing what you like doing is a more useful compass than a job title right now.",
-     "quote": "I like helping people figure things out",
-     "entryId": "e_d25"
-    },
-    {
-     "lens": "strength",
-     "title": "You built this",
-     "text": "The people and routines you have now came from small choices you made, one at a time.",
-     "quote": "Maybe that's enough of a direction for now",
-     "entryId": "e_d25"
-    }
-   ],
-   "challenge": {
-    "issue": "Nothing needs fixing",
-    "cause": "You're looking back with clear eyes. Let yourself see it."
+   "body": "Hi Kit,\n\nIt's you, a few years from now. Tonight you came home from a sunset photo walk in Kennedy Town, egg tarts and all, and wrote that six months ago you sat in Mong Kok feeling empty after your Form 5 exams. Now you have Wing, the Saturday walks and the kids on Tuesdays.\n\nYou also wrote that your chem is still not great and you don't know your JUPAS choices yet, but you know you like helping people figure things out. I want you to hear how much that is. It's a direction you found by living, not by planning: the boy at the gate, Jason and his fractions, the question you took to Ms Lam.\n\nYou don't need the whole map before the DSE. Keep following that one thread.\n\nWith love,\nYou, later",
+   "reflection_question": "Where could helping people figure things out take you after the DSE?",
+   "small_step": {
+    "text": "Thank Wing for saving you that seat on the minibus",
+    "minutes": 3,
+    "category": "connection"
    },
-   "advice": {
-    "text": "Over the break, try one more thing that involves helping people learn, and see if the feeling holds.",
-    "why": "Directions get clearer by testing them."
-   },
-   "encouragement": "In your first weeks you didn't know where to start. You started anyway, and kept going.",
    "steps": [
     {
      "text": "Thank Wing for saving you that seat on the minibus",
      "kind": "connection",
      "minutes": 3,
-     "why": "She was part of it."
-    },
-    {
-     "text": "Write down three things you did this term that you're proud of",
-     "kind": "reflection",
-     "minutes": 10,
-     "why": "See the whole term."
-    },
-    {
-     "text": "Plan a slow first day of the holiday",
-     "kind": "rest",
-     "minutes": 5,
-     "why": "Rest is part of it too."
+     "why": ""
     }
    ],
+   "openQuestions": [
+    "Where could helping people figure things out take you after the DSE?"
+   ],
+   "night_type": "good",
+   "safety_flag": "none",
+   "safetyConcern": false,
    "themes": [
     "uncertainty",
     "community",
     "friendship"
    ],
-   "openQuestions": [],
-   "wins": [],
-   "tone": "positive",
-   "safetyConcern": false,
-   "remember": [],
    "activities": [
     {
      "name": "Saturday photo walks",
@@ -2517,6 +1921,11 @@
    },
    "interests": [
     "tutoring"
+   ],
+   "remember": [],
+   "tone": "positive",
+   "evidence": [
+    "I like helping people figure things out"
    ]
   },
   "actions": {},
