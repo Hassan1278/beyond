@@ -1232,13 +1232,13 @@ main.v-tonight { max-width: 1320px; padding-top: 6px; padding-bottom: 96px; gap:
 .bk-saved { margin-right: auto; font-size: 12.5px; color: var(--faint); }
 @media (max-width: 520px) { .bk-page.tn .tn-bar > .btn { flex: 0 0 auto; } }
 /* an earlier day: read-only, on the same rules */
-.bk-entries { --rule: 30px; list-style: none; margin: 0; padding: 6px 2px 0; flex: 1; display: grid; align-content: start; gap: 14px; }
-/* each entry: its time small on a line that breaks the rule, the words below on their own ruled lines */
-.bk-entries li { display: grid; gap: 2px; }
-.bk-sep { position: relative; display: flex; align-items: center; height: 16px; }
-.bk-sep::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid color-mix(in srgb, var(--cream) 18%, transparent); }
-.bk-time { position: relative; display: inline-block; margin-left: 10px; padding: 0 6px; background: var(--night-2); font: 600 10.5px/16px var(--f-ui); letter-spacing: .06em; color: var(--faint); }
-.bk-entries p { font: 400 16px/var(--rule) var(--f-display); white-space: pre-wrap; overflow-wrap: anywhere; background: var(--dots) 0 calc(var(--rule) / 2) / 6px var(--rule) repeat; }
+.bk-entries { --rule: 28px; list-style: none; margin: 0; padding: 12px 2px 0; flex: 1; display: grid; align-content: start; gap: 0; }
+/* Each entry starts on a dotted rule whose dots part for its time; the words sit right below.
+   One entry's top rule is the line under the one before, so no rule is ever doubled. */
+.bk-entries li { position: relative; } /* the words' own top rule is the line the time sits on */
+.bk-sep { position: absolute; left: 0; top: 0; height: 0; }
+.bk-time { position: absolute; left: 12px; top: -5px; z-index: 1; padding: 0 5px; white-space: nowrap; background: var(--night-2); font: 600 9px/10px var(--f-ui); letter-spacing: .07em; color: var(--faint); }
+.bk-entries p { font: 400 15.5px/var(--rule) var(--f-display); white-space: pre-wrap; overflow-wrap: anywhere; background: var(--dots) 0 calc(var(--rule) / 2) / 6px var(--rule) repeat; }
 .bk-foot { flex: none; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--cream) 30%, transparent); display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 12px; }
 .bk-read { display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px; }
 .bk-read svg { width: 13px; height: 13px; }
@@ -1488,9 +1488,37 @@ main.v-identity:not(:has(.dir-head)) { gap: 14px; padding-top: clamp(8px, 1.6vw,
 .bk-open-back { transform: rotateY(180deg); background: var(--night-2); border: 1px solid var(--night-line); border-radius: 8px 3px 3px 8px; }
 .bk-open-sheet { position: absolute; inset: 3px 3px 3px 0; transform-origin: left center; background: color-mix(in srgb, var(--night-2) 90%, var(--cream)); border: 1px solid var(--night-line); border-radius: 0 6px 6px 0; box-shadow: 0 6px 12px -8px rgba(0,0,0,.6); }
 
-/* Identity home: the constellation on the left, a bar on the right with today's goal above your to-dos */
-main.v-identity:not(:has(.dir-head)) { max-width: 1320px; }
-.id-layout { display: grid; grid-template-columns: minmax(0, 1fr) clamp(280px, 25vw, 340px); gap: 20px; align-items: start; }
+/* Identity home: the constellation, with a bar on the right: today's goal above your to-dos */
+main.v-identity:not(:has(.dir-head)) { max-width: 1360px; }
+.id-layout { display: grid; grid-template-columns: minmax(0, 1fr) clamp(290px, 24vw, 340px); gap: 22px; align-items: start; }
 .id-layout .id-do { grid-template-columns: minmax(0, 1fr); max-width: none; position: sticky; top: 88px; gap: 12px; }
-.id-layout .id-step-t { font-size: 18px; }
 @media (max-width: 900px) { .id-layout { grid-template-columns: minmax(0, 1fr); } .id-layout .id-do { position: static; } }
+/* the bar: clear titles, small text; the to-do list is lines you write on */
+.id-title { font: 500 clamp(30px, 3.2vw, 40px)/1.1 var(--f-display); }
+.id-layout .id-do .id-k { font: 700 16px/1.2 var(--f-ui); letter-spacing: 0; text-transform: none; color: var(--fg); }
+.id-card { min-width: 0; overflow: hidden; }
+.id-layout .id-card { padding: 12px 14px 12px; gap: 6px; }
+.id-layout .id-step-t { font-size: 15.5px; line-height: 1.4; }
+.id-layout .id-step-m { font-size: 12px; }
+.id-layout .id-step-row { flex-wrap: nowrap; gap: 12px; }
+.id-layout .id-step-row .btn { padding: 6px 12px; font-size: 13px; min-height: 0; }
+.id-layout .id-step-row .link { font-size: 13px; white-space: nowrap; }
+.todo-list.is-lines .todo-i { grid-template-columns: 20px minmax(0, 1fr) auto; gap: 8px; padding: 0; border-bottom: 0;
+  background: radial-gradient(circle, rgba(var(--cream-rgb), .22) .7px, transparent 1.1px) 0 100% / 6px 4px repeat-x; }
+.todo-list.is-lines .todo-check { width: 17px; height: 17px; border-radius: 5px; }
+.todo-list.is-lines .todo-i.is-empty .todo-check { opacity: .35; }
+.todo-in { min-width: 0; width: 100%; border: 0; background: transparent; color: var(--fg); font: 400 14px/1.3 var(--f-ui); padding: 9px 0 7px; outline: none; }
+.todo-in:focus { box-shadow: inset 0 -1px 0 var(--amber); }
+.todo-i.is-done .todo-in { color: var(--faint); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--faint) 60%, transparent); }
+.todo-list.is-lines .todo-dir { max-width: 90px; overflow: hidden; text-overflow: ellipsis; }
+.todo-more { justify-self: start; margin-top: 4px; width: 28px; height: 28px; border-radius: 50%; border: 1px dashed color-mix(in srgb, var(--cream) 35%, transparent); background: none; color: var(--soft); font: 400 18px/1 var(--f-ui); display: grid; place-items: center; padding: 0; }
+.todo-more:hover { color: var(--fg); border-color: var(--amber); }
+.todo-more:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.todo-box { display: grid; gap: 2px; }
+
+/* Growth: bigger card titles; the energy map names its four boxes */
+.v-growth .g-t { font-size: clamp(20px, 1.9vw, 24px); }
+.g-map text.g-quad { fill: color-mix(in srgb, var(--cream) 62%, transparent); font: 600 9.5px var(--f-ui); letter-spacing: .04em; text-transform: uppercase; }
+.g-map text.g-quad.is-hot { fill: var(--amber); }
+.ns-star.is-demo .core { fill: var(--cream); opacity: .85; }
+.ns-star.is-demo { pointer-events: none; }

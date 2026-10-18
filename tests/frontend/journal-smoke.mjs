@@ -796,22 +796,45 @@ try {
       (await page.locator('.id-step.is-done').count()) === 1,
     'Identity shows today’s step from the morning’s letter, done because it was done in the letter',
   );
-  await page.fill('#todo-new', 'Fictional: call grandma');
-  await page.locator('#todo-add button[type="submit"]').click();
-  await page.locator('.todo-i').getByText('Fictional: call grandma').waitFor();
   check(
-    db.todos.length === 1 && db.todos[0].title === 'Fictional: call grandma',
-    'a to-do is added to the account',
+    (await page.locator('.todo-list.is-lines .todo-i.is-empty .todo-in').count()) === 4 &&
+      (await page.locator('[data-todo-more]').count()) === 1,
+    'the to-do list is four empty lines to write on, with a + for more',
   );
-  await page.locator('.todo-i .todo-check').first().click();
+  await page.locator('[data-todo-new]').first().fill('Fictional: call grandma');
+  await page.locator('[data-todo-new]').first().press('Enter');
+  await page.locator('.todo-in[data-todo-id]').first().waitFor();
+  check(
+    db.todos.length === 1 &&
+      db.todos[0].title === 'Fictional: call grandma' &&
+      (await page.locator('.todo-in[data-todo-id]').inputValue()) === 'Fictional: call grandma',
+    'writing on a line adds a to-do to the account',
+  );
+  await page.locator('.todo-in[data-todo-id]').fill('Fictional: call grandma tonight');
+  await page.locator('.todo-in[data-todo-id]').press('Enter');
+  for (let t = 0; t < 30 && db.todos[0].title !== 'Fictional: call grandma tonight'; t++)
+    await sleep(100);
+  check(
+    db.todos[0].title === 'Fictional: call grandma tonight',
+    'a to-do can be edited on its line',
+  );
+  await page.locator('.todo-i:not(.is-empty) .todo-check').first().click();
   for (let t = 0; t < 30 && !db.todos[0].completed; t++) await sleep(100);
   check(db.todos[0].completed === true, 'ticking a to-do is saved');
-  await page.locator('.todo-i .todo-x').first().click();
-  for (let t = 0; t < 30 && db.todos.length; t++) await sleep(100);
+  for (let k = 0; k < 5; k++)
+    await page
+      .locator('[data-todo-more]')
+      .click()
+      .catch(() => {});
   check(
-    db.todos.length === 0 && !(await page.locator('.todo-i').count()),
-    'a to-do can be deleted',
+    (await page.locator('.todo-list.is-lines .todo-i').count()) === 7 &&
+      !(await page.locator('[data-todo-more]').count()),
+    '+ adds lines up to seven',
   );
+  await page.locator('.todo-in[data-todo-id]').fill('');
+  await page.locator('.todo-in[data-todo-id]').press('Enter');
+  for (let t = 0; t < 30 && db.todos.length; t++) await sleep(100);
+  check(db.todos.length === 0, 'clearing a line removes its to-do');
   await page.locator('.tab[data-go="growth"]').click();
   await page.getByRole('heading', { name: 'Growth', exact: true }).waitFor();
   check(
@@ -823,7 +846,9 @@ try {
   check(
     (await page.locator('.g-card').count()) === 5 &&
       (await page.locator('.g-card .g-t').count()) === 5 &&
-      (await page.locator('.g-card .g-sub').count()) === 4 &&
+      (await page.locator('.g-card .g-sub').count()) === 5 &&
+      (await page.locator('#g-stars').innerText()) === 'Journalling Progress' &&
+      (await page.locator('#g-alive').innerText()) === 'Energy map' &&
       (await page.locator('.g-card').first().getAttribute('aria-labelledby')) === 'g-stars' &&
       (await page.locator('#g-compass').innerText()) === 'Passion compass' &&
       !(await page.getByText('Threads that last').count()) &&
@@ -1070,6 +1095,11 @@ try {
       (await page.locator('.g-dot').count()) >= 3 &&
       (await page.locator('.g-rank-row').count()) >= 3,
     'Demo mode fills every Growth card from Kit’s letters',
+  );
+  check(
+    (await page.locator('.g-stars .ns-star').count()) >= 10 &&
+      (await page.locator('.g-quad').count()) === 4,
+    'in Demo mode most days have a star, and the energy map names its four boxes',
   );
   await shot(page, '11c-growth-month');
   await page.locator('[data-ptab="year"]').click();

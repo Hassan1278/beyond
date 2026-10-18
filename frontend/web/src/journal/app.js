@@ -1623,9 +1623,9 @@ function growthMonth(all) {
   after.push(() => { skyState = { list: inMonth, from: `${pMonth}-01`, to: lastDayOf(pMonth), ticks: 'month', theme: () => null }; drawSky(); });
   // the nights first, then the compass and what gives you energy, then what changed and what filled the month
   return [
-    card('stars', 'The nights you wrote', 'Each star is a letter. The line climbs every night you write and stays level when you skip one.', starsInner(), 'g-span2 g-stars'),
-    card('compass', 'Passion compass', '', few ? gEmpty('A few more nights and your compass will start to form.') : compassInner(g)),
-    card('alive', 'What gives you energy', 'Each dot is something you did. Higher means it gave you more energy; further right means you lost track of time.', few ? gEmpty('A few more nights and your map will fill in.') : aliveInner(g)),
+    card('stars', 'Journalling Progress', 'Each star is a day you journaled. Every day you become a better person.', starsInner(), 'g-span2 g-stars'),
+    card('compass', 'Passion compass', 'Discover your passions.', few ? gEmpty('A few more nights and your compass will start to form.') : compassInner(g)),
+    card('alive', 'Energy map', 'Find out what energizes and drains you.', few ? gEmpty('A few more nights and your map will fill in.') : aliveInner(g)),
     card('changed', `How this month differs from ${MONTH[+pk.slice(5) - 1]}`, 'Themes you wrote about more, less, or for the first time.', few ? gEmpty('A few more nights and changes will show here.') : changedInner(inMonth, prev, earlier, MON[+pk.slice(5) - 1])),
     card('themes', 'What you wrote about most', 'Your top themes this month, by number of nights.', few ? gEmpty('A few more nights and your themes will show here.') : themesInner(g)),
   ].join('');
@@ -1633,7 +1633,7 @@ function growthMonth(all) {
 
 /* --- Year --- */
 function growthYear(list, all) {
-  if (!list.length) return card('stars', 'The nights you wrote', 'Each star is a letter. The line climbs every night you write and stays level when you skip one.', gEmpty('Your year fills in as letters arrive. Each night you write becomes a star.'), 'g-span2');
+  if (!list.length) return card('stars', 'Journalling Progress', 'Each star is a day you journaled. Every day you become a better person.', gEmpty('Your year fills in as letters arrive. Each night you write becomes a star.'), 'g-span2');
   const g = growthOf(list); const few = list.length < GROWTH_MIN;
   const from = `${list[0].date.slice(0, 7)}-01`; const to = gYear === journalDate().slice(0, 4) ? journalDate() : `${gYear}-12-31`;
   after.push(() => { skyState = { list, from, to, ticks: 'year', theme: () => null }; drawSky(); });
@@ -1641,9 +1641,9 @@ function growthYear(list, all) {
   const first = list.filter((l) => l.date.startsWith(months[0])); const last = list.filter((l) => l.date.startsWith(months[months.length - 1]));
   const firstNeedle = growthOf(first).needle;
   return [
-    card('stars', 'The nights you wrote', 'Each star is a letter. The line climbs every night you write and stays level when you skip one.', starsInner(), 'g-span2 g-stars'),
-    card('compass', 'Passion compass', '', few ? gEmpty('A few more nights and your compass will start to form.') : compassInner(g, firstNeedle && firstNeedle !== g.needle ? { label: firstNeedle, month: MON[+months[0].slice(5) - 1] } : null)),
-    card('alive', 'What gives you energy', 'Each dot is something you did. Higher means it gave you more energy; further right means you lost track of time.', few ? gEmpty('A few more nights and your map will fill in.') : aliveInner(g)),
+    card('stars', 'Journalling Progress', 'Each star is a day you journaled. Every day you become a better person.', starsInner(), 'g-span2 g-stars'),
+    card('compass', 'Passion compass', 'Discover your passions.', few ? gEmpty('A few more nights and your compass will start to form.') : compassInner(g, firstNeedle && firstNeedle !== g.needle ? { label: firstNeedle, month: MON[+months[0].slice(5) - 1] } : null)),
+    card('alive', 'Energy map', 'Find out what energizes and drains you.', few ? gEmpty('A few more nights and your map will fill in.') : aliveInner(g)),
     card('changed', 'How your year has changed', `${MONTH[+months[0].slice(5) - 1]} compared with ${MONTH[+months[months.length - 1].slice(5) - 1]}.`, few || months.length < 2 ? gEmpty('A few more months and changes will show here.') : changedInner(last, first, [], MON[+months[0].slice(5) - 1])),
     card('themes', 'What you wrote about most', 'Your top themes this year, by number of nights.', few ? gEmpty('A few more nights and your themes will show here.') : themesInner(g)),
     card('film', 'One line from each month', 'A frame for every month, with something you wrote then.', filmInner(list, months), 'g-span2'),
@@ -1674,6 +1674,8 @@ function compassInner(g, earlier = null) {
     ${earlier ? `<p class="fine g-was">In ${esc(earlier.month)} you were pointing toward ${esc(earlier.label)}. Now ${esc(g.needle)}.</p>` : ''}
     ${selItems.length ? nightsList(selItems) : ''}`;
 }
+/* The four boxes of the energy map, each named in its corner: [label, right side, bottom]. */
+const QUADS = [['Energizing · bored', false, false], ['Energizing · absorbed', true, false], ['Draining · bored', false, true], ['Draining · absorbed', true, true]];
 function aliveInner(g) {
   const dots = g.activities.slice(0, 8);
   if (dots.length < 3) return gEmpty('A few more nights and your map will fill in.');
@@ -1683,6 +1685,7 @@ function aliveInner(g) {
   // dots on the same spot fan out a little; each label takes the first free place beside its dot
   const spots = new Map();
   const boxes = [{ x0: W / 2 - 48, x1: W / 2 + 48, y0: P - 22, y1: P - 6 }, { x0: W / 2 - 36, x1: W / 2 + 36, y0: H - P + 8, y1: H - P + 24 }, { x0: P, x1: P + 40, y0: H / 2 + 3, y1: H / 2 + 17 }, { x0: W - P - 56, x1: W - P, y0: H / 2 + 3, y1: H / 2 + 17 }];
+  QUADS.forEach(([t, right, low]) => { const w = t.length * 6.6; const x0 = right ? W - P - 8 - w : P + 8; const y = low ? H - P - 8 : H / 2 - 8; boxes.push({ x0, x1: x0 + w, y0: y - 11, y1: y + 3 }); });
   const free = (bx) => bx.x0 >= 2 && bx.x1 <= W - 2 && bx.y0 >= 2 && bx.y1 <= H - 2 && !boxes.some((o) => bx.x0 < o.x1 && bx.x1 > o.x0 && bx.y0 < o.y1 && bx.y1 > o.y0);
   const placed = dots.map((d) => {
     let cx = X(d.b), cy = Y(d.e); const key = `${Math.round(cx / 8)}|${Math.round(cy / 8)}`; const k = spots.get(key) || 0; spots.set(key, k + 1);
@@ -1708,6 +1711,7 @@ function aliveInner(g) {
       <line class="g-axis" x1="${P}" x2="${W - P}" y1="${H / 2}" y2="${H / 2}"/><line class="g-axis" y1="${P}" y2="${H - P}" x1="${W / 2}" x2="${W / 2}"/>
       <text class="g-ax" x="${P}" y="${H / 2 + 14}">bored</text><text class="g-ax" x="${W - P}" y="${H / 2 + 14}" text-anchor="end">absorbed</text>
       <text class="g-ax" x="${W / 2}" y="${P - 10}" text-anchor="middle">gives you energy</text><text class="g-ax" x="${W / 2}" y="${H - P + 20}" text-anchor="middle">drains you</text>
+      ${QUADS.map(([t, right, low]) => `<text class="g-quad ${right && !low ? 'is-hot' : ''}" x="${right ? W - P - 8 : P + 8}" y="${low ? H - P - 8 : H / 2 - 8}" text-anchor="${right ? 'end' : 'start'}">${t}</text>`).join('')}
       ${out.join('')}
     </svg></div>
     ${sel ? nightsList((dots.find((d) => gKey(d.name) === sel) || { letters: [] }).letters) : ''}`;
@@ -1747,7 +1751,9 @@ function drawSky() {
   const today = journalDate(); const end = to < today ? to : today; const span = Math.max(1, dayDiff(to, from));
   const byDay = new Map(); for (const l of [...list].sort((a, b) => a.date.localeCompare(b.date))) if (!byDay.has(l.date)) byDay.set(l.date, l);
   const pts = []; let c = 0;
-  for (let d = from; d <= end; d = addDays(d, 1)) { const l = byDay.get(d) || null; if (l) c += 1; pts.push({ date: d, c, l }); }
+  // Demo mode: Kit wrote most days, so most days get a star (not a letter to open); a few days are skipped
+  const demoDay = (d) => demoOn() && seeded(`kit-night-${d}`)() < .82;
+  for (let d = from; d <= end; d = addDays(d, 1)) { const l = byDay.get(d) || null; const demo = !l && demoDay(d); if (l || demo) c += 1; pts.push({ date: d, c, l, demo }); }
   const top = Math.max(4, c); const step = top <= 6 ? 1 : top <= 12 ? 2 : top <= 30 ? 5 : top <= 60 ? 10 : 25; const maxY = Math.ceil(top / step) * step;
   const X = (date) => L + (dayDiff(date, from) / span) * (W - L - R); const Y = (n) => T + (1 - n / maxY) * (H - T - B);
   const path = pts.map((p, i) => `${i ? 'L' : 'M'} ${X(p.date).toFixed(1)} ${Y(p.c).toFixed(1)}`).join(' ');
@@ -1756,17 +1762,18 @@ function drawSky() {
   else { let k = from.slice(0, 7); while (`${k}-01` <= to) { xt.push({ x: X(`${k}-01`), label: MON[+k.slice(5) - 1] }); const [yy, mm] = k.split('-').map(Number); k = mm === 12 ? `${yy + 1}-01` : `${yy}-${pad(mm + 1)}`; } }
   const yt = []; for (let n = 0; n <= maxY; n += step) yt.push(n);
   const scale = W > 600 ? 1.15 : .95;
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${plural(c, 'letter')} so far${ticks === 'month' ? ' this month' : ' this year'}">
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${plural(c, 'day')} journaled so far${ticks === 'month' ? ' this month' : ' this year'}">
     <defs><radialGradient id="glow"><stop offset="0" style="stop-color:var(--light-1)" stop-opacity=".9"/><stop offset=".35" style="stop-color:rgb(var(--star-rgb))" stop-opacity=".35"/><stop offset="1" style="stop-color:rgb(var(--star-rgb))" stop-opacity="0"/></radialGradient></defs>
     ${yt.map((n) => `<g class="ns-grid"><line x1="${L}" x2="${W - R}" y1="${Y(n).toFixed(1)}" y2="${Y(n).toFixed(1)}"/><text x="${L - 8}" y="${(Y(n) + 4).toFixed(1)}" text-anchor="end">${n}</text></g>`).join('')}
     <line class="ns-axis" x1="${L}" x2="${L}" y1="${T}" y2="${H - B}"/><line class="ns-axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>
     ${xt.map((t) => `<g class="ns-tick"><line x1="${t.x.toFixed(1)}" x2="${t.x.toFixed(1)}" y1="${H - B}" y2="${H - B + 5}"/><text x="${t.x.toFixed(1)}" y="${H - B + 18}" text-anchor="middle">${t.label}</text></g>`).join('')}
     <text class="ns-ax-t" x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">${ticks === 'month' ? 'Day' : 'Month'}</text>
-    <text class="ns-ax-t" x="12" y="${(T + H - B) / 2}" text-anchor="middle" transform="rotate(-90 12 ${(T + H - B) / 2})">Letters</text>
+    <text class="ns-ax-t" x="12" y="${(T + H - B) / 2}" text-anchor="middle" transform="rotate(-90 12 ${(T + H - B) / 2})">Days journaled</text>
     ${pts.length > 1 ? `<path d="${path}" class="ns-line" pathLength="1"/>` : ''}
-    ${ticks === 'month' ? pts.filter((p) => !p.l).map((p) => `<circle class="ns-miss" cx="${X(p.date).toFixed(1)}" cy="${Y(p.c).toFixed(1)}" r="2.4"/>`).join('') : ''}
+    ${ticks === 'month' ? pts.filter((p) => !p.l && !p.demo).map((p) => `<circle class="ns-miss" cx="${X(p.date).toFixed(1)}" cy="${Y(p.c).toFixed(1)}" r="2.4"/>`).join('') : ''}
+    ${pts.filter((p) => p.demo).map((p) => `<g class="ns-star is-demo" transform="translate(${X(p.date).toFixed(1)} ${Y(p.c).toFixed(1)})" aria-hidden="true"><circle r="${(3.6 * scale * 4).toFixed(1)}" class="halo" fill="url(#glow)"/><path d="${sparkle(p.date, 3.6 * scale * 1.7)}" class="core"/></g>`).join('')}
     ${pts.filter((p) => p.l).map((p, i) => { const r = seeded(p.l.id); return `<g class="ns-star ${fresh ? 'ns-new' : ''}" transform="translate(${X(p.date).toFixed(1)} ${Y(p.c).toFixed(1)})" style="--tw:${(2.5 + r() * 3.5).toFixed(2)}s;--dl:${(r() * 3).toFixed(2)}s;--d:${Math.min(i * 45, 1600)}ms" tabindex="0" role="button" aria-label="${esc(fmtDay(p.l.date))}: ${esc(p.l.content.title || p.l.content.headline)}" data-star="${p.l.id}"><circle r="${(4.4 * scale * 4).toFixed(1)}" class="halo" fill="url(#glow)"/><path d="${sparkle(p.l.id, 4.4 * scale * 1.7)}" class="core"/><circle r="14" fill="transparent"/></g>`; }).join('')}
-  </svg>${!byDay.size ? '<p class="ns-empty">No letters here yet. Each night you write becomes a star.</p>' : ''}`;
+  </svg>${!byDay.size && !c ? '<p class="ns-empty">No letters here yet. Each night you write becomes a star.</p>' : ''}`;
 }
 
 /* --- Identity: who you might become --- */
@@ -1843,7 +1850,7 @@ function vIdentity() {
   const n = nightsToFirst(all);
   after.push(() => startBubbles(visible));
   if (identArrive) after.push(() => { identArrive = false; });
-  // home: who you are becoming, the constellation, and a bar on the right: today's goal above your to-dos
+  // home: the constellation, with a bar on the right: today's goal above your to-dos
   return `<header class="id-head"><h1 class="id-title">Who are you becoming…</h1><p class="id-kicker">Identity constellation</p></header>
     <div class="id-layout"><section class="ident ${identArrive ? 'is-arriving' : ''}" aria-label="Your directions">
       ${visible.length ? `<div class="stage ${identVeiled ? 'is-veiled' : ''}" id="stage">
@@ -1869,9 +1876,25 @@ function stepButtons(L) {
     : st === 'skipped' ? `<span class="fine">Marked “Not for me”.</span><button class="link" data-step-skip="${L.id}">Bring it back</button>`
     : `<button class="btn sm amber" data-step-done="${L.id}">Mark as done</button><button class="link" data-step-skip="${L.id}">Not for me</button>`;
 }
+/* On a direction's page: each to-do with its tick and a delete. */
 function todoRow(t, { showDir = true } = {}) {
   const dk = showDir && todoDir(t);
   return `<li class="todo-i ${t.completed ? 'is-done' : ''}"><button class="todo-check" data-todo-done="${t.id}" role="checkbox" aria-checked="${t.completed}" aria-label="${esc(todoText(t))}">${I.check}</button><span class="todo-t">${esc(todoText(t))}</span>${dk ? `<button class="todo-dir" data-open-dir="${dk}">${esc(dirLabel(dk))}</button>` : ''}<button class="todo-x" data-todo-del="${t.id}" aria-label="Delete ${esc(todoText(t))}">${I.x}</button></li>`;
+}
+/* On the Identity page: lines you write on directly. Four to start, + adds a line, up to seven. */
+const TODO_MAX = 7; let todoLines = 4;
+function todoLinesHtml() {
+  const n = Math.min(TODO_MAX, Math.max(todoLines, S.todos.length));
+  const rows = S.todos.slice(0, TODO_MAX).map((t) => { const dk = todoDir(t);
+    return `<li class="todo-i is-line ${t.completed ? 'is-done' : ''}"><button class="todo-check" data-todo-done="${t.id}" role="checkbox" aria-checked="${t.completed}" aria-label="Done: ${esc(todoText(t))}">${I.check}</button><input class="todo-in" data-todo-id="${t.id}" value="${esc(todoText(t))}" maxlength="200" aria-label="To-do" autocomplete="off">${dk ? `<button class="todo-dir" data-open-dir="${dk}" title="${esc(dirLabel(dk))}">${esc(dirLabel(dk))}</button>` : ''}</li>`; });
+  for (let i = rows.length; i < n; i++) rows.push('<li class="todo-i is-line is-empty"><span class="todo-check" aria-hidden="true"></span><input class="todo-in" data-todo-new maxlength="200" aria-label="New to-do" autocomplete="off"></li>');
+  return `<ul class="todo-list is-lines">${rows.join('')}</ul>${n < TODO_MAX ? '<button class="todo-more" data-todo-more aria-label="Add a line">+</button>' : ''}`;
+}
+/* Redraw just the bar, so the map keeps moving and nothing else jumps. */
+function paintTodos(focusNew = false) {
+  const box = $('.id-todos .todo-box'); if (!box || route !== 'identity' || param) { render(); return; }
+  box.innerHTML = todoLinesHtml();
+  if (focusNew) box.querySelector('[data-todo-new]')?.focus();
 }
 function stepsHome() {
   const L = todaysLetter(); const step = L?.content.small_step;
@@ -1880,13 +1903,12 @@ function stepsHome() {
       <div class="id-card id-step ${L?.actions?.['step.0'] === 'tried' ? 'is-done' : ''}">
         <h2 class="id-k">Today’s goal</h2>
         ${L ? `<p class="id-step-t">${esc(step.text)}</p><p class="id-step-m">${from} · ${step.minutes} min</p>
-        <div class="row id-step-row">${stepButtons(L)}<button class="link" data-open="${L.id}">Read the letter</button></div>`
+        <div class="row id-step-row">${stepButtons(L)}</div>`
         : '<p class="id-step-m">Your next letter brings one goal for the day. It shows here.</p>'}
       </div>
       <div class="id-card id-todos">
         <h2 class="id-k">Your to-dos</h2>
-        ${S.todos.length ? `<ul class="todo-list">${S.todos.map((t) => todoRow(t)).join('')}</ul>` : '<p class="id-step-m">Anything you want to do, big or small. Add one below.</p>'}
-        <form class="todo-add" id="todo-add"><label class="sr-only" for="todo-new">Add a to-do</label><input id="todo-new" class="login-in" placeholder="Add a to-do…" maxlength="200" autocomplete="off"><button class="btn sm" type="submit">Add</button></form>
+        <div class="todo-box">${todoLinesHtml()}</div>
       </div>
     </aside>`;
 }
@@ -1894,18 +1916,27 @@ const toTodo = (t) => ({ id: t.id, title: t.title, completed: t.completed, revis
 async function addTodo(text, dirKey = null) {
   const title = `${dirKey ? `[${dirKey}] ` : ''}${text.trim()}`.slice(0, 2000);
   if (!text.trim()) return;
-  try { const t = toTodo(await backend.createTodo(title, crypto.randomUUID())); S.todos = [...S.todos, t]; render(); }
-  catch (e) { toast('Couldn’t add that. Check your connection.'); }
+  if (S.todos.length >= TODO_MAX) { toast(`Up to ${TODO_MAX} to-dos. Tick one off or clear one first.`); return paintTodos(); }
+  try { const t = toTodo(await backend.createTodo(title, crypto.randomUUID())); S.todos = [...S.todos, t]; paintTodos(todoEnter); todoEnter = false; }
+  catch (e) { toast('Couldn’t add that. Check your connection.'); paintTodos(); }
+}
+async function renameTodo(id, text) {
+  const t = S.todos.find((x) => x.id === id); if (!t) return;
+  if (!text.trim()) return removeTodo(id); // clearing a line removes it
+  const dk = todoDir(t); const title = `${dk ? `[${dk}] ` : ''}${text.trim()}`.slice(0, 2000); if (title === t.title) return;
+  const was = t.title; t.title = title;
+  try { Object.assign(t, toTodo(await backend.updateTodo(id, { title }, t.revision))); }
+  catch (e) { t.title = was; paintTodos(); toast('Couldn’t save that. Check your connection.'); }
 }
 async function toggleTodo(id) {
   const t = S.todos.find((x) => x.id === id); if (!t) return;
-  const was = t.completed; t.completed = !was; render();
+  const was = t.completed; t.completed = !was; paintTodos();
   try { Object.assign(t, toTodo(await backend.updateTodo(id, { completed: t.completed }, t.revision))); }
-  catch (e) { t.completed = was; render(); toast('Couldn’t save that. Check your connection.'); }
+  catch (e) { t.completed = was; paintTodos(); toast('Couldn’t save that. Check your connection.'); }
 }
 async function removeTodo(id) {
-  const before = S.todos; S.todos = S.todos.filter((x) => x.id !== id); render();
-  try { await backend.deleteTodo(id); } catch (e) { S.todos = before; render(); toast('Couldn’t delete that. Check your connection.'); }
+  const before = S.todos; S.todos = S.todos.filter((x) => x.id !== id); paintTodos();
+  try { await backend.deleteTodo(id); } catch (e) { S.todos = before; paintTodos(); toast('Couldn’t delete that. Check your connection.'); }
 }
 /* A direction's own page: the bubble grows into its header (see openDirection). */
 let dirShowAll = false; let dirChanging = false; let dirEditing = false;
@@ -2402,6 +2433,7 @@ document.addEventListener('click', async (ev) => {
     return paintWelcome();
   }
   if (d.todoDone) return toggleTodo(d.todoDone);
+  if (d.todoMore !== undefined) { todoLines = Math.min(TODO_MAX, Math.max(todoLines, S.todos.length) + 1); return paintTodos(true); }
   if (d.todoDel) return removeTodo(d.todoDel);
   if (d.openDir) return go('identity', d.openDir);
   if (d.dirEdit !== undefined) { dirEditing = true; render(); $('#dir-edit-name')?.focus(); return; }
@@ -2479,6 +2511,13 @@ document.addEventListener('submit', async (ev) => {
     if (m && t && t !== m.text) return editMemory(m, t);
     render();
   }
+});
+/* To-do lines: Enter or leaving a line saves it; a new line becomes a to-do. */
+let todoEnter = false; // Enter on a new line moves on to the next empty one
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && ev.target.classList?.contains('todo-in')) { ev.preventDefault(); todoEnter = true; ev.target.blur(); } });
+document.addEventListener('change', (ev) => {
+  const t = ev.target; if (!t.classList?.contains('todo-in')) return;
+  if (t.dataset.todoNew !== undefined) { if (t.value.trim()) addTodo(t.value); else todoEnter = false; } else { todoEnter = false; if (t.dataset.todoId) renameTodo(t.dataset.todoId, t.value); }
 });
 document.addEventListener('input', (ev) => {
   if (ev.target.id === 'arch-q') { arch.q = ev.target.value; refreshArchive(); }

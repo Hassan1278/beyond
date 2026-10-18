@@ -792,6 +792,20 @@ Object.assign(PHRASES, {
   'Draft saved': '草稿已保存',
   'Open in your journal': '在日记里打开',
   'Last night’s letter': '昨晚的来信',
+  'Journalling Progress': '日记进度',
+  'Each star is a day you journaled. Every day you become a better person.':
+    '每颗星是你写日记的一天。每一天，你都在变得更好。',
+  'Discover your passions.': '发现你的热情所在。',
+  'Energy map': '能量地图',
+  'Find out what energizes and drains you.': '看看什么让你充满能量，什么让你疲惫。',
+  'Energizing · bored': '有能量 · 无聊',
+  'Energizing · absorbed': '有能量 · 投入',
+  'Draining · bored': '消耗 · 无聊',
+  'Draining · absorbed': '消耗 · 投入',
+  'Days journaled': '写日记的天数',
+  'Add a line': '加一行',
+  'New to-do': '新的待办',
+  'To-do': '待办',
   'Who are you becoming…': '你正在成为谁……',
   'Identity constellation': '身份星图',
   'Every bubble is a growing identity that keeps showing up in your journal.':
@@ -885,6 +899,15 @@ const nights = (k: string): string => `${k} 个晚上`;
 
 /** Wording with a date, count or name in it. Content (headlines, quotes) passes through as is. */
 export const ZH_PATTERNS: [RegExp, (...m: string[]) => string][] = [
+  [/^Done: (.+)$/s, (t) => `完成：${t}`],
+  [
+    /^Up to (\d+) to-dos\. Tick one off or clear one first\.$/,
+    (k) => `最多 ${k} 个待办。先完成或清掉一个吧。`,
+  ],
+  [
+    /^(\d+) days? journaled so far this (month|year)$/,
+    (k, x) => `${x === 'month' ? '这个月' : '今年'}目前写了 ${k} 天日记`,
+  ],
   [new RegExp(`^${MONTHS} (\\d{1,2})$`), (m, d) => `${mo(m)}${d}日`],
   [
     /^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)( · (sample|demo letter))?$/,
