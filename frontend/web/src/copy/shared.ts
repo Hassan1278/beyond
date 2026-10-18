@@ -22,7 +22,7 @@ export const PRIVACY_POINTS: { icon: 'lock' | 'seal' | 'memory'; title: string; 
   {
     icon: 'seal',
     title: 'Sealing is the permission.',
-    text: 'Only the night you seal goes to the letter writer, never your name or email.',
+    text: 'Only nights you seal (and words you speak, to turn them into text) go to the AI, never your name or email.',
   },
   {
     icon: 'memory',
@@ -46,7 +46,7 @@ export const AI_NEVER = [
   'Your location, contacts or device details',
 ];
 export const AI_PROVIDER_NOTE =
-  'Letters, month and year notes, and voice transcription go through Beyond’s own letter service, which passes them to an AI provider (Anthropic’s Claude by default) and keeps nothing. Names, places or contact details you type are sent as written; nothing is redacted automatically. Recordings are turned into words and not stored. Hosting providers see normal connection information. Each person has a daily limit on letters, notes and transcription.';
+  'Letters, month and year notes, and voice transcription go through Beyond’s own letter service, which passes them to an AI provider (Anthropic’s Claude, reached through OpenRouter) and keeps nothing. Names, places or contact details you type are sent as written; nothing is redacted automatically. Recordings are turned into words and not stored. Hosting providers see normal connection information. Each person has a daily limit on letters, notes and transcription.';
 
 /** The privacy commitments, in the order the site shows them. */
 export const SAFEGUARDS = [

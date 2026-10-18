@@ -141,8 +141,8 @@ export const SHARED_ZH: Record<string, string> = {
   'Readable only with your sign-in. Nothing is kept in this browser.':
     '只有登入你的帳戶才能閱讀。內容不會儲存在這個瀏覽器。',
   'Sealing is the permission.': '封存，就是你的同意。',
-  'Only the night you seal goes to the letter writer, never your name or email.':
-    '只有你封存的那一晚會交給寫信服務，不會傳送你的姓名或電郵。',
+  'Only nights you seal (and words you speak, to turn them into text) go to the AI, never your name or email.':
+    '只有你封存的晚上（以及你說出、需要轉成文字的話）會交給 AI，不會傳送你的姓名或電郵。',
   'You stay in control.': '決定權在你手中。',
   'See, edit or forget any memory, keep a night out of Growth, or delete everything.':
     '查看、修改或忘記任何記憶，將某晚排除在成長之外，或刪除所有內容。',
@@ -191,6 +191,7 @@ export const SHARED_ZH: Record<string, string> = {
   'What the AI sees': 'AI 會看到甚麼',
   'Exactly what the Privacy page on the Beyond website says.':
     '與 Beyond 網站私隱頁面的說明完全一致。',
+  'Open the Beyond website in these colours': '用這些顏色開啟 Beyond 網站',
   'Saved to your account. The Beyond website opens in the same colours.':
     '儲存在你的帳戶，Beyond 網站亦會以相同顏色開啟。',
   'We value your privacy': '我們重視你的私隱',
@@ -204,8 +205,8 @@ export const SHARED_ZH: Record<string, string> = {
     '確認身分後，你可以下載副本、刪除日記或刪除帳戶。刪除亦會移除信件、筆記及記憶。你已下載的副本，以及 AI 供應商自行保留的短期處理紀錄，不在這項刪除的範圍內。',
   'Beyond doesn’t diagnose or treat anything. A limited keyword check shows support contacts while you write, and a letter that senses risk points you to people, but both can miss things. A morning letter is not emergency help.':
     'Beyond 不會診斷或治療任何情況。寫作時，有限的關鍵字檢查會顯示支援聯絡方法；信件察覺風險時，也會引導你找人幫忙，但兩者都可能漏掉訊號。早上的信不是緊急支援。',
-  'Letters, month and year notes, and voice transcription go through Beyond’s own letter service, which passes them to an AI provider (Anthropic’s Claude by default) and keeps nothing. Names, places or contact details you type are sent as written; nothing is redacted automatically. Recordings are turned into words and not stored. Hosting providers see normal connection information. Each person has a daily limit on letters, notes and transcription.':
-    '信件、每月及每年筆記，以及語音轉錄，均經 Beyond 自己的寫信服務轉交 AI 供應商（預設為 Anthropic 的 Claude）；寫信服務本身不保留內容。你輸入的姓名、地方或聯絡資料會照原文傳送，不會自動遮蓋。錄音轉成文字後不會儲存。託管供應商會看到一般連線資料。每人每天的信件、筆記及轉錄次數均有限額。',
+  'Letters, month and year notes, and voice transcription go through Beyond’s own letter service, which passes them to an AI provider (Anthropic’s Claude, reached through OpenRouter) and keeps nothing. Names, places or contact details you type are sent as written; nothing is redacted automatically. Recordings are turned into words and not stored. Hosting providers see normal connection information. Each person has a daily limit on letters, notes and transcription.':
+    '信件、每月及每年筆記，以及語音轉錄，均經 Beyond 自己的寫信服務轉交 AI 供應商（經 OpenRouter 使用 Anthropic 的 Claude）；寫信服務本身不保留內容。你輸入的姓名、地方或聯絡資料會照原文傳送，不會自動遮蓋。錄音轉成文字後不會儲存。託管供應商會看到一般連線資料。每人每天的信件、筆記及轉錄次數均有限額。',
   'Mock test at the tutorial centre. Chem 38 again. The two guys next to me compared their scores the whole break and talked about needing 5** for med.':
     '補習社模擬試，化學又係 38 分。旁邊兩個男仔成個小息都喺度比分數，講讀醫要攞 5**。',
   "Lying in bed thinking: do I actually want any of this? Or am I just doing what everyone expects? I don't hate studying. I just don't know what it's for.":
