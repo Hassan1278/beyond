@@ -275,14 +275,16 @@ const PHRASES: Record<string, string> = {
   'What you write stays yours.': '你写下的，始终属于你。',
   'We value your privacy': '我们重视你的隐私',
   'Private to your account.': '只属于你的账户。',
-  'Only you can read your journal.': '只有你能读你的日记。',
+  'Only you can open your journal. The AI sees a night only when you seal it or speak it, to write your letter.':
+    '只有你能打开你的日记。只有在你封存或说出一个晚上时，AI 才会看到它，用来写你的信。',
   'Nothing leaves until you seal it.': '封存之前，什么都不会送出去。',
   'Only that night is used to write your letter. Never your name or email.':
     '写信只会用到那一晚的内容，绝不会用到你的名字或邮箱。',
   'You decide what Beyond remembers.': 'Beyond 记住什么，由你决定。',
   'See, edit, or forget anything, anytime.': '随时查看、编辑或忘记任何内容。',
   'Delete everything, anytime.': '随时删除一切。',
-  'Your journal, letters, and memories, gone for good.': '你的日记、信和记忆，永久删除。',
+  'Your journal, letters and memories are removed from Beyond right away.':
+    '你的日记、信和记忆会立即从 Beyond 删除。',
   'Beyond is a journal, not a crisis service. If you ever need someone right now, help is one tap away in Settings.':
     'Beyond 是一本日记，不是危机支援服务。如果你需要马上找人聊聊，在设置里点一下就能找到帮助。',
   Next: '下一步',

@@ -74,7 +74,11 @@ export const WELCOME_PRIVACY = {
   heading: 'Privacy',
   subtitle: 'We value your privacy',
   items: [
-    { icon: 'lock', title: 'Private to your account.', text: 'Only you can read your journal.' },
+    {
+      icon: 'lock',
+      title: 'Private to your account.',
+      text: 'Only you can open your journal. The AI sees a night only when you seal it or speak it, to write your letter.',
+    },
     {
       icon: 'memory',
       title: 'You decide what Beyond remembers.',
@@ -83,7 +87,7 @@ export const WELCOME_PRIVACY = {
     {
       icon: 'clear',
       title: 'Delete everything, anytime.',
-      text: 'Your journal, letters, and memories, gone for good.',
+      text: 'Your journal, letters and memories are removed from Beyond right away.',
     },
   ],
   note: 'Beyond is a journal, not a crisis service. If you ever need someone right now, help is one tap away in Settings.',
