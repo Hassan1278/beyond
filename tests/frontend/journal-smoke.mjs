@@ -62,6 +62,9 @@ const db = {
   memories: [],
   notes: [],
   calls: [],
+  // Server transcription starts switched off and is turned on while the page is open.
+  transcribe: false,
+  spoken: [],
 };
 const content = (entryId) => ({
   version: 3,
@@ -143,9 +146,18 @@ async function api(route) {
   if (path === '/account')
     return ok(route, {
       status: 'active',
-      capabilities: { account_deletion: false, letters: true, voice_transcription: false },
+      capabilities: {
+        account_deletion: false,
+        letters: true,
+        voice_transcription: db.transcribe,
+      },
     });
-  if (path === '/ai') return ok(route, { letters: true, notes: true, transcribe: false });
+  if (path === '/ai') return ok(route, { letters: true, notes: true, transcribe: db.transcribe });
+  if (path === '/transcribe' && req.method() === 'POST') {
+    if (!db.transcribe) return err(route, 'not_ready', 503);
+    db.spoken.push(new URL(req.url()).searchParams.get('lang'));
+    return ok(route, { text: 'Fictional spoken words about the harbour.' });
+  }
   if (path === '/letters' && req.method() === 'GET')
     return ok(route, { items: [...db.letters].reverse(), next_cursor: null });
   if (path === '/entries' && req.method() === 'GET')
@@ -309,9 +321,13 @@ const stopServer = () => {
     /* already gone */
   }
 };
-const browser = await chromium.launch(
-  process.env.PLAYWRIGHT_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE } : {},
-);
+const browser = await chromium.launch({
+  ...(process.env.PLAYWRIGHT_EXECUTABLE
+    ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE }
+    : {}),
+  // A fake microphone, so recording can be exercised without hardware.
+  args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
+});
 const shot = async (page, name) => {
   if (!SHOTS) return;
   await mkdir(SHOTS, { recursive: true });
@@ -476,6 +492,33 @@ try {
     'Journal is a book opened at today’s writing page, with a date strip on a phone',
   );
   await shot(page, '03-tonight');
+
+  console.log('voice');
+  // Switched on after the page loaded, and with a language picked: the
+  // recording still goes to Beyond's server, not the browser's speech service.
+  db.transcribe = true;
+  await page.locator('.tab[data-go="settings"]').click();
+  await page.locator('#slang').selectOption('en-US');
+  await page.locator('.tab[data-go="tonight"]').click();
+  await page.locator('#orb').waitFor();
+  await page.locator('#orb').click();
+  await sleep(1500);
+  await page.locator('#orb').click();
+  await page
+    .waitForFunction(
+      () => document.querySelector('#entry')?.value.includes('Fictional spoken'),
+      null,
+      {
+        timeout: 15000,
+      },
+    )
+    .catch(() => {});
+  check(
+    (await page.locator('#entry').inputValue()).includes('Fictional spoken words'),
+    'a recording is transcribed by the server, even when it was switched on after the page opened',
+  );
+  check(db.spoken.length === 1, 'exactly one recording was sent for transcription');
+  await page.fill('#entry', '');
 
   console.log('seal');
   await page.fill('#entry', SECRET_WORDS);
