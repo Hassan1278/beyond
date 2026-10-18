@@ -1570,3 +1570,15 @@ main.v-identity:not(:has(.dir-head)) { max-width: 1360px; }
 .v-growth .g-pt .fine { font-size: 10.5px; }
 /* the bar's two titles, each with a line beneath */
 .id-layout .id-do .id-k { padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1.5px solid color-mix(in srgb, var(--cream) 22%, transparent); }
+
+/* Demo mode: a small badge by the logo, and a screen before the welcome saying it's a demo */
+.demo-badge { display: inline-flex; align-items: center; margin-left: 8px; padding: 3px 8px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--amber) 60%, transparent); background: rgba(var(--amber-rgb), .12); color: var(--amber); font: 700 10px/1 var(--f-ui); letter-spacing: .1em; text-transform: uppercase; vertical-align: middle; }
+.demo-badge.is-big { margin: 0; padding: 6px 14px; font-size: 12px; }
+.onb-demo-wrap { min-height: 80svh; display: grid; place-items: center; }
+.onb-demo { justify-items: center; text-align: center; gap: 14px; max-width: 560px; margin-inline: auto; }
+.onb-demo-mark { display: inline-flex; align-items: center; gap: 10px; color: var(--amber); }
+.onb-demo-moon svg { width: 44px; height: 44px; }
+.onb-demo-word { font: 400 38px/1 var(--f-display); color: var(--fg); }
+.onb-demo .onb-sub { max-width: 46ch; line-height: 1.55; }
+.onb-demo-go { margin-top: 10px; min-height: 50px; padding-inline: 26px; display: inline-flex; gap: 8px; align-items: center; }
+.onb-demo-go svg { width: 16px; height: 16px; }

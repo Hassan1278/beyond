@@ -12,6 +12,7 @@
    ====================================================================== */
 /* eslint-disable */
 import SAMPLE_DATA from './sample.json';
+import SAMPLE_TODAY from './sample-today.json';
 import { uiLang, setUiLang, startTranslating } from './i18n';
 import { JOURNAL_THEMES, journalTheme, setJournalTheme, applyJournalTheme, themeSwatch } from './theme';
 import { WELCOME_STEPS, WELCOME_REASONS, WELCOME_OTHER_MAX, WELCOME_VOICES, WELCOME_PRIVACY, LETTER_NAME_MAX } from './welcome';
@@ -111,11 +112,12 @@ const isDemoSkip = () => demoOn() || isGuest() || OFFLINE;
 const TIMES = ['06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '12:00'];
 const timeOptions = (cur) => [...new Set([...TIMES, cur])].sort().map((t) => `<option ${cur === t ? 'selected' : ''}>${t}</option>`).join('');
 const PREFS = 'beyond.prefs.v1';
+/* Demo mode is on by default for now: a Normal-mode choice saved before modeV 2 is set aside once. */
 function loadPrefs() {
-  try { const p = JSON.parse(localStorage.getItem(PREFS) || '{}'); return { inputMode: p.inputMode === 'speak' ? 'speak' : 'type', speechLang: typeof p.speechLang === 'string' ? p.speechLang : undefined, mode: p.mode === 'own' ? 'own' : 'sample' }; } catch (e) { return { inputMode: 'type', mode: 'sample' }; }
+  try { const p = JSON.parse(localStorage.getItem(PREFS) || '{}'); return { inputMode: p.inputMode === 'speak' ? 'speak' : 'type', speechLang: typeof p.speechLang === 'string' ? p.speechLang : undefined, mode: p.mode === 'own' && p.modeV === 2 ? 'own' : 'sample' }; } catch (e) { return { inputMode: 'type', mode: 'sample' }; }
 }
 function savePrefs() {
-  try { localStorage.setItem(PREFS, JSON.stringify({ inputMode: S.inputMode, speechLang: S.speechLang || null, mode: S.mode })); } catch (e) { /* private window: fine */ }
+  try { localStorage.setItem(PREFS, JSON.stringify({ inputMode: S.inputMode, speechLang: S.speechLang || null, mode: S.mode, modeV: 2 })); } catch (e) { /* private window: fine */ }
 }
 let S = { ...fresh(), ...loadPrefs() };
 let syncTimer = null;
@@ -221,10 +223,10 @@ function progress(L) {
    forget or pause it in You. A learned memory is only used while a letter it
    came from is kept in Growth. */
 const SAMPLE_MEMORIES = [
-  { id: 'dm1', text: 'First-year university student in Hong Kong', kind: 'told', letterIds: [] },
-  { id: 'dm2', text: 'Just started university; school friends went to other unis', kind: 'learned', letterIds: ['l_d09'] },
+  { id: 'dm1', text: 'Form 6 student in Hong Kong, sitting the DSE in spring', kind: 'told', letterIds: [] },
+  { id: 'dm2', text: 'Studies alone a lot since their best friend moved to the UK', kind: 'learned', letterIds: ['l_d09'] },
   { id: 'dm3', text: 'Feels calmer after time outdoors', kind: 'learned', letterIds: ['l_d02'] },
-  { id: 'dm4', text: 'Big loud crowds are hard; small groups doing something together are easier', kind: 'learned', letterIds: ['l_d07', 'l_d10'] },
+  { id: 'dm4', text: 'Big crowded classes are hard; small groups doing something together are easier', kind: 'learned', letterIds: ['l_d07', 'l_d10'] },
   { id: 'dm5', text: 'Helping kids learn is the part of the week they look forward to most', kind: 'learned', letterIds: ['l_d18'] },
 ];
 const normText = (t) => String(t || '').toLowerCase().replace(/[\s.。,，!！?？]+/g, ' ').trim();
@@ -399,7 +401,7 @@ function render() {
   if (entering && route === 'identity' && !identVeiled) identRevealAt = performance.now() + (identArrive ? 650 : 0);
   const nav = route === 'welcome' || route === 'login' ? '' : `
     <header class="topbar">
-      <button class="brand" data-go="identity" aria-label="Beyond, Identity">${I.moon}<span>Beyond</span></button>
+      <button class="brand" data-go="identity" aria-label="Beyond, Identity">${I.moon}<span>Beyond</span>${demoOn() ? '<span class="demo-badge">Demo</span>' : ''}</button>
       <nav class="tabs ${newTab ? 'is-new' : ''}" aria-label="Main">
         ${[['identity', 'Identity', I.bubbles], ['tonight', 'Journal', I.moon], ['letters', 'Letters', I.mail], ['growth', 'Growth', I.sprout]].map(([r, l, ic]) =>
           `<button class="tab" data-go="${r}" ${here(r) ? 'aria-current="page"' : ''}>${ic}<span>${l}</span>${r === 'letters' && unread ? '<i class="dot" aria-label="Unread letter"></i>' : ''}</button>`).join('')}
@@ -447,7 +449,7 @@ let labelsSupported = false; // the account can keep renamed directions (until t
 let welcomeSupported = false; // the account can store welcome_seen and the answers
 // Only a brand-new account sees the welcome: one that has finished it (or onboarded before it existed) never does again.
 const needsWelcome = () => replayWelcome || (!S.onboarded && !(welcomeSupported && S.welcomeSeen));
-const W = { step: 0, shown: -1, reasons: new Set(), other: '', voice: null, name: '', ready: false, timer: 0, seenFirst: false };
+const W = { intro: false, step: 0, shown: -1, reasons: new Set(), other: '', voice: null, name: '', ready: false, timer: 0, seenFirst: false };
 const ART = {
   write: `<svg viewBox="0 0 120 90" ${HAND}><path d="M88 13c-5 1.5-8 6.5-6.6 11.5 1.3 4.9 6.3 7.8 11.3 6.7-3 3-8 4-12.2 2-6-2.9-8.3-10-5.2-15.5 2.2-4 6.7-6 11-5.2"/><path d="M60 41c-10-6-24-7.4-38-4.2v32c14-3.2 28-1.8 38 4.2 10-6 24-7.4 38-4.2v-32c-14-3.2-28-1.8-38 4.2Z"/><path d="M60 41v32"/><path d="M29 47.5c7.5-1.2 15-.9 22.6 1M29 54.5c7.5-1.2 15-.9 22.6 1M29 61.5c5-.8 10-.7 15 .3"/><path d="M71 62l19-23.5 4.4 3.4-19 23.5-6.6 2.3Z"/><path d="M104 32l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1Z"/><path d="M18 22l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7Z"/></svg>`,
   letter: `<svg viewBox="0 0 120 90" ${HAND}><path d="M14 72h92"/><path d="M30 72a30 30 0 0 1 60 0" stroke-dasharray="2 5"/><path d="M60 33v-9M37 41l-6-6M83 41l6-6M24 58h-8M96 58h8"/><path d="M39 47.5c14-.6 28-.6 42 0 .5 8 .4 16-.2 24.3-13.8.5-27.6.5-41.4 0-.6-8.2-.8-16.2-.4-24.3Z"/><path d="M39.6 48.6c6.6 5 13.4 9.6 20.4 13.7 7-4.1 13.8-8.7 20.3-13.8"/><path d="M60 57.6c2.5 0 4.4 2 4.3 4.4 0 2.4-2 4.3-4.4 4.3-2.4 0-4.3-2-4.2-4.4 0-2.4 2-4.3 4.3-4.3Z"/></svg>`,
@@ -472,7 +474,21 @@ function welcomeOk() {
   if (W.step === 3) return true;
   return !!W.name.trim();
 }
+/* Demo mode: before the welcome, say plainly that this is a demo made for showing Beyond. */
+function vDemoIntro() {
+  after.push(() => $('.onb-demo h1')?.focus({ preventScroll: true }));
+  return `<section class="onb onb-demo-wrap">
+      <div class="onb-body onb-demo">
+        <div class="onb-demo-mark" aria-hidden="true"><span class="onb-demo-moon">${I.moon}</span><span class="onb-demo-word">Beyond</span></div>
+        <p class="demo-badge is-big">Demo version</p>
+        <h1 class="onb-t" tabindex="-1">Welcome to the Beyond demo</h1>
+        <p class="onb-sub">This version is for showing how Beyond works. Kit’s journal, letters and patterns are fictional examples. Anything you write here is saved to this account, just like the real app.</p>
+        <button class="btn amber onb-demo-go" data-act="onb-demo-go">Start the demo${I.right}</button>
+      </div>
+    </section>`;
+}
 function vWelcome() {
+  if (demoOn() && !W.intro) return vDemoIntro();
   const n = W.step; const per = 100 / (WELCOME_LAST + 1); const pct = (n + 1) * per; const from = W.shown >= 0 && W.shown !== n ? (W.shown + 1) * per : pct;
   const entering = W.shown !== n; W.shown = n;
   const again = n === 0 && W.seenFirst;
@@ -542,7 +558,7 @@ function finishWelcome() {
   S.letterName = W.name.trim().slice(0, LETTER_NAME_MAX) || null;
   save();
   if (replayWelcome) { replayWelcome = false; try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* fine */ } }
-  W.step = 0; W.shown = -1; W.reasons = new Set(); W.other = ''; W.voice = null; W.name = ''; W.seenFirst = false;
+  W.intro = false; W.step = 0; W.shown = -1; W.reasons = new Set(); W.other = ''; W.voice = null; W.name = ''; W.seenFirst = false;
   identArrive = true;
   go('identity');
 }
@@ -579,6 +595,8 @@ function bookDays() {
     if (L.demo) continue; // a demo letter quotes words that are already on the page as the night's own entry
     (L.entries || []).forEach((e, i) => { const k = e.id || `${L.id}:${i}`; if (seen.has(k)) return; seen.add(k); d.parts.push(...splitEntry(e.text, e.t)); });
   }
+  // Demo mode: Kit's journal from earlier today, sealed, its letter still on its way
+  if (demoOn()) { const d = day(journalDate()); if (!d.parts.length && !d.letters.length) d.sample = true; d.parts.push(...SAMPLE_TODAY.map((e) => ({ t: e.t, text: e.text }))); }
   for (const e of BK.entries.values()) {
     if (seen.has(e.id)) continue; seen.add(e.id);
     const at = new Date(e.created_at); day(journalDate(at)).parts.push(...splitEntry(e.text, hhmm(at)));
@@ -2505,6 +2523,7 @@ document.addEventListener('click', async (ev) => {
   if (d.login) { loginMode = d.login; loginNote = ''; return render(); }
   if (d.copy) { try { await navigator.clipboard.writeText(d.copy); toast(`Copied ${d.copy}`); } catch (e) { const r = document.createRange(); r.selectNodeContents(el.parentElement.querySelector('b')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } return; }
   switch (d.act) {
+    case 'onb-demo-go': W.intro = true; render(); window.scrollTo(0, 0); return;
     case 'onb-next': if (!welcomeOk()) return; W.step = Math.min(WELCOME_LAST, W.step + 1); render(); window.scrollTo(0, 0); return;
     case 'onb-done': if (!welcomeOk()) return; return finishWelcome();
     case 'onb-back': W.step = Math.max(0, W.step - 1); render(); window.scrollTo(0, 0); return;
@@ -2848,21 +2867,35 @@ async function submitLogin(f) {
     err(e?.code === 'auth_failed' ? (loginMode === 'signin' ? 'That email and password don’t match. Try again, or reset your password.' : 'That didn’t work. Check the details and try again.') : 'Can’t reach Beyond. Check your connection.');
   }
 }
+/* Settings first (they decide the welcome and the look), so the page appears almost at
+   once; letters, memories, notes and to-dos follow and fill in when they arrive. */
 async function loadAll() {
-  const [settings, letters, memories, notes, account, todos] = await Promise.all([backend.settings(), backend.letters(), backend.memories(), backend.notes(), backend.account().catch(() => ACCOUNT), backend.todos().catch(() => [])]);
+  const rest = Promise.all([backend.letters(), backend.memories(), backend.notes(), backend.todos().catch(() => [])]);
+  rest.catch(() => {}); // handled by the caller once the page is up
+  const [settings, account] = await Promise.all([backend.settings(), backend.account().catch(() => ACCOUNT)]);
   applySettings(settings); ACCOUNT = account;
-  S.letters = letters.map(toLetter); S.memories = memories.map(toMemory); S.notes = toNotes(notes); S.todos = todos.map(toTodo);
   claudeState = account.letters ? 'ready' : 'off'; SERVER_STT = !!account.voice;
-  // Letters are timed in the zone you write in.
-  try { const tz = Intl.DateTimeFormat().resolvedOptions().timeZone; if (tz && tz !== settings.timezone) synced = await backend.updateSettings({ timezone: tz }, settings.revision); } catch (e) { /* keep the old zone */ }
+  // Letters are timed in the zone you write in (saved in the background).
+  try { const tz = Intl.DateTimeFormat().resolvedOptions().timeZone; if (tz && tz !== settings.timezone) backend.updateSettings({ timezone: tz }, settings.revision).then((x) => { synced = x; }, () => { /* keep the old zone */ }); } catch (e) { /* keep the old zone */ }
+  // wrapped, so awaiting loadAll waits for the settings only
+  return { rest: rest.then(([letters, memories, notes, todos]) => {
+    S.letters = letters.map(toLetter); S.memories = memories.map(toMemory); S.notes = toNotes(notes); S.todos = todos.map(toTodo);
+  }) };
 }
 async function signedIn(user) {
   AUTH = { auth: true, user };
   $('#app').innerHTML = '<div class="booting"><div class="lantern"></div></div>';
-  try { await loadAll(); }
+  let rest;
+  try { ({ rest } = await loadAll()); }
   catch (e) { AUTH = { auth: true, user: null }; synced = null; loginNote = e?.code === 'unauthorized' || e?.code === 'forbidden' ? 'Please sign in again.' : 'Beyond couldn’t load your journal. Check your connection and try again.'; route = 'login'; render(); return; }
   try { history.replaceState(null, '', `/app${location.hash}`); } catch (e) { /* fine */ }
-  readHash(); start(); watchLetters();
+  readHash(); start();
+  // the rest of the journal arrives a moment later: redraw unless someone is busy writing
+  rest.then(() => {
+    const busy = route === 'welcome' || document.querySelector('.bk-sealing, .overnight, .sheet-wrap, .present') || (route === 'tonight' && document.activeElement?.id === 'entry') || document.activeElement?.closest?.('form, .todo-in');
+    if (route === 'tonight' && $('#book')) { paintBook(null, { keepWrite: true }); syncSkip(); } else if (!busy) render();
+    presentLetters(); watchLetters();
+  }, () => toast('Beyond couldn’t load all of your journal. Check your connection.'));
 }
 async function boot(callback) {
   setAmbient('full');

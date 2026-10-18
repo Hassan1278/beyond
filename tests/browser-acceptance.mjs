@@ -105,7 +105,7 @@ export async function runBrowserAcceptance({
       await page.getByText('Write tonight. A letter by morning.', { exact: true }).waitFor();
       // Beyond starts in Demo mode; this run checks Normal mode.
       await page.evaluate(() =>
-        localStorage.setItem('beyond.prefs.v1', JSON.stringify({ mode: 'own' })),
+        localStorage.setItem('beyond.prefs.v1', JSON.stringify({ mode: 'own', modeV: 2 })),
       );
       await page.reload();
       await page.getByText('Write tonight. A letter by morning.', { exact: true }).waitFor();

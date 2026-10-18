@@ -792,6 +792,12 @@ Object.assign(PHRASES, {
   'Draft saved': '草稿已保存',
   'Open in your journal': '在日记里打开',
   'Last night’s letter': '昨晚的来信',
+  Demo: '演示',
+  'Demo version': '演示版',
+  'Welcome to the Beyond demo': '欢迎来到 Beyond 演示版',
+  'This version is for showing how Beyond works. Kit’s journal, letters and patterns are fictional examples. Anything you write here is saved to this account, just like the real app.':
+    '这个版本用来展示 Beyond 怎样运作。Kit 的日记、来信和规律都是虚构的例子。你在这里写的内容，会像正式版一样保存到这个账户。',
+  'Start the demo': '开始体验',
   'What’s your name?': '你叫什么名字？',
   'Your name': '你的名字',
   'Your name or a nickname': '你的名字或昵称',

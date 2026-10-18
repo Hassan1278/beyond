@@ -403,7 +403,7 @@ try {
   await shot(page, '01-login');
   // The main flow runs in Normal mode; Demo mode is checked further down.
   await page.evaluate(() =>
-    localStorage.setItem('beyond.prefs.v1', JSON.stringify({ mode: 'own' })),
+    localStorage.setItem('beyond.prefs.v1', JSON.stringify({ mode: 'own', modeV: 2 })),
   );
   await page.reload();
   await page.getByText('Write tonight. A letter by morning.').waitFor();
@@ -1059,6 +1059,14 @@ try {
     ),
     'Kit’s sample days are pages in the book, marked sample',
   );
+  await page.locator('.bk-sd:not(.is-today)').last().click();
+  await page.locator('.bk-page.is-day').waitFor();
+  check(
+    (await page.locator('.bk-page.is-day .bk-entries').innerText()).includes('days until the DSE'),
+    'in Demo mode, today’s page shows the student’s entries from earlier today',
+  );
+  await sd.click();
+  await page.locator(`.bk-page.is-day[data-page="${kitDate}"]`).waitFor();
   const kitWords = (await page.locator('.bk-page.is-day .bk-entries p').first().innerText()).slice(
     0,
     40,
@@ -1288,6 +1296,25 @@ try {
   await page.goto(`${ORIGIN}/app#identity/astronaut`);
   await page.locator('#stage').waitFor();
   check(page.url().endsWith('#identity'), 'an unknown direction link goes to the map');
+  db.settings.onboarded = false;
+  db.settings.welcome_seen = false;
+  await page.reload();
+  await page.locator('.onb-demo').waitFor();
+  check(
+    await page.getByText('Demo version').isVisible(),
+    'in Demo mode the welcome starts by saying this is a demo',
+  );
+  await page.locator('[data-act="onb-demo-go"]').click();
+  await page.getByRole('heading', { name: 'How Beyond works' }).waitFor();
+  check(true, 'Start the demo goes on to the welcome');
+  db.settings.onboarded = true;
+  db.settings.welcome_seen = true;
+  await page.reload();
+  await page.locator('.topbar').waitFor();
+  check(
+    (await page.locator('.brand .demo-badge').count()) === 1,
+    'Demo mode shows a Demo badge by the logo',
+  );
   await page.locator('.gear-btn[data-go="settings"]').click();
   await page.locator('[data-act="toggle-sample"]').click();
   await page.locator('.tab[data-go="tonight"]').click();
