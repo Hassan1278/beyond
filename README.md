@@ -11,7 +11,6 @@ A private journal for the web and every phone: write tonight, nothing replies, a
 - **Website:** [beyond-web-wheat.vercel.app](https://beyond-web-wheat.vercel.app)
 - **Journal app:** [beyond-web-wheat.vercel.app/app](https://beyond-web-wheat.vercel.app/app). Create an account (or use Google), go through the short welcome, write a night and seal it. In Demo mode, **Skip to morning** opens the letter once it's written, usually within a minute. On a phone, use **Add to Home Screen**.
 
-Please write fictional things when trying it: the AI provider sees what you seal.
 
 ## How it works
 
