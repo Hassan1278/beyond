@@ -13,44 +13,20 @@ import path from 'node:path';
 export const AI_PORT = 3003;
 const MODEL_PORT = 3005;
 
+/* A version 3 letter (see ai/src/lib/letter.ts): one flowing body, one question,
+   one small step, and evidence that is the person's exact words. */
 function letterFor(input) {
-  const entry = input.entries[0];
+  const entry = (input.entry ?? input.entries)[0];
   const words = entry.text.split(/\s+/).slice(0, 4).join(' ');
   return {
-    language: 'en',
-    greeting: 'Good morning.',
-    signoff: 'Until tonight.',
-    headline: 'A fictional letter about your night',
-    recap: 'You wrote about your night.',
-    analysis: [
-      {
-        lens: 'feeling',
-        title: 'Your words',
-        text: 'It might matter.',
-        quote: words,
-        entryId: entry.id,
-      },
-      {
-        lens: 'pattern',
-        title: 'A thread',
-        text: 'It might come back.',
-        quote: '',
-        entryId: entry.id,
-      },
-    ],
-    challenge: { issue: 'Nothing needs fixing', cause: 'An ordinary night.' },
-    advice: { text: 'Try one small thing.', why: 'You wrote it down.' },
-    encouragement: 'You took a few minutes for yourself.',
-    steps: [
-      { text: 'Walk ten minutes', kind: 'rest', minutes: 10, why: 'Rest.' },
-      { text: 'Message a friend', kind: 'connection', minutes: 3, why: 'Connection.' },
-      { text: 'Write one line', kind: 'reflection', minutes: 3, why: 'Reflection.' },
-    ],
+    safety_flag: 'none',
+    night_type: 'quiet',
+    title: 'A fictional letter about your night',
+    body: 'Good morning {{name}},\n\nYou wrote about your night, and you took a few minutes for yourself.\n\nUntil tonight.',
+    reflection_question: 'What would make tomorrow a little lighter?',
+    small_step: { text: 'Walk ten minutes', minutes: 10, category: 'rest' },
     themes: ['ordinary'],
-    openQuestions: [],
-    wins: [],
-    tone: 'ordinary',
-    safetyConcern: false,
+    evidence: [words],
     remember: [{ text: 'Fictional learned memory', entryId: entry.id }],
   };
 }
@@ -67,7 +43,7 @@ export function startModelStub() {
       const user = body.messages?.[0]?.content ?? '';
       let input = {};
       if (tool === 'beyond_letter')
-        input = letterFor(JSON.parse(user.slice(user.lastIndexOf('Input:\n') + 7)));
+        input = letterFor(JSON.parse(user.slice(user.indexOf('{'), user.lastIndexOf('}') + 1)));
       if (tool === 'beyond_note') input = { text: 'A fictional note about the month.' };
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(

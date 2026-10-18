@@ -497,7 +497,7 @@ try {
   // Switched on after the page loaded, and with a language picked: the
   // recording still goes to Beyond's server, not the browser's speech service.
   db.transcribe = true;
-  await page.locator('.tab[data-go="settings"]').click();
+  await page.locator('.gear-btn[data-go="settings"]').click();
   await page.locator('#slang').selectOption('en-US');
   await page.locator('.tab[data-go="tonight"]').click();
   await page.locator('#orb').waitFor();

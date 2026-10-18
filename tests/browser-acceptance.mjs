@@ -68,6 +68,30 @@ export async function runBrowserAcceptance({
       await page.locator('#password').fill(user.password);
       await page.getByRole('button', { name: 'Sign in', exact: true }).click();
     };
+    // First sign-in: the four-screen welcome, ending on Identity.
+    const welcome = async () => {
+      const next = page.locator('.onb-next');
+      const ready = () =>
+        page.waitForFunction(() => {
+          const b = document.querySelector('.onb-next, .onb-ready');
+          return b && !b.disabled;
+        });
+      await page.getByRole('heading', { name: 'How Beyond works' }).waitFor();
+      await ready();
+      await next.click();
+      await page.getByRole('heading', { name: 'What brings you here?' }).waitFor();
+      await page.locator('[data-onb-reason="write"]').click();
+      await ready();
+      await next.click();
+      await page.getByRole('heading', { name: 'Who writes back each morning?' }).waitFor();
+      await page.locator('[data-onb-voice="friend"]').click();
+      await ready();
+      await next.click();
+      await page.getByRole('heading', { name: 'Privacy', exact: true }).waitFor();
+      await page.locator('.onb-ready.is-shown').waitFor();
+      await page.getByRole('button', { name: 'I’m ready', exact: true }).click();
+      await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
+    };
     const storageHas = (text) =>
       page.evaluate(
         (t) =>
@@ -86,14 +110,17 @@ export async function runBrowserAcceptance({
       await page.reload();
       await page.getByText('Write tonight. A letter by morning.', { exact: true }).waitFor();
       await signin(first);
-      await page.getByRole('button', { name: 'Start my journal', exact: true }).click();
-      await page.getByRole('button', { name: 'Start writing', exact: true }).click();
+      await welcome();
+      await page.locator('.tab[data-go="tonight"]').click();
       await page.locator('#entry').fill('Fictional browser private night by the harbour');
       await page.getByRole('button', { name: 'Seal tonight', exact: true }).click();
-      await page.getByText('Sealed for the night.', { exact: true }).waitFor();
+      await page.locator('.skip-morning').waitFor({ timeout: 20000 });
       check(!(await storageHas('Fictional browser')), 'Journal text entered browser storage.');
       await page.reload();
-      await page.getByText('Sealed for the night.', { exact: true }).waitFor();
+      await page.locator('.topbar').waitFor();
+      check(!(await page.locator('.onb').count()), 'The welcome came back after a reload.');
+      await page.locator('.tab[data-go="tonight"]').click();
+      await page.locator('.skip-morning').waitFor({ timeout: 20000 });
       const letters = statusIs(await api('/api/v1/letters', first), 200).data.items;
       check(
         letters.length === 1 &&
@@ -108,19 +135,17 @@ export async function runBrowserAcceptance({
         json('POST', { limit: 3 }, { Authorization: `Bearer ${letterTriggerSecret}` }),
       );
       check(statusIs(run, 200).data.written >= 1, 'Worker did not write the browser letter.');
-      await page.getByRole('button', { name: 'Read it now', exact: true }).click();
-      await page.getByRole('button', { name: 'Open the letter', exact: true }).click();
+      await page.locator('.skip-morning').click();
+      await page.getByRole('button', { name: 'Open it', exact: true }).click();
       await page.getByText('A fictional letter about your night').first().waitFor();
-      await page.locator('[data-todo]').first().click();
-      await page.locator('[data-check="0"]').click();
-      await page.getByRole('button', { name: 'Done', exact: true }).click();
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await page.locator('[data-step-done]').click();
+      await new Promise((resolve) => setTimeout(resolve, 800));
       const letter = statusIs(await api('/api/v1/letters', first), 200).data.items[0];
       check(letter.read_at !== null && letter.early === true, 'Opening early was not saved.');
-      check(letter.steps['step.0'] === 'tried', 'Ticking a to-do was not saved.');
+      check(letter.steps['step.0'] === 'tried', 'Doing the small step was not saved.');
     });
     await group('browser memory, export and clearing the journal', async () => {
-      await page.locator('.tab[data-go="settings"]').click();
+      await page.locator('.gear-btn[data-go="settings"]').click();
       await page.locator('#mem-new').fill('Fictional browser approved memory');
       await page.getByRole('button', { name: 'Remember', exact: true }).click();
       await page.getByText('Fictional browser approved memory', { exact: true }).waitFor();
@@ -182,7 +207,7 @@ export async function runBrowserAcceptance({
         first.token = prior;
       }
       await signin(second);
-      await page.getByRole('button', { name: 'Start my journal', exact: true }).waitFor();
+      await page.getByRole('heading', { name: 'How Beyond works' }).waitFor();
       check(
         !(await page.getByText('Fictional browser').count()),
         'Previous owner content survived account switch.',
