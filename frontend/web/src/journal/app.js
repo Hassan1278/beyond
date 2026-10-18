@@ -445,7 +445,8 @@ let replayWelcome = DEV && new URLSearchParams(location.search).get('onboarding'
 let draftSupported = false; // the account can keep an unsealed draft
 let labelsSupported = false; // the account can keep renamed directions (until then they last for this visit)
 let welcomeSupported = false; // the account can store welcome_seen and the answers
-const needsWelcome = () => replayWelcome || (welcomeSupported ? !S.welcomeSeen : !S.onboarded);
+// Only a brand-new account sees the welcome: one that has finished it (or onboarded before it existed) never does again.
+const needsWelcome = () => replayWelcome || (!S.onboarded && !(welcomeSupported && S.welcomeSeen));
 const W = { step: 0, shown: -1, reasons: new Set(), other: '', voice: null, name: '', ready: false, timer: 0, seenFirst: false };
 const ART = {
   write: `<svg viewBox="0 0 120 90" ${HAND}><path d="M88 13c-5 1.5-8 6.5-6.6 11.5 1.3 4.9 6.3 7.8 11.3 6.7-3 3-8 4-12.2 2-6-2.9-8.3-10-5.2-15.5 2.2-4 6.7-6 11-5.2"/><path d="M60 41c-10-6-24-7.4-38-4.2v32c14-3.2 28-1.8 38 4.2 10-6 24-7.4 38-4.2v-32c-14-3.2-28-1.8-38 4.2Z"/><path d="M60 41v32"/><path d="M29 47.5c7.5-1.2 15-.9 22.6 1M29 54.5c7.5-1.2 15-.9 22.6 1M29 61.5c5-.8 10-.7 15 .3"/><path d="M71 62l19-23.5 4.4 3.4-19 23.5-6.6 2.3Z"/><path d="M104 32l1 2.6 2.6 1-2.6 1-1 2.6-1-2.6-2.6-1 2.6-1Z"/><path d="M18 22l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7Z"/></svg>`,
@@ -463,21 +464,23 @@ const ART = {
   memory: `<svg viewBox="0 0 24 24" ${HAND}><path d="M12.2 3.2c.6 4.1 2.2 6.3 6.6 7.3-4.3.9-6 3-6.7 7.8-.7-4.5-2.4-6.8-6.9-7.6 4.4-1 6.3-3.2 7-7.5Z"/></svg>`,
   clear: `<svg viewBox="0 0 24 24" ${HAND}><path d="M4.5 6.8h15M9.3 6.6V4.8c1.8-.3 3.6-.3 5.4 0v1.8"/><path d="M6.4 7c.3 4.3.6 8.6 1.1 12.9 2.9.3 5.8.3 8.8 0 .5-4.3.8-8.6 1.1-12.9"/></svg>`,
 };
+const WELCOME_LAST = 4; // five screens: how it works, why you're here, the voice, privacy, your name
 function welcomeOk() {
   if (W.step === 0) return W.ready;
   if (W.step === 1) return W.reasons.size > 0 || !!W.other.trim();
   if (W.step === 2) return !!W.voice;
-  return W.ready;
+  if (W.step === 3) return true;
+  return !!W.name.trim();
 }
 function vWelcome() {
-  const n = W.step; const pct = (n + 1) * 25; const from = W.shown >= 0 && W.shown !== n ? (W.shown + 1) * 25 : pct;
+  const n = W.step; const per = 100 / (WELCOME_LAST + 1); const pct = (n + 1) * per; const from = W.shown >= 0 && W.shown !== n ? (W.shown + 1) * per : pct;
   const entering = W.shown !== n; W.shown = n;
   const again = n === 0 && W.seenFirst;
-  if (entering) { clearTimeout(W.timer); W.ready = again; if ((n === 0 && !again) || n === 3) W.timer = setTimeout(() => { W.ready = true; if (n === 0) W.seenFirst = true; paintWelcome(); }, 3000); }
+  if (entering) { clearTimeout(W.timer); W.ready = again; if (n === 0 && !again) W.timer = setTimeout(() => { W.ready = true; if (n === 0) W.seenFirst = true; paintWelcome(); }, 3000); }
   after.push(() => {
     const bar = $('.onb-bar i'); if (bar) requestAnimationFrame(() => { bar.style.width = `${pct}%`; });
     if (n === 1) $('#onb-other')?.addEventListener('input', (e) => { W.other = e.target.value; paintWelcome(); });
-    if (n === 2) $('#onb-name')?.addEventListener('input', (e) => { W.name = e.target.value; });
+    if (n === WELCOME_LAST) { const inp = $('#onb-name'); inp?.addEventListener('input', (e) => { W.name = e.target.value; paintWelcome(); }); inp?.addEventListener('keydown', (e) => { if (e.key === 'Enter' && welcomeOk()) finishWelcome(); }); setTimeout(() => inp?.focus({ preventScroll: true }), 60); }
     $('.onb-body h1')?.focus({ preventScroll: true });
   });
   let body = '';
@@ -491,24 +494,27 @@ function vWelcome() {
   } else if (n === 2) {
     body = `<h1 class="onb-t" tabindex="-1">Who writes back each morning?</h1>
       <div class="onb-voices" role="radiogroup" aria-label="Who writes back each morning?">${WELCOME_VOICES.map((v) => `<button class="onb-voice" data-onb-voice="${v.key}" role="radio" aria-checked="${W.voice === v.key}"><b>${v.name}</b><span>${v.desc}</span></button>`).join('')}</div>
-      ${welcomeSupported ? `<label class="onb-name" for="onb-name"><span>What should your letters call you?</span><input id="onb-name" class="login-in" maxlength="${LETTER_NAME_MAX}" placeholder="Your name or a nickname (optional)" value="${esc(W.name)}" autocomplete="nickname"></label>` : ''}
       <p class="fine onb-foot-note">You can switch anytime in Settings.</p>`;
-  } else {
+  } else if (n === 3) {
     body = `<span class="onb-shield" aria-hidden="true">${ART.shield}</span>
       <h1 class="onb-t onb-t-big" tabindex="-1">${WELCOME_PRIVACY.heading}</h1>
       <p class="onb-sub">${WELCOME_PRIVACY.subtitle}</p>
       <ul class="onb-privacy">${WELCOME_PRIVACY.items.map((it) => `<li><span class="onb-ico" aria-hidden="true">${ART[it.icon]}</span><span><b>${it.title}</b> ${it.text}</span></li>`).join('')}</ul>
-      <p class="fine onb-note">${WELCOME_PRIVACY.note}</p>
+      <p class="fine onb-note">${WELCOME_PRIVACY.note}</p>`;
+  } else {
+    body = `<h1 class="onb-t onb-t-big" tabindex="-1">What’s your name?</h1>
+      <label class="onb-name" for="onb-name"><span class="sr-only">Your name</span><input id="onb-name" class="login-in" maxlength="${LETTER_NAME_MAX}" placeholder="Your name or a nickname" value="${esc(W.name)}" autocomplete="nickname"></label>
+      <p class="fine onb-name-note">Your letters will call you this. You can change it in Settings.</p>
       <button class="btn amber onb-ready ${welcomeOk() ? 'is-shown' : ''}" data-act="onb-done" ${welcomeOk() ? '' : 'disabled aria-disabled="true" tabindex="-1"'}>I’m ready</button>`;
   }
   const ok = welcomeOk();
   return `<section class="onb" data-step="${n}">
-      <div class="onb-bar" role="progressbar" aria-label="Welcome progress" aria-valuemin="1" aria-valuemax="4" aria-valuenow="${n + 1}"><i style="width:${from}%"></i></div>
-      <p class="onb-count">${n + 1} of 4</p>
+      <div class="onb-bar" role="progressbar" aria-label="Welcome progress" aria-valuemin="1" aria-valuemax="${WELCOME_LAST + 1}" aria-valuenow="${n + 1}"><i style="width:${from}%"></i></div>
+      <p class="onb-count">${n + 1} of ${WELCOME_LAST + 1}</p>
       <div class="onb-body">${body}</div>
       <div class="onb-actions">
         ${n > 0 ? `<button class="btn onb-back" data-act="onb-back">${I.left}Back</button>` : ''}
-        ${n < 3 ? `<button class="btn amber onb-next" data-act="onb-next" ${ok ? '' : 'disabled aria-disabled="true"'}>Next${I.right}</button>` : ''}
+        ${n < WELCOME_LAST ? `<button class="btn amber onb-next" data-act="onb-next" ${ok ? '' : 'disabled aria-disabled="true"'}>Next${I.right}</button>` : ''}
       </div>
     </section>`;
 }
@@ -531,9 +537,9 @@ function finishWelcome() {
     S.welcomeReasons = WELCOME_REASONS.map((r) => r.key).filter((k) => W.reasons.has(k));
     const other = W.reasons.has('other') ? W.other.trim().slice(0, WELCOME_OTHER_MAX) : '';
     S.welcomeOther = other || null;
-    // What letters call you: filled into the letter by the app, never sent to the letter writer.
-    S.letterName = W.name.trim().slice(0, LETTER_NAME_MAX) || null;
   }
+  // What letters (and the Identity page) call you: filled in by the app, never sent to the letter writer.
+  S.letterName = W.name.trim().slice(0, LETTER_NAME_MAX) || null;
   save();
   if (replayWelcome) { replayWelcome = false; try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* fine */ } }
   W.step = 0; W.shown = -1; W.reasons = new Set(); W.other = ''; W.voice = null; W.name = ''; W.seenFirst = false;
@@ -668,11 +674,17 @@ function dayLetterLink(p) {
   if (!delivered(L)) return `<span class="bk-wait">${I.mail}Letter on its way</span>`;
   return `<button class="link bk-read" data-open="${L.id}" data-from-book="${p.date}">Read the letter${I.right}</button>`;
 }
+/* Parts written at the same minute (or with no time) read as one entry: new lines, no gap. */
+function groupParts(parts) {
+  const out = [];
+  for (const x of parts) { const last = out[out.length - 1]; if (last && (!x.t || x.t === last.t)) last.text += `\n${x.text}`; else out.push({ ...x }); }
+  return out;
+}
 function dayPage(p, side) {
   const id = `bk-d-${p.date}`;
   return `<article class="bk-page ${side} is-day" data-page="${p.date}" aria-labelledby="${id}">
       <header class="bk-rule"><h2 class="bk-date" id="${id}">${fmtDay(p.date)}${p.sample ? ', sample' : ''}<span class="bk-past"> – ${p.date === journalDate() ? 'Earlier today' : 'Past journal'}</span></h2></header>
-      <ol class="bk-entries">${p.parts.map((x) => `<li>${x.t ? `<div class="bk-sep"><time class="bk-time">${ampm(x.t)}</time></div>` : ''}<p>${esc(x.text)}</p></li>`).join('')}</ol>
+      <ol class="bk-entries">${groupParts(p.parts).map((x) => `<li>${x.t ? `<div class="bk-sep"><time class="bk-time">${ampm(x.t)}</time></div>` : ''}<p>${esc(x.text)}</p></li>`).join('')}</ol>
       <footer class="bk-foot">${dayLetterLink(p)}</footer>
     </article>`;
 }
@@ -1848,8 +1860,9 @@ function vIdentity() {
   after.push(() => startBubbles(visible));
   if (identArrive) after.push(() => { identArrive = false; });
   // home: the constellation, with a bar on the right: today's goal above your to-dos
-  return `<header class="id-head"><h1 class="id-title">Who are you becoming…</h1><p class="id-kicker">Identity constellation</p></header>
-    <div class="id-layout"><section class="ident ${identArrive ? 'is-arriving' : ''}" aria-label="Your directions">
+  const who = S.letterName ? `${esc(S.letterName)}, who are you becoming…` : 'Who are you becoming…';
+  return `<div class="id-layout"><header class="id-head"><h1 class="id-title">${who}</h1><p class="id-kicker">Identity constellation</p></header>
+    <section class="ident ${identArrive ? 'is-arriving' : ''}" aria-label="Your directions">
       ${visible.length ? `<div class="stage ${identVeiled ? 'is-veiled' : ''}" id="stage">
         <canvas class="stage-sky" aria-hidden="true"></canvas>
         <div class="parallax"><div class="stage-layer"><svg class="stage-links" aria-hidden="true"></svg></div></div>
@@ -2464,7 +2477,7 @@ document.addEventListener('click', async (ev) => {
   if (d.login) { loginMode = d.login; loginNote = ''; return render(); }
   if (d.copy) { try { await navigator.clipboard.writeText(d.copy); toast(`Copied ${d.copy}`); } catch (e) { const r = document.createRange(); r.selectNodeContents(el.parentElement.querySelector('b')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } return; }
   switch (d.act) {
-    case 'onb-next': if (!welcomeOk()) return; W.step = Math.min(3, W.step + 1); render(); window.scrollTo(0, 0); return;
+    case 'onb-next': if (!welcomeOk()) return; W.step = Math.min(WELCOME_LAST, W.step + 1); render(); window.scrollTo(0, 0); return;
     case 'onb-done': if (!welcomeOk()) return; return finishWelcome();
     case 'onb-back': W.step = Math.max(0, W.step - 1); render(); window.scrollTo(0, 0); return;
     case 'toggle-early': S.allowEarly = S.allowEarly === false; save(); toast(S.allowEarly ? '“Read it now” is on.' : 'Letters will wait for the morning.'); return render();

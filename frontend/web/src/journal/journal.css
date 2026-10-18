@@ -1550,3 +1550,21 @@ main.v-identity:not(:has(.dir-head)) { max-width: 1360px; }
 .ns-star.is-demo { pointer-events: auto; cursor: pointer; }
 .ns-star .halo { pointer-events: none; }
 .id-layout .id-do { align-items: stretch; }
+
+/* Identity: the bar starts level with the heading, beside the map */
+.id-layout { grid-template-rows: auto 1fr; }
+.id-layout .id-head { grid-column: 1; grid-row: 1; padding-inline: clamp(4px, 2vw, 28px); }
+.id-layout .ident { grid-column: 1; grid-row: 2; }
+.id-layout .id-do { grid-column: 2; grid-row: 1 / span 2; }
+@media (max-width: 900px) { .id-layout { grid-template-rows: none; } .id-layout .id-head, .id-layout .ident, .id-layout .id-do { grid-column: 1; grid-row: auto; } }
+/* the welcome's progress bar, slimmer now there are five screens; the name screen */
+.onb-bar { height: 4px; }
+.onb-count { font-size: 13px; }
+.onb[data-step="4"] .onb-body { justify-items: center; text-align: center; }
+.onb[data-step="4"] .onb-name { width: min(420px, 100%); margin-top: 18px; }
+.onb[data-step="4"] .onb-name .login-in { font: 400 clamp(22px, 2.6vw, 28px)/1.3 var(--f-display); text-align: center; }
+.onb-name-note { margin-top: 6px; }
+/* Passion compass: the personal words sized to sit with the rest, not over it */
+.v-growth .g-pt b { font-size: 13px; line-height: 1.3; }
+.v-growth .g-pt-k { font-size: 10px; }
+.v-growth .g-pt .fine { font-size: 10.5px; }

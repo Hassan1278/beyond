@@ -423,7 +423,7 @@ try {
   await page.getByRole('heading', { name: 'How Beyond works' }).waitFor();
   await shot(page, '02-welcome');
   let at = await step();
-  check(at.label === '1 of 4' && at.bar === '1', 'the welcome opens on screen 1 of 4');
+  check(at.label === '1 of 5' && at.bar === '1', 'the welcome opens on screen 1 of 5');
   check(await next.isDisabled(), 'Next waits while the three steps appear');
   check(!(await page.locator('.topbar').count()), 'the welcome comes before any tab');
   await page.waitForFunction(() => !document.querySelector('.onb-next')?.disabled, null, {
@@ -433,7 +433,7 @@ try {
   await next.click();
   await page.getByRole('heading', { name: 'What brings you here?' }).waitFor();
   at = await step();
-  check(at.label === '2 of 4' && at.bar === '2', 'screen 2 of 4');
+  check(at.label === '2 of 5' && at.bar === '2', 'screen 2 of 5');
   check(await next.isDisabled(), 'Next waits for an answer');
   await page.locator('[data-onb-reason="other"]').click();
   check(
@@ -454,7 +454,7 @@ try {
   await next.click();
   await page.getByRole('heading', { name: 'Who writes back each morning?' }).waitFor();
   at = await step();
-  check(at.label === '3 of 4' && at.bar === '3', 'screen 3 of 4');
+  check(at.label === '3 of 5' && at.bar === '3', 'screen 3 of 5');
   check(
     (await next.isDisabled()) && !(await page.locator('.onb-voice[aria-checked="true"]').count()),
     'no voice is chosen for you',
@@ -468,7 +468,7 @@ try {
   await page.locator('.onb-back').click();
   await page.getByRole('heading', { name: 'What brings you here?' }).waitFor();
   check(
-    (await step()).label === '2 of 4' &&
+    (await step()).label === '2 of 5' &&
       (await page.locator('.onb-opt[aria-checked="true"]').count()) === 3 &&
       (await page.locator('#onb-other').inputValue()) === 'Fictional: a new city',
     'Back returns to the last screen with every answer kept',
@@ -482,21 +482,29 @@ try {
       (await page.getByText('You can switch anytime in Settings.').isVisible()),
     'screen 3 has no example quotes, and the Settings note sits under everything',
   );
-  await page.fill('#onb-name', '  Kit  ');
   await next.click();
   await page.getByRole('heading', { name: 'Privacy', exact: true }).waitFor();
   at = await step();
-  check(at.label === '4 of 4' && at.bar === '4', 'screen 4 of 4');
-  check(!(await page.locator('.onb-next').count()), 'the last screen has no Next');
+  check(at.label === '4 of 5' && at.bar === '4', 'screen 4 of 5');
   check(
-    (await page.locator('.onb-privacy li').count()) === 3,
-    'the privacy screen has three points',
+    (await page.locator('.onb-privacy li').count()) === 3 && !(await next.isDisabled()),
+    'the privacy screen has three points and a plain Next',
   );
-  check(!(await page.locator('.onb-ready.is-shown').count()), '“I’m ready” waits a moment');
-  await page.locator('.onb-ready.is-shown').waitFor({ timeout: 6000 });
   await shot(page, '02b-privacy');
+  await next.click();
+  await page.getByRole('heading', { name: 'What’s your name?' }).waitFor();
+  at = await step();
+  check(at.label === '5 of 5' && at.bar === '5', 'screen 5 of 5 asks your name');
+  check(
+    !(await page.locator('.onb-next').count()) &&
+      !(await page.locator('.onb-ready.is-shown').count()),
+    'the last screen has no Next, and “I’m ready” waits for a name',
+  );
+  await page.fill('#onb-name', '  Kit  ');
+  await page.locator('.onb-ready.is-shown').waitFor({ timeout: 6000 });
+  await shot(page, '02c-name');
   await page.getByRole('button', { name: 'I’m ready' }).click();
-  await page.getByRole('heading', { name: 'Who are you becoming…' }).waitFor();
+  await page.getByRole('heading', { name: 'Kit, who are you becoming…' }).waitFor();
   await sleep(700);
   check(
     db.settings.welcome_seen === true &&
@@ -511,6 +519,14 @@ try {
   await page.reload();
   await page.locator('.topbar').waitFor();
   check(!(await page.locator('.onb').count()), 'after a reload the welcome does not come back');
+  db.settings.welcome_seen = false;
+  await page.reload();
+  await page.locator('.topbar').waitFor();
+  check(
+    !(await page.locator('.onb').count()),
+    'an account that has onboarded before never sees the welcome on a later sign-in',
+  );
+  db.settings.welcome_seen = true;
   await page.locator('.tab[data-go="tonight"]').click();
   await page.locator('#entry').waitFor();
   check(
@@ -669,11 +685,21 @@ try {
   check(db.settings.draft === null, 'sealing clears the draft');
   await page.locator('.bk-edge.prev').click();
   await page.locator('.bk-page.is-day').waitFor();
-  check(
-    (await page.locator('.bk-page.is-day .bk-entries li').count()) === 2 &&
-      (await page.locator('.bk-page.is-day .bk-time').count()) === 2,
-    'both sealings that night are on the day’s page, each with its time',
-  );
+  {
+    // two sealings in different minutes are two entries; in the same minute they read as one, on new lines
+    const times = (db.letters[0].entry.text.match(/\[(\d\d:\d\d)\]/) || [])[1];
+    const firstAt = new Date(db.entries[0].created_at);
+    const same =
+      times ===
+      `${String(firstAt.getHours()).padStart(2, '0')}:${String(firstAt.getMinutes()).padStart(2, '0')}`;
+    const text = await page.locator('.bk-page.is-day .bk-entries').innerText();
+    check(
+      text.includes('harbour') &&
+        text.includes('grandma') &&
+        (await page.locator('.bk-page.is-day .bk-time').count()) === (same ? 1 : 2),
+      'both sealings that night are on the day’s page, with their times (one entry if in the same minute)',
+    );
+  }
   await page.locator('.bk-sd.is-today').click();
 
   console.log('letter arrives');
@@ -784,7 +810,7 @@ try {
 
   console.log('identity, patterns');
   await page.locator('.tab[data-go="identity"]').click();
-  await page.getByRole('heading', { name: 'Who are you becoming…' }).waitFor();
+  await page.getByRole('heading', { name: 'Kit, who are you becoming…' }).waitFor();
   check(
     await page.getByText('more nights to see your first direction').first().isVisible(),
     'Identity has its own tab and says when a direction will appear',
@@ -878,7 +904,7 @@ try {
   );
   await shot(page, '09-growth');
   await page.locator('.brand').click();
-  await page.getByRole('heading', { name: 'Who are you becoming…' }).waitFor();
+  await page.getByRole('heading', { name: 'Kit, who are you becoming…' }).waitFor();
   check(true, 'the Beyond mark returns to Identity, the home page');
   await page.locator('.lang-btn').click();
   await page.locator('.tab[data-go="tonight"]').getByText('日记').waitFor();

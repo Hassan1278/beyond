@@ -792,6 +792,11 @@ Object.assign(PHRASES, {
   'Draft saved': '草稿已保存',
   'Open in your journal': '在日记里打开',
   'Last night’s letter': '昨晚的来信',
+  'What’s your name?': '你叫什么名字？',
+  'Your name': '你的名字',
+  'Your name or a nickname': '你的名字或昵称',
+  'Your letters will call you this. You can change it in Settings.':
+    '来信会这样称呼你。之后可以在设置里修改。',
   'Journalling Progress': '日记进度',
   'Each star is a day you journaled. Every day you become a better person.':
     '每颗星是你写日记的一天。每一天，你都在变得更好。',
@@ -901,6 +906,8 @@ const nights = (k: string): string => `${k} 个晚上`;
 
 /** Wording with a date, count or name in it. Content (headlines, quotes) passes through as is. */
 export const ZH_PATTERNS: [RegExp, (...m: string[]) => string][] = [
+  [/^(.+), who are you becoming…$/s, (n) => `${n}，你正在成为谁……`],
+  [/^(\d) of 5$/, (k) => `${k} / 5`],
   [/^Done: (.+)$/s, (t) => `完成：${t}`],
   [
     /^Up to (\d+) to-dos\. Tick one off or clear one first\.$/,
