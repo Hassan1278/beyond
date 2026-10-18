@@ -672,7 +672,7 @@ function dayPage(p, side) {
   const id = `bk-d-${p.date}`;
   return `<article class="bk-page ${side} is-day" data-page="${p.date}" aria-labelledby="${id}">
       <header class="bk-rule"><h2 class="bk-date" id="${id}">${fmtDay(p.date)}${p.sample ? ', sample' : ''}<span class="bk-past"> – ${p.date === journalDate() ? 'Earlier today' : 'Past journal'}</span></h2></header>
-      <ol class="bk-entries">${p.parts.map((x) => `<li>${x.t ? `<time class="bk-time">${ampm(x.t)}</time>` : ''}<p>${esc(x.text)}</p></li>`).join('')}</ol>
+      <ol class="bk-entries">${p.parts.map((x) => `<li>${x.t ? `<div class="bk-sep"><time class="bk-time">${ampm(x.t)}</time></div>` : ''}<p>${esc(x.text)}</p></li>`).join('')}</ol>
       <footer class="bk-foot">${dayLetterLink(p)}</footer>
     </article>`;
 }
@@ -1843,9 +1843,9 @@ function vIdentity() {
   const n = nightsToFirst(all);
   after.push(() => startBubbles(visible));
   if (identArrive) after.push(() => { identArrive = false; });
-  // home: who you are becoming, the constellation, then today's step and your to-dos
+  // home: who you are becoming, the constellation, and a bar on the right: today's goal above your to-dos
   return `<header class="id-head"><h1 class="id-title">Who are you becoming…</h1><p class="id-kicker">Identity constellation</p></header>
-    <section class="ident ${identArrive ? 'is-arriving' : ''}" aria-label="Your directions">
+    <div class="id-layout"><section class="ident ${identArrive ? 'is-arriving' : ''}" aria-label="Your directions">
       ${visible.length ? `<div class="stage ${identVeiled ? 'is-veiled' : ''}" id="stage">
         <canvas class="stage-sky" aria-hidden="true"></canvas>
         <div class="parallax"><div class="stage-layer"><svg class="stage-links" aria-hidden="true"></svg></div></div>
@@ -1853,7 +1853,7 @@ function vIdentity() {
       <p class="fine legend">Every bubble is a growing identity that keeps showing up in your journal.<br>Confirm, pop, or customize: you choose which ones to grow into.</p>`
       : `<div class="empty"><span class="empty-mark" aria-hidden="true">${miniMap([])}</span><p class="lead">Write ${plural(n, 'more night')} to see your first direction.</p><p class="fine">A direction appears once kept letters from at least three different nights point to it.</p><button class="btn amber" data-go="tonight">Write tonight</button></div>`}
     </section>
-    ${stepsHome()}`;
+    ${stepsHome()}</div>`;
 }
 /* Today's step (the one small step in your newest letter), then your own to-dos.
    A to-do added on a direction's page carries that direction as a "[key] " tag at
@@ -1876,19 +1876,19 @@ function todoRow(t, { showDir = true } = {}) {
 function stepsHome() {
   const L = todaysLetter(); const step = L?.content.small_step;
   const from = L ? `${L.date === addDays(journalDate(), -1) ? 'From this morning’s letter' : `From your letter for ${fmtDay(L.date)}`}${L.sample ? ', sample' : ''}` : '';
-  return `<section class="id-do" aria-label="Your steps">
+  return `<aside class="id-do" aria-label="Today’s goal and your to-dos">
       <div class="id-card id-step ${L?.actions?.['step.0'] === 'tried' ? 'is-done' : ''}">
-        <h2 class="id-k">Today’s step</h2>
+        <h2 class="id-k">Today’s goal</h2>
         ${L ? `<p class="id-step-t">${esc(step.text)}</p><p class="id-step-m">${from} · ${step.minutes} min</p>
         <div class="row id-step-row">${stepButtons(L)}<button class="link" data-open="${L.id}">Read the letter</button></div>`
-        : '<p class="id-step-m">Your next letter brings one small step for the day. It shows here.</p>'}
+        : '<p class="id-step-m">Your next letter brings one goal for the day. It shows here.</p>'}
       </div>
       <div class="id-card id-todos">
         <h2 class="id-k">Your to-dos</h2>
         ${S.todos.length ? `<ul class="todo-list">${S.todos.map((t) => todoRow(t)).join('')}</ul>` : '<p class="id-step-m">Anything you want to do, big or small. Add one below.</p>'}
         <form class="todo-add" id="todo-add"><label class="sr-only" for="todo-new">Add a to-do</label><input id="todo-new" class="login-in" placeholder="Add a to-do…" maxlength="200" autocomplete="off"><button class="btn sm" type="submit">Add</button></form>
       </div>
-    </section>`;
+    </aside>`;
 }
 const toTodo = (t) => ({ id: t.id, title: t.title, completed: t.completed, revision: t.revision, createdAt: t.created_at });
 async function addTodo(text, dirKey = null) {

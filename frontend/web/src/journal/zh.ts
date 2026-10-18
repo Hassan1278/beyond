@@ -799,7 +799,10 @@ Object.assign(PHRASES, {
   'Confirm, pop, or customize: you choose which ones to grow into.':
     '确认、戳破或自定义：由你决定要成长成哪一个。',
   You: '你',
-  'Today’s step': '今天的一小步',
+  'Today’s goal': '今天的目标',
+  'Today’s goal and your to-dos': '今天的目标和你的待办',
+  'Your next letter brings one goal for the day. It shows here.':
+    '下一封信会带来今天的一个目标，会显示在这里。',
   'Your to-dos': '你的待办',
   'Your next letter brings one small step for the day. It shows here.':
     '下一封信会带来今天的一小步，会显示在这里。',

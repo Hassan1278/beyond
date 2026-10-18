@@ -790,7 +790,9 @@ try {
     'Identity has its own tab and says when a direction will appear',
   );
   check(
-    (await page.locator('.id-step .id-step-t').innerText()).includes('Walk ten minutes') &&
+    (await page.locator('.id-step .id-k').innerText()).toLowerCase() === 'today’s goal' &&
+      (await page.locator('.id-layout > .id-do .id-step + .id-todos').count()) === 1 &&
+      (await page.locator('.id-step .id-step-t').innerText()).includes('Walk ten minutes') &&
       (await page.locator('.id-step.is-done').count()) === 1,
     'Identity shows today’s step from the morning’s letter, done because it was done in the letter',
   );

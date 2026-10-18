@@ -1232,11 +1232,13 @@ main.v-tonight { max-width: 1320px; padding-top: 6px; padding-bottom: 96px; gap:
 .bk-saved { margin-right: auto; font-size: 12.5px; color: var(--faint); }
 @media (max-width: 520px) { .bk-page.tn .tn-bar > .btn { flex: 0 0 auto; } }
 /* an earlier day: read-only, on the same rules */
-.bk-entries { list-style: none; margin: 0; padding: 4px 2px 0; flex: 1; display: grid; align-content: start; gap: 12px; }
-/* each entry: its time on one line, the words below, on its own ruled lines */
-.bk-entries li { background: var(--dots) 0 calc(var(--rule) / 2) / 6px var(--rule) repeat; font: 400 16px/var(--rule) var(--f-display); }
-.bk-time { display: block; font: 600 11px/var(--rule) var(--f-ui); letter-spacing: .05em; color: var(--faint); }
-.bk-entries p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.bk-entries { --rule: 30px; list-style: none; margin: 0; padding: 6px 2px 0; flex: 1; display: grid; align-content: start; gap: 14px; }
+/* each entry: its time small on a line that breaks the rule, the words below on their own ruled lines */
+.bk-entries li { display: grid; gap: 2px; }
+.bk-sep { position: relative; display: flex; align-items: center; height: 16px; }
+.bk-sep::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid color-mix(in srgb, var(--cream) 18%, transparent); }
+.bk-time { position: relative; display: inline-block; margin-left: 10px; padding: 0 6px; background: var(--night-2); font: 600 10.5px/16px var(--f-ui); letter-spacing: .06em; color: var(--faint); }
+.bk-entries p { font: 400 16px/var(--rule) var(--f-display); white-space: pre-wrap; overflow-wrap: anywhere; background: var(--dots) 0 calc(var(--rule) / 2) / 6px var(--rule) repeat; }
 .bk-foot { flex: none; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--cream) 30%, transparent); display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 12px; }
 .bk-read { display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px; }
 .bk-read svg { width: 13px; height: 13px; }
@@ -1485,3 +1487,10 @@ main.v-identity:not(:has(.dir-head)) { gap: 14px; padding-top: clamp(8px, 1.6vw,
 .bk-open-front span { font: italic 400 15px/1 var(--f-display); color: color-mix(in srgb, var(--cream) 70%, transparent); letter-spacing: .04em; }
 .bk-open-back { transform: rotateY(180deg); background: var(--night-2); border: 1px solid var(--night-line); border-radius: 8px 3px 3px 8px; }
 .bk-open-sheet { position: absolute; inset: 3px 3px 3px 0; transform-origin: left center; background: color-mix(in srgb, var(--night-2) 90%, var(--cream)); border: 1px solid var(--night-line); border-radius: 0 6px 6px 0; box-shadow: 0 6px 12px -8px rgba(0,0,0,.6); }
+
+/* Identity home: the constellation on the left, a bar on the right with today's goal above your to-dos */
+main.v-identity:not(:has(.dir-head)) { max-width: 1320px; }
+.id-layout { display: grid; grid-template-columns: minmax(0, 1fr) clamp(280px, 25vw, 340px); gap: 20px; align-items: start; }
+.id-layout .id-do { grid-template-columns: minmax(0, 1fr); max-width: none; position: sticky; top: 88px; gap: 12px; }
+.id-layout .id-step-t { font-size: 18px; }
+@media (max-width: 900px) { .id-layout { grid-template-columns: minmax(0, 1fr); } .id-layout .id-do { position: static; } }
