@@ -79,10 +79,13 @@ export async function runLettersAcceptance({
       );
       const ready = data(await api(`/api/v1/letters/${letter.id}`, owner));
       check(ready.status === 'ready' && ready.model === 'fixture-model', 'Letter must be ready.');
-      check(ready.content.steps.length === 3, 'Letter must have three to-dos.');
       check(
-        ready.content.analysis[0].quote === 'Fictional harbour walk after',
-        'Quotes must be the exact words.',
+        ready.content.version === 3 && ready.content.steps.length === 1,
+        'Letter must have one small step.',
+      );
+      check(
+        ready.content.evidence[0] === 'Fictional harbour walk after',
+        'Evidence must be the exact words.',
       );
       const memories = data(await api('/api/v1/memories', owner)).items;
       check(
@@ -103,7 +106,7 @@ export async function runLettersAcceptance({
       await api(
         `/api/v1/letters/${letter.id}`,
         owner,
-        json('PATCH', { steps: { 'step.0': 'tried', 'step.2': 'skipped' } }),
+        json('PATCH', { steps: { 'step.0': 'tried' } }),
       ),
     );
     check(ticked.steps['step.0'] === 'tried', 'To-do must be saved.');

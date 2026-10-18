@@ -23,9 +23,34 @@ describe('explicit private product inputs', () => {
     { expected_revision: 1, memory_paused: 'false' },
     { expected_revision: 0, voice: 'friend' },
     { expected_revision: 1, morning_time: '03:00' },
+    { expected_revision: 1, welcome_reasons: ['astronaut'] },
+    { expected_revision: 1, welcome_reasons: ['mind', 'mind'] },
+    { expected_revision: 1, welcome_other: '   ' },
+    { expected_revision: 1, welcome_other: 'x'.repeat(151) },
+    { expected_revision: 1, welcome_seen: 'yes' },
+    { expected_revision: 1, draft: '   ' },
+    { expected_revision: 1, draft: 'x'.repeat(20_001) },
   ])('rejects unsafe settings patch %#', (value) =>
     expect(patchSettingsSchema.safeParse(value).success).toBe(false),
   );
+  it('accepts the welcome answers', () => {
+    const ok = patchSettingsSchema.safeParse({
+      expected_revision: 1,
+      welcome_seen: true,
+      welcome_reasons: ['want', 'other'],
+      welcome_other: 'Fictional: a new city',
+    });
+    expect(ok.success).toBe(true);
+    expect(
+      patchSettingsSchema.safeParse({ expected_revision: 1, welcome_other: null }).success,
+    ).toBe(true);
+  });
+  it('accepts a draft kept as typed, or cleared', () => {
+    expect(
+      patchSettingsSchema.safeParse({ expected_revision: 1, draft: '  Fictional\n' }).success,
+    ).toBe(true);
+    expect(patchSettingsSchema.safeParse({ expected_revision: 1, draft: null }).success).toBe(true);
+  });
   it('requires explicit approval and source choice', () => {
     const base = { text: 'Fictional memory', source_entry_id: null, idempotency_key: id };
     expect(createMemorySchema.safeParse(base).success).toBe(false);

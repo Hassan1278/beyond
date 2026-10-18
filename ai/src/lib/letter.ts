@@ -1,13 +1,6 @@
 import { z } from 'zod';
-import {
-  ACTION_KINDS,
-  LENSES,
-  LETTER_EXAMPLE,
-  LETTER_RULES,
-  LETTER_SHAPE,
-  THEME_KEYS,
-  VOICES,
-} from './wording';
+import { THEME_KEYS } from './wording';
+import { LETTER_SYSTEM_PROMPT } from './letter-prompt';
 import type { StructuredRequest, Validation } from './providers';
 
 const text = (max: number) => z.string().min(1).max(max);
@@ -45,86 +38,81 @@ export const letterInputSchema = z.strictObject({
 });
 export type LetterInput = z.infer<typeof letterInputSchema>;
 
+/** Letter format version 3: one flowing letter, one question, one small step. */
+export const NIGHT_TYPES = ['heavy', 'good', 'mixed', 'comparison', 'decision', 'quiet'];
+export const STEP_CATEGORIES = [
+  'reflection',
+  'connection',
+  'rest',
+  'focus',
+  'movement',
+  'exploration',
+];
+const VOICE_NAMES: Record<string, string> = {
+  friend: 'Friend',
+  mentor: 'Mentor',
+  future: 'Future you',
+  diary: 'Just the notes',
+};
+const LANGUAGE_NAMES: Record<string, string> = {
+  auto: 'Auto',
+  en: 'English',
+  'zh-hant': 'Traditional Chinese',
+  'zh-hans': 'Simplified Chinese',
+};
+
 /** The structure the model is asked for (tool input / JSON mode). Checked again by validateLetter. */
 export const LETTER_JSON_SCHEMA: Record<string, unknown> = {
   type: 'object',
   required: [
-    'language',
-    'greeting',
-    'signoff',
-    'headline',
-    'recap',
-    'analysis',
-    'challenge',
-    'advice',
-    'encouragement',
-    'steps',
+    'safety_flag',
+    'night_type',
+    'title',
+    'body',
+    'reflection_question',
+    'small_step',
     'themes',
-    'openQuestions',
-    'wins',
-    'tone',
-    'safetyConcern',
-    'remember',
+    'evidence',
   ],
   properties: {
-    language: { type: 'string', enum: ['en', 'zh-hant', 'zh-hans', 'mixed'] },
-    greeting: { type: 'string' },
-    signoff: { type: 'string' },
-    headline: { type: 'string' },
-    recap: { type: 'string' },
-    analysis: {
-      type: 'array',
-      minItems: 2,
-      maxItems: 2,
-      items: {
-        type: 'object',
-        required: ['lens', 'title', 'text', 'quote', 'entryId'],
-        properties: {
-          lens: { type: 'string', enum: LENSES },
-          title: { type: 'string' },
-          text: { type: 'string' },
-          quote: { type: 'string' },
-          entryId: { type: 'string' },
-        },
-      },
-    },
-    challenge: {
-      type: 'object',
-      required: ['issue', 'cause'],
-      properties: { issue: { type: 'string' }, cause: { type: 'string' } },
-    },
-    advice: {
-      type: 'object',
-      required: ['text', 'why'],
-      properties: { text: { type: 'string' }, why: { type: 'string' } },
-    },
-    encouragement: { type: 'string' },
-    steps: {
-      type: 'array',
-      minItems: 3,
-      maxItems: 3,
-      items: {
-        type: 'object',
-        required: ['text', 'kind', 'minutes', 'why'],
-        properties: {
-          text: { type: 'string' },
-          kind: { type: 'string', enum: ACTION_KINDS },
-          minutes: { type: 'number' },
-          why: { type: 'string' },
-        },
+    safety_flag: { type: 'string', enum: ['none', 'watch', 'urgent'] },
+    night_type: { type: 'string', enum: NIGHT_TYPES },
+    title: { type: 'string' },
+    body: { type: 'string' },
+    reflection_question: { type: ['string', 'null'] },
+    small_step: {
+      type: ['object', 'null'],
+      required: ['text', 'minutes', 'category'],
+      properties: {
+        text: { type: 'string' },
+        minutes: { type: 'number' },
+        category: { type: 'string', enum: STEP_CATEGORIES },
       },
     },
     themes: { type: 'array', items: { type: 'string', enum: THEME_KEYS } },
-    openQuestions: { type: 'array', items: { type: 'string' } },
-    wins: {
+    evidence: { type: 'array', items: { type: 'string' } },
+    activities: {
       type: 'array',
       items: {
         type: 'object',
-        properties: { text: { type: 'string' }, entryId: { type: 'string' } },
+        required: ['name', 'energy', 'absorption'],
+        properties: {
+          name: { type: 'string' },
+          energy: { type: 'number' },
+          absorption: { type: 'number' },
+        },
       },
     },
-    tone: { type: 'string', enum: ['difficult', 'mixed', 'positive', 'ordinary'] },
-    safetyConcern: { type: 'boolean' },
+    compass: {
+      type: 'object',
+      properties: {
+        loves: { type: 'array', items: { type: 'string' } },
+        good_at: { type: 'array', items: { type: 'string' } },
+        matters: { type: 'array', items: { type: 'string' } },
+        within_reach: { type: 'array', items: { type: 'string' } },
+      },
+    },
+    interests: { type: 'array', items: { type: 'string' } },
     remember: {
       type: 'array',
       maxItems: 2,
@@ -137,25 +125,26 @@ export const LETTER_JSON_SCHEMA: Record<string, unknown> = {
   },
 };
 
-const SYSTEM =
-  'You are the writing engine of Beyond, a quiet journaling app. Follow the instructions in the user message exactly and return only the JSON object it asks for.';
-
 export function letterRequest(input: LetterInput): StructuredRequest {
-  const voice = VOICES[input.voice];
   const prompt = {
-    journalDate: input.journal_date,
-    language: input.language,
-    voice: voice.name,
-    voiceGuide: voice.prompt,
-    allowedThemes: THEME_KEYS,
+    date: input.journal_date,
+    voice: VOICE_NAMES[input.voice],
+    letter_language: LANGUAGE_NAMES[input.language],
     memories: input.memories,
-    entries: input.entries.map((e) => ({ id: e.id, writtenAt: e.written_at, text: e.text })),
-    earlierLetters: input.earlier_letters,
+    past_entries: input.earlier_letters.map((l) => ({
+      date: l.date,
+      title: l.headline,
+      themes: l.themes,
+      open_questions: l.openQuestions,
+    })),
+    step_feedback: input.earlier_letters.flatMap((l) =>
+      l.stepsTheyMarkedNotForMe.map((text) => ({ step: text, feedback: 'Not for me' })),
+    ),
+    entry: input.entries.map((e) => ({ id: e.id, written_at: e.written_at, text: e.text })),
   };
-  const user = `${LETTER_RULES}\n\nReply with only one JSON object of exactly this shape (analysis: exactly 2 items; steps: exactly 3 items):\n${LETTER_SHAPE}\n\n${LETTER_EXAMPLE}\n\nInput:\n${JSON.stringify(prompt, null, 1)}`;
   return {
-    system: SYSTEM,
-    user,
+    system: LETTER_SYSTEM_PROMPT,
+    user: `Write the letter for this night. Reply with only the JSON object.\n\n${JSON.stringify(prompt, null, 1)}`,
     schema: LETTER_JSON_SCHEMA,
     name: 'beyond_letter',
     maxTokens: 3000,
@@ -173,36 +162,86 @@ const clip = (s: unknown, n: number) => {
 const list = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 const obj = (v: unknown): Record<string, unknown> =>
   v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+const shortList = (v: unknown, max: number, len: number) =>
+  [
+    ...new Set(
+      list(v)
+        .map((x) => clip(x, len))
+        .filter(Boolean),
+    ),
+  ].slice(0, max);
+const level = (v: unknown) => Math.max(-2, Math.min(2, Math.round(Number(v) || 0)));
+
+/** The letter body: paragraphs kept, spaces tidied, at most 4000 characters. */
+function cleanBody(v: unknown): string {
+  return String(v ?? '')
+    .replace(/\r\n?/g, '\n')
+    .split(/\n{2,}/)
+    .map((p) =>
+      p
+        .split('\n')
+        .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+        .join('\n')
+        .trim(),
+    )
+    .filter(Boolean)
+    .join('\n\n')
+    .slice(0, 4000);
+}
+
+const CJK = /[㐀-鿿]/;
+const HANS = /[这们说时国过还见么没东车门问会对开关让给发长现实学习觉经]/g;
+const HANT = /[這們說時國過還見麼沒東車門問會對開關讓給發長現實學習覺經嘅咗唔]/g;
+function writtenIn(input: LetterInput, body: string): string {
+  if (input.language !== 'auto') return input.language;
+  const t = body.replace(/\{\{name\}\}/g, '');
+  const zh = CJK.test(t);
+  const en = /[a-z]{3,}/i.test(t.replace(/[㐀-鿿]/g, ''));
+  if (zh && en) return 'mixed';
+  if (!zh) return 'en';
+  return (t.match(HANS) || []).length > (t.match(HANT) || []).length ? 'zh-hans' : 'zh-hant';
+}
+
+const SAFETY_CONTACTS =
+  'Emergency: 999\nShall We Talk / mental health support hotline: 18111 (24 hours)\nThe Samaritans Hong Kong: 2896 0000 (24 hours)\nOpen Up (online chat for young people): openup.hk';
+const TONE: Record<string, string> = {
+  heavy: 'difficult',
+  good: 'positive',
+  mixed: 'mixed',
+  comparison: 'mixed',
+  decision: 'mixed',
+  quiet: 'ordinary',
+};
 
 export interface LetterContent {
+  version: 3;
   voice: string;
-  greeting: string;
-  signoff: string;
   language: string;
+  title: string;
   headline: string;
-  recap: string;
-  analysis: Array<{
-    lens: string;
-    title: string;
-    text: string;
-    quote: string;
-    entryId: string | null;
-  }>;
-  challenge: { issue: string; cause: string } | null;
-  advice: { text: string; why: string };
-  encouragement: string;
+  body: string;
+  reflection_question: string | null;
+  small_step: { text: string; minutes: number; category: string } | null;
   steps: Array<{ text: string; kind: string; minutes: number; why: string }>;
-  themes: string[];
   openQuestions: string[];
-  wins: Array<{ text: string; entryId: string | null }>;
-  tone: string;
+  night_type: string;
+  safety_flag: string;
   safetyConcern: boolean;
+  tone: string;
+  themes: string[];
+  evidence: string[];
+  activities: Array<{ name: string; energy: number; absorption: number }>;
+  compass: { loves: string[]; good_at: string[]; matters: string[]; within_reach: string[] };
+  interests: string[];
   remember: Array<{ text: string; entryId: string }>;
 }
 
 /**
- * The prototype's checks: quotes must be the person's exact words, exactly
- * three steps, nothing outside the allowed vocabularies, clipped lengths.
+ * Checks for a version 3 letter: a body with no headings and no quotation marks
+ * around the person's words, exactly one question and one step (none when urgent),
+ * evidence that really is their words, and only known vocabularies.
+ * Older fields (headline, steps, tone, openQuestions, safetyConcern) are filled in
+ * from the new ones so the database, notes and older app screens keep working.
  */
 export function validateLetter(raw: unknown, input: LetterInput): Validation<LetterContent> {
   const problems: string[] = [];
@@ -211,91 +250,97 @@ export function validateLetter(raw: unknown, input: LetterInput): Validation<Let
   const r = raw as Record<string, unknown>;
   const entries = input.entries;
   const ids = new Set(entries.map((e) => e.id));
-  const full = norm(entries.map((e) => e.text).join('\n'));
-  const single = entries.length === 1 ? entries[0]!.id : null;
-  const headline = clip(r.headline, 140);
-  const recap = clip(r.recap, 900);
-  if (!headline) problems.push('headline is empty');
-  if (!recap) problems.push('recap is empty');
-  const analysis = list(r.analysis)
-    .map(obj)
-    .filter((a) => norm(a.text))
-    .slice(0, 2)
-    .map((a) => {
-      let quote = clip(a.quote, 200).replace(/^["“「『']|["”」』']$/g, '');
-      if (quote && !full.includes(quote)) quote = '';
-      let entryId = typeof a.entryId === 'string' && ids.has(a.entryId) ? a.entryId : null;
-      if (quote) entryId = entries.find((e) => norm(e.text).includes(quote))?.id ?? entryId;
-      return {
-        lens: LENSES.includes(String(a.lens)) ? String(a.lens) : 'pattern',
-        title: clip(a.title, 70) || 'A possible reading',
-        text: clip(a.text, 500),
-        quote,
-        entryId: entryId ?? single,
-      };
-    });
-  if (!analysis.length) problems.push('no insights');
-  const advice = obj(r.advice);
-  const adviceText = clip(advice.text, 600);
-  if (!adviceText) problems.push('advice is empty');
-  const steps = list(r.steps)
-    .map(obj)
-    .filter((s) => norm(s.text))
-    .slice(0, 3)
-    .map((s) => ({
-      text: clip(s.text, 160),
-      kind: ACTION_KINDS.includes(String(s.kind)) ? String(s.kind) : 'practical',
-      minutes: Math.min(60, Math.max(1, Math.round(Number(s.minutes) || 10))),
-      why: clip(s.why, 200),
-    }));
-  if (steps.length < 3) problems.push(`needs exactly 3 steps (got ${steps.length})`);
+  const full = norm(entries.map((e) => e.text).join('\n')).toLowerCase();
+  const safety = ['none', 'watch', 'urgent'].includes(String(r.safety_flag))
+    ? String(r.safety_flag)
+    : 'none';
+  const urgent = safety === 'urgent';
+  const title = clip(r.title, 80);
+  let body = cleanBody(r.body);
+  if (!title) problems.push('title is empty');
+  if (!body) problems.push('body is empty');
+  if (/^\s*(#|\*\*|[-•*] )/m.test(body) || /\*\*/.test(body))
+    problems.push('the body must be plain paragraphs: no headings, bullets or bold');
+  for (const m of body.matchAll(/[“"「『]([^”"」』]{6,})[”"」』]/g)) {
+    if (full.includes(norm(m[1]).toLowerCase())) {
+      problems.push(
+        'do not put quotation marks around the user’s words; weave them into your sentences',
+      );
+      break;
+    }
+  }
+  const question = urgent ? null : clip(r.reflection_question, 220) || null;
+  const step = obj(r.small_step);
+  const smallStep =
+    urgent || !norm(step.text)
+      ? null
+      : {
+          text: clip(step.text, 220),
+          minutes: Math.min(15, Math.max(1, Math.round(Number(step.minutes) || 10))),
+          category: STEP_CATEGORIES.includes(String(step.category))
+            ? String(step.category)
+            : 'reflection',
+        };
+  if (!urgent && !question) problems.push('needs exactly one reflection question');
+  if (!urgent && !smallStep) problems.push('needs exactly one small step');
   if (problems.length) return { ok: false, problems };
-  const challenge = obj(r.challenge);
-  const issue = clip(challenge.issue, 120);
-  const safetyConcern = r.safetyConcern === true;
+  if (urgent && !/999/.test(body)) body = `${body}\n\n${SAFETY_CONTACTS}`;
+  const evidence = shortList(r.evidence, 6, 160).filter((e) =>
+    full.includes(
+      norm(e)
+        .replace(/^["“「『']|["”」』']$/g, '')
+        .toLowerCase(),
+    ),
+  );
+  const compass = obj(r.compass);
+  const quiet = urgent || safety === 'watch' || r.night_type === 'heavy';
+  const night = NIGHT_TYPES.includes(String(r.night_type)) ? String(r.night_type) : 'mixed';
   return {
     ok: true,
     value: {
+      version: 3,
       voice: input.voice,
-      greeting: clip(r.greeting, 120),
-      signoff: String(r.signoff ?? '')
-        .replace(/[ \t]+/g, ' ')
-        .trim()
-        .slice(0, 120),
-      language: ['en', 'zh', 'zh-hant', 'zh-hans', 'mixed'].includes(String(r.language))
-        ? String(r.language)
-        : 'mixed',
-      headline,
-      recap,
-      analysis,
-      challenge: issue ? { issue, cause: clip(challenge.cause, 400) } : null,
-      advice: { text: adviceText, why: clip(advice.why, 240) },
-      encouragement: clip(r.encouragement, 400),
-      steps,
+      language: writtenIn(input, body),
+      title,
+      headline: title,
+      body,
+      reflection_question: question,
+      small_step: smallStep,
+      steps: smallStep
+        ? [{ text: smallStep.text, kind: smallStep.category, minutes: smallStep.minutes, why: '' }]
+        : [],
+      openQuestions: question ? [question] : [],
+      night_type: night,
+      safety_flag: safety,
+      safetyConcern: safety !== 'none',
+      tone: TONE[night] ?? 'mixed',
       themes: [
         ...new Set(
           list(r.themes).filter(
             (t): t is string => typeof t === 'string' && THEME_KEYS.includes(t),
           ),
         ),
-      ].slice(0, 5),
-      openQuestions: list(r.openQuestions)
-        .map((q) => clip(q, 200))
-        .filter(Boolean)
-        .slice(0, 3),
-      wins: list(r.wins)
-        .map(obj)
-        .filter((w) => norm(w.text))
-        .slice(0, 4)
-        .map((w) => ({
-          text: clip(w.text, 200),
-          entryId: typeof w.entryId === 'string' && ids.has(w.entryId) ? w.entryId : null,
-        })),
-      tone: ['difficult', 'mixed', 'positive', 'ordinary'].includes(String(r.tone))
-        ? String(r.tone)
-        : 'mixed',
-      safetyConcern,
-      remember: safetyConcern
+      ].slice(0, 3),
+      evidence,
+      activities: urgent
+        ? []
+        : list(r.activities)
+            .map(obj)
+            .filter((a) => norm(a.name))
+            .slice(0, 6)
+            .map((a) => ({
+              name: clip(a.name, 40),
+              energy: level(a.energy),
+              absorption: level(a.absorption),
+            })),
+      compass: {
+        loves: urgent ? [] : shortList(compass.loves, 2, 50),
+        good_at: urgent ? [] : shortList(compass.good_at, 2, 50),
+        matters: urgent ? [] : shortList(compass.matters, 2, 50),
+        within_reach: urgent ? [] : shortList(compass.within_reach, 2, 50),
+      },
+      interests: urgent ? [] : shortList(r.interests, 3, 40),
+      remember: quiet
         ? []
         : list(r.remember)
             .map(obj)

@@ -7,11 +7,13 @@ See [API reference](api.md) and [AI service](ai-service.md) for exact bounds, ro
   - Original payloads, idempotency keys, job/lease metadata, note source ids, forgotten-memory hashes and AI quotas are private columns or tables.
 - **The browser.**
   - Journal text, drafts and letters are held in page memory only, never in localStorage, sessionStorage or offline caches.
+  - Unsealed words on today's journal page are also saved to the person's own account as a draft (`user_settings.draft`, a second after typing stops), so nothing is lost if they leave. The draft is never sent to the letter writer or used in any letter or note; sealing clears it. Until migration `20261019000000_drafts` is applied the draft stays in page memory only.
   - The Supabase session (tokens only) is in sessionStorage, so closing the tab signs out.
   - localStorage holds only display choices: write or speak, speech language, demo mode, and the site's theme.
   - The site's fictional demo keeps what a visitor types in memory only, and clears the storage older versions used.
 - **Sealing is consent.**
   - Saving a night alone sends nothing anywhere. Sealing it asks for one letter.
+  - Writing again the same night (before 4am, the end of a journal day) adds to that night's entry, with a `[HH:MM]` line before each later part; the night's letter is then written again over everything, so the morning brings one letter.
   - The letter writer then receives only what [the contract](ai-service.md#post-v1letters) lists: that night's words, voice and language, visible memories unless paused, and outlines of up to four earlier letters kept in Patterns.
   - It never receives email, name, account or user ids, other nights, private letters, or forgotten memories.
   - The AI service has no database or admin credentials and stores nothing. Provider requests carry only the prompt.

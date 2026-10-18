@@ -17,7 +17,7 @@ const SENT = [
 
 const AUTOMATIC = [
   'Your email, name or account',
-  'Other nights, letters you keep out of Patterns, or anything you forgot',
+  'Other nights, letters you keep out of Growth, or anything you forgot',
   'Your location, contacts or device details',
 ];
 

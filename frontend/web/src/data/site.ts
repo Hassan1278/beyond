@@ -147,7 +147,7 @@ export const SAFEGUARDS = [
   },
   {
     title: 'Memory you can see',
-    body: 'A letter may remember at most two small things you wrote, each linked to its night. Edit or forget any of them; a forgotten memory is never learned again. Keep a night out of Patterns and nothing learned from it is used. Changing your words removes that night’s letter.',
+    body: 'A letter may remember at most two small things you wrote, each linked to its night. Edit or forget any of them; a forgotten memory is never learned again. Keep a night out of Growth and nothing learned from it is used. Changing your words removes that night’s letter.',
   },
   {
     title: 'Control what stays',

@@ -2,7 +2,7 @@
  * Drives the real journal app (/app) in Chromium against a fake Supabase Auth
  * and a fake product API, so the whole UI flow is checked without a database:
  * sign in, onboarding, sealing a night, a letter arriving, opening it, ticking a
- * to-do, Letters with search, Identity, Patterns, Settings with memory,
+ * to-do, Letters with search, Identity, Growth, Settings with memory,
  * export, Demo mode (a sample night sealed and answered by the AI), and
  * signing out.
  * Also checks that nothing the person writes is left in browser storage, and
@@ -25,6 +25,7 @@ const API = 'https://api.example.test';
 const SHOTS = process.env.SMOKE_SHOTS ?? '';
 const USER = { id: '11111111-1111-4111-8111-111111111111', email: 'kit.fictional@example.test' };
 const SECRET_WORDS = 'Fictional night: I walked along the harbour after class and felt calm.';
+const LATER_WORDS = 'Fictional, later: I called my grandma before bed.';
 
 let failures = 0;
 const check = (ok, message) => {
@@ -49,6 +50,10 @@ const db = {
     allow_early: true,
     onboarded: false,
     directions: {},
+    welcome_seen: false,
+    welcome_reasons: [],
+    welcome_other: null,
+    draft: null,
     revision: 1,
     updated_at: now(),
   },
@@ -62,41 +67,25 @@ const db = {
   spoken: [],
 };
 const content = (entryId) => ({
+  version: 3,
   voice: 'mentor',
-  greeting: 'Good morning.',
-  signoff: 'Until tonight.',
   language: 'en',
+  title: 'A calm walk by the harbour',
   headline: 'A calm walk by the harbour',
-  recap: 'You wrote that you walked along the harbour after class and felt calm.',
-  analysis: [
-    {
-      lens: 'feeling',
-      title: 'Calm after class',
-      text: 'It might be that walking helps you land.',
-      quote: 'felt calm',
-      entryId,
-    },
-    {
-      lens: 'pattern',
-      title: 'Water helps',
-      text: 'The harbour came up as a place to breathe.',
-      quote: 'walked along the harbour',
-      entryId,
-    },
-  ],
-  challenge: { issue: 'Nothing needs fixing', cause: 'An ordinary good day.' },
-  advice: { text: 'Walk the harbour again on Thursday.', why: 'You felt calm there.' },
-  encouragement: 'You noticed the calm instead of rushing past it.',
-  steps: [
-    { text: 'Walk ten minutes without your phone', kind: 'rest', minutes: 10, why: 'Calm.' },
-    { text: 'Send a friend the harbour photo', kind: 'connection', minutes: 3, why: 'Share it.' },
-    { text: 'Write one line about the walk', kind: 'reflection', minutes: 3, why: 'Keep it.' },
-  ],
-  themes: ['rest', 'nature'],
-  openQuestions: [],
-  wins: [{ text: 'Walked after class', entryId }],
-  tone: 'positive',
+  body: 'Good morning {{name}},\n\nYou walked along the harbour after class and the calm came while you were walking, not after.\n\nThat is worth noticing: you slow down when there is water nearby.\n\nUntil tonight.',
+  reflection_question: 'Where else today could you slow down like that?',
+  small_step: { text: 'Walk ten minutes without your phone', minutes: 10, category: 'rest' },
+  steps: [{ text: 'Walk ten minutes without your phone', kind: 'rest', minutes: 10, why: '' }],
+  openQuestions: ['Where else today could you slow down like that?'],
+  night_type: 'good',
+  safety_flag: 'none',
   safetyConcern: false,
+  tone: 'positive',
+  themes: ['rest', 'nature'],
+  evidence: ['walked along the harbour', 'felt calm'],
+  activities: [{ name: 'Harbour walk', energy: 2, absorption: 1 }],
+  compass: { loves: ['walking by the water'], good_at: [], matters: ['calm'], within_reach: [] },
+  interests: ['walking'],
   remember: [{ text: 'Walks by the harbour to feel calm', entryId }],
 });
 function finishLetter(letter) {
@@ -171,6 +160,8 @@ async function api(route) {
   }
   if (path === '/letters' && req.method() === 'GET')
     return ok(route, { items: [...db.letters].reverse(), next_cursor: null });
+  if (path === '/entries' && req.method() === 'GET')
+    return ok(route, { entries: [...db.entries].reverse(), next_cursor: null });
   if (path === '/entries' && req.method() === 'POST') {
     const e = {
       id: uuid(),
@@ -183,8 +174,21 @@ async function api(route) {
     db.entries.push(e);
     return ok(route, e);
   }
+  const em = path.match(/^\/entries\/([0-9a-f-]{36})$/);
+  if (em) {
+    const e = db.entries.find((x) => x.id === em[1]);
+    if (!e) return err(route, 'not_found', 404);
+    if (req.method() === 'PATCH') {
+      if (body.expected_revision !== e.revision) return err(route, 'conflict', 409);
+      Object.assign(e, { text: body.text, revision: e.revision + 1, updated_at: now() });
+      // editing a night removes its letter, as the database's privacy cascade does
+      db.letters = db.letters.filter((l) => l.entry_id !== e.id);
+    }
+    return ok(route, e);
+  }
   if (path === '/letters' && req.method() === 'POST') {
     if (body.consent !== true) return err(route, 'bad_request', 400);
+    if (db.lettersUsedUp) return err(route, 'rate_limited', 429);
     const e = db.entries.find((x) => x.id === body.entry_id);
     const l = {
       id: uuid(),
@@ -372,23 +376,120 @@ try {
   check(true, 'a wrong password is refused without saying whether the account exists');
   await page.fill('#password', 'fictional-password');
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await page.getByRole('button', { name: 'Start my journal' }).waitFor();
+  console.log('welcome');
+  const next = page.locator('.onb-next');
+  const step = async () => ({
+    label: (await page.locator('.onb-count').innerText()).trim(),
+    bar: await page.locator('.onb-bar').getAttribute('aria-valuenow'),
+  });
+  await page.getByRole('heading', { name: 'How Beyond works' }).waitFor();
   await shot(page, '02-welcome');
-
-  console.log('onboarding');
-  await page.getByRole('button', { name: 'Start my journal' }).click();
-  await page.getByText('Who should write your morning letters?').waitFor();
-  await page.locator('[data-voice="mentor"]').click();
-  await page.getByRole('button', { name: 'Start writing' }).click();
-  await page.locator('#entry').waitFor();
-  await sleep(700);
+  let at = await step();
+  check(at.label === '1 of 4' && at.bar === '1', 'the welcome opens on screen 1 of 4');
+  check(await next.isDisabled(), 'Next waits while the three steps appear');
+  check(!(await page.locator('.topbar').count()), 'the welcome comes before any tab');
+  await page.waitForFunction(() => !document.querySelector('.onb-next')?.disabled, null, {
+    timeout: 6000,
+  });
+  check(true, 'Next lights up once all three steps are shown');
+  await next.click();
+  await page.getByRole('heading', { name: 'What brings you here?' }).waitFor();
+  at = await step();
+  check(at.label === '2 of 4' && at.bar === '2', 'screen 2 of 4');
+  check(await next.isDisabled(), 'Next waits for an answer');
+  await page.locator('[data-onb-reason="other"]').click();
   check(
-    db.settings.voice === 'mentor' && db.settings.onboarded === true,
-    'voice and onboarding are saved to the account',
+    !(await next.isDisabled()) && (await page.locator('#onb-other').isVisible()),
+    '“Something else” counts as a choice and opens a box',
+  );
+  await page.fill('#onb-other', 'Fictional: a new city');
+  check(!(await next.isDisabled()), 'words in the box are enough');
+  await page.fill('#onb-other', '   ');
+  await page.locator('[data-onb-reason="mind"]').click();
+  await page.locator('[data-onb-reason="write"]').click();
+  check(
+    !(await next.isDisabled()) &&
+      (await page.locator('.onb-opt[aria-checked="true"]').count()) === 3,
+    'several answers can be chosen',
+  );
+  await page.fill('#onb-other', 'Fictional: a new city');
+  await next.click();
+  await page.getByRole('heading', { name: 'Who writes back each morning?' }).waitFor();
+  at = await step();
+  check(at.label === '3 of 4' && at.bar === '3', 'screen 3 of 4');
+  check(
+    (await next.isDisabled()) && !(await page.locator('.onb-voice[aria-checked="true"]').count()),
+    'no voice is chosen for you',
   );
   check(
-    await page.getByText('Write 3 more nights to see your first direction').isVisible(),
-    'Tonight shows how far away the first Identity direction is',
+    !(await page.getByText('never invents').count()) &&
+      (await page.getByText('Just the notes').isVisible()),
+    'screen 3 has the new wording',
+  );
+  check(!(await page.locator('.onb[data-step="0"] .onb-back').count()), 'screen 1 has no Back');
+  await page.locator('.onb-back').click();
+  await page.getByRole('heading', { name: 'What brings you here?' }).waitFor();
+  check(
+    (await step()).label === '2 of 4' &&
+      (await page.locator('.onb-opt[aria-checked="true"]').count()) === 3 &&
+      (await page.locator('#onb-other').inputValue()) === 'Fictional: a new city',
+    'Back returns to the last screen with every answer kept',
+  );
+  await next.click();
+  await page.getByRole('heading', { name: 'Who writes back each morning?' }).waitFor();
+  await page.locator('[data-onb-voice="mentor"]').click();
+  check(!(await next.isDisabled()), 'choosing a voice lights up Next');
+  check(
+    !(await page.locator('.onb-voice i').count()) &&
+      (await page.getByText('You can switch anytime in Settings.').isVisible()),
+    'screen 3 has no example quotes, and the Settings note sits under everything',
+  );
+  await page.fill('#onb-name', '  Kit  ');
+  await next.click();
+  await page.getByRole('heading', { name: 'Privacy', exact: true }).waitFor();
+  at = await step();
+  check(at.label === '4 of 4' && at.bar === '4', 'screen 4 of 4');
+  check(!(await page.locator('.onb-next').count()), 'the last screen has no Next');
+  check(
+    (await page.locator('.onb-privacy li').count()) === 3,
+    'the privacy screen has three points',
+  );
+  check(!(await page.locator('.onb-ready.is-shown').count()), '“I’m ready” waits a moment');
+  await page.locator('.onb-ready.is-shown').waitFor({ timeout: 6000 });
+  await shot(page, '02b-privacy');
+  await page.getByRole('button', { name: 'I’m ready' }).click();
+  await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
+  await sleep(700);
+  check(
+    db.settings.welcome_seen === true &&
+      db.settings.onboarded === true &&
+      db.settings.voice === 'mentor' &&
+      JSON.stringify(db.settings.welcome_reasons) === '["mind","write","other"]' &&
+      db.settings.welcome_other === 'Fictional: a new city' &&
+      db.settings.letter_name === 'Kit',
+    'the welcome, the voice and the answers are saved to the account',
+  );
+  check(!db.memories.some((m) => m.text.includes('new city')), 'the answers are not a memory');
+  await page.reload();
+  await page.locator('.topbar').waitFor();
+  check(!(await page.locator('.onb').count()), 'after a reload the welcome does not come back');
+  await page.locator('.tab[data-go="tonight"]').click();
+  await page.locator('#entry').waitFor();
+  check(
+    (await page.locator('.bk-page.is-write .bk-rule .bk-date').isVisible()) &&
+      !(await page.locator('#prompt, .tn-prompt').count()) &&
+      (await page.locator('#entry').getAttribute('placeholder')) === 'Write anything',
+    'Journal is a blank notebook page: the date top left, “Write anything” inside the page',
+  );
+  check(
+    !(await page.locator('.tn .lantern-wrap, .tn .samples, .tn .glance, .tn .arrived').count()),
+    'Journal keeps nothing else around the writing',
+  );
+  check(
+    (await page.locator('#book .bk-page.is-write #entry').count()) === 1 &&
+      (await page.locator('.bk-wrap.is-one .bk-strip .bk-sd.is-today.is-on').count()) === 1 &&
+      (await page.locator('.bk-edge.next').isDisabled()),
+    'Journal is a book opened at today’s writing page, with a date strip on a phone',
   );
   await shot(page, '03-tonight');
 
@@ -396,7 +497,7 @@ try {
   // Switched on after the page loaded, and with a language picked: the
   // recording still goes to Beyond's server, not the browser's speech service.
   db.transcribe = true;
-  await page.locator('.tab[data-go="settings"]').click();
+  await page.locator('.gear-btn[data-go="settings"]').click();
   await page.locator('#slang').selectOption('en-US');
   await page.locator('.tab[data-go="tonight"]').click();
   await page.locator('#orb').waitFor();
@@ -422,7 +523,20 @@ try {
   console.log('seal');
   await page.fill('#entry', SECRET_WORDS);
   await page.getByRole('button', { name: 'Seal tonight' }).click();
-  await page.getByText('Sealed for the night.').waitFor();
+  await page.locator('.bk-sealing').waitFor();
+  check(
+    (await page.locator('.bk-sealing').innerText()).includes(
+      'Sealed. Your letter arrives at 08:00.',
+    ),
+    'sealing shows the seal and the delivery time',
+  );
+  await page.locator('.bk-sealing').waitFor({ state: 'detached', timeout: 5000 });
+  await page.locator('.skip-morning').waitFor({ timeout: 20000 });
+  check(
+    (await page.locator('#entry').inputValue()) === '' &&
+      (await page.locator('.skip-morning').isVisible()),
+    'sealing goes back to a blank Journal page, ready for more writing',
+  );
   check(
     db.letters.length === 1 && db.letters[0].entry.text === SECRET_WORDS,
     'sealing saves the night and asks for one letter',
@@ -431,20 +545,110 @@ try {
     db.calls.includes('POST /entries') && db.calls.includes('POST /letters'),
     'the entry is saved before the letter is requested',
   );
-  await page.getByText('Claude is writing quietly').waitFor();
   await shot(page, '04-sealed');
   const stored = await page.evaluate(
     () => JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }),
   );
   check(!stored.includes('harbour'), 'nothing the person wrote is in browser storage');
 
+  console.log('the book');
+  await page.locator('.bk-sd:not(.is-today)').last().waitFor();
+  await page.locator('.bk-edge.prev').click();
+  await page.locator('.bk-page.is-day').waitFor();
+  check(
+    (await page.locator('.bk-page.is-day .bk-entries li').count()) === 1 &&
+      (await page.locator('.bk-page.is-day .bk-entries').innerText()).includes('harbour') &&
+      /\d{1,2}:\d\d(am|pm)/.test(await page.locator('.bk-page.is-day .bk-time').innerText()) &&
+      (await page.locator('.bk-page.is-day .bk-date').innerText()).includes('Earlier today') &&
+      !(await page.locator('.bk-page.is-day .bk-seal').count()) &&
+      (await page.locator('.bk-page.is-day').getByText('Letter on its way').isVisible()),
+    'a sealed day is a page with its words, their time, a past-journal label and the letter on its way',
+  );
+  check(
+    !(await page.locator('.bk-page.is-day textarea, .bk-page.is-day [contenteditable]').count()),
+    'past pages are read-only',
+  );
+  await page.locator('.bk-page.is-day .bk-date').click();
+  await page.keyboard.press('ArrowRight');
+  await page.locator('#entry').waitFor();
+  check(true, 'the arrow keys turn the pages');
+  await page.evaluate(() => {
+    const el = document.querySelector('.bk-page.is-write .bk-rule');
+    const touch = (x) => [new Touch({ identifier: 1, target: el, clientX: x, clientY: 300 })];
+    el.dispatchEvent(
+      new TouchEvent('touchstart', {
+        bubbles: true,
+        touches: touch(80),
+        changedTouches: touch(80),
+      }),
+    );
+    el.dispatchEvent(
+      new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: touch(300) }),
+    );
+  });
+  await page.locator('.bk-page.is-day').waitFor();
+  check(true, 'swiping turns back a page');
+  await page.locator('.bk-sd.is-today').click();
+  await page.locator('#entry').waitFor();
+  check(true, 'tapping Today in the strip turns to the writing page');
+
+  console.log('draft');
+  await page.fill('#entry', LATER_WORDS);
+  for (let t = 0; t < 40 && db.settings.draft !== LATER_WORDS; t++) await sleep(100);
+  check(
+    db.settings.draft === LATER_WORDS && db.letters.length === 1 && db.entries[0].revision === 1,
+    'unsealed words are saved as a draft on the account, and nothing is sent to the letter writer',
+  );
+  check(
+    !(
+      JSON.stringify(await page.evaluate(() => ({ ...localStorage, ...sessionStorage }))) || ''
+    ).includes('grandma'),
+    'the draft is never in browser storage',
+  );
+  await page.reload();
+  await page.locator('#entry').waitFor();
+  check(
+    (await page.locator('#entry').inputValue()) === LATER_WORDS,
+    'the draft is still there after leaving',
+  );
+
+  console.log('write again the same night');
+  await page.getByRole('button', { name: 'Seal tonight' }).click();
+  // wait for the second seal to reach the server, then for the page to come back
+  for (let t = 0; t < 100 && !(db.letters.length === 1 && db.entries[0].revision === 2); t++)
+    await sleep(100);
+  await page.locator('.bk-sealing').waitFor({ state: 'detached', timeout: 20000 });
+  await page.locator('.skip-morning').waitFor();
+  check(
+    db.letters.length === 1 &&
+      db.entries.length === 1 &&
+      new RegExp(`^${SECRET_WORDS}\\n\\n\\[\\d\\d:\\d\\d\\]\\n${LATER_WORDS}$`).test(
+        db.letters[0].entry.text,
+      ),
+    'writing again the same night adds to it, with its own time: one letter over everything written',
+  );
+  for (let t = 0; t < 40 && db.settings.draft !== null; t++) await sleep(100);
+  check(db.settings.draft === null, 'sealing clears the draft');
+  await page.locator('.bk-edge.prev').click();
+  await page.locator('.bk-page.is-day').waitFor();
+  check(
+    (await page.locator('.bk-page.is-day .bk-entries li').count()) === 2 &&
+      (await page.locator('.bk-page.is-day .bk-time').count()) === 2,
+    'both sealings that night are on the day’s page, each with its time',
+  );
+  await page.locator('.bk-sd.is-today').click();
+
   console.log('letter arrives');
   finishLetter(db.letters[0]);
-  await page.getByRole('button', { name: 'Read it now' }).click();
-  await page.getByRole('button', { name: 'Open the letter' }).waitFor({ timeout: 20000 });
-  check(db.letters[0].early === true, 'reading early is recorded');
+  await page.locator('.skip-morning').click();
+  await page.getByRole('button', { name: 'Open it' }).waitFor({ timeout: 20000 });
+  check(db.letters[0].early === true, 'Skip to morning delivers the letter early');
+  check(
+    await page.locator('.present').getByText('A letter arrived for you').isVisible(),
+    'the letter arrives as a present',
+  );
   await shot(page, '05-envelope');
-  await page.getByRole('button', { name: 'Open the letter' }).click();
+  await page.getByRole('button', { name: 'Open it' }).click();
   await page.getByText('A calm walk by the harbour').first().waitFor();
   await sleep(400);
   check(db.letters[0].read_at !== null, 'opening the letter marks it read');
@@ -454,31 +658,55 @@ try {
   );
   await shot(page, '06-letter');
 
-  console.log('to-dos');
-  await page.locator('[data-todo]').first().click();
-  await page.locator('[data-check="0"]').click();
+  console.log('one small step');
+  check(
+    (await page.locator('.lt-body p').first().innerText()).startsWith('Good morning Kit,') &&
+      !(await page.locator('.lt-body').innerText()).includes('{{name}}'),
+    'the letter uses the name from the welcome, filled in by the app',
+  );
+  check(
+    (await page.locator('.lt-end').count()) === 2 &&
+      (await page.locator('.lt-q').innerText()).includes('slow down') &&
+      !(await page.locator('.ls-label').count()),
+    'the letter is one flowing letter, then one question and one small step',
+  );
+  await page.locator('[data-step-skip]').click();
+  await sleep(400);
+  check(db.letters[0].steps['step.0'] === 'skipped', '“Not for me” is saved');
+  await page.locator('[data-step-skip]').click();
+  await sleep(300);
+  await page.locator('[data-step-done]').click();
   await sleep(500);
-  check(db.letters[0].steps['step.0'] === 'tried', 'ticking a to-do is saved');
-  await page.locator('[data-skip="1"]').click();
-  await sleep(500);
-  check(db.letters[0].steps['step.1'] === 'skipped', '“Not for me” is saved');
+  check(
+    db.letters[0].steps['step.0'] === 'tried' && (await page.locator('.lt-seal').count()) === 1,
+    'doing the one step is saved and earns the gold seal',
+  );
   await shot(page, '07-todos');
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
 
   console.log('letters');
   await page.locator('.tab[data-go="letters"]').click();
   await page.getByRole('heading', { name: 'Letters', exact: true }).waitFor();
   check(
-    await page.locator('.cover').getByText('A calm walk by the harbour').isVisible(),
-    'the newest letter is the cover of Letters',
+    await page.locator('.lp-card').getByText('A calm walk by the harbour').isVisible(),
+    'the newest letter is a small card at the top of Letters',
+  );
+  check(
+    (await page.locator('.lp-head').boundingBox()).height < 200 &&
+      (await page.locator('#arch-q').boundingBox()).y < 844,
+    'the header and last night’s letter are compact, and search is on screen without scrolling',
+  );
+  check(
+    (await page.locator('#arch-results .lc[data-open]').count()) === 1 &&
+      (await page.locator('#arch-results .lp-month').count()) === 1,
+    'each letter is its own card under a month heading',
   );
   check(
     await page.locator('#arch-results').getByText('A calm walk by the harbour').isVisible(),
     'the letter is also in All letters',
   );
   check(
-    await page.getByText('1 night written since').isVisible(),
-    'Letters counts the nights written',
+    await page.getByText('1 letter so far').isVisible(),
+    'Letters says how many letters so far',
   );
 
   console.log('search all letters');
@@ -498,32 +726,86 @@ try {
   await page.getByText('Nothing matches').waitFor();
   await page.fill('#arch-q', '');
   await page.locator('[data-act="arch-gold"]').click();
-  await page.getByText('Nothing matches').waitFor();
-  check(true, 'the gold seal filter hides letters without one');
+  await sleep(300);
+  check(
+    await page.locator('#arch-results').getByText('A calm walk by the harbour').isVisible(),
+    'the gold seal filter shows the letter whose small step was done',
+  );
   await page.locator('[data-act="arch-gold"]').click();
   await shot(page, '08-letters');
 
   console.log('identity, patterns');
   await page.locator('.tab[data-go="identity"]').click();
-  await page.getByRole('heading', { name: 'Who you might become' }).waitFor();
+  await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
   check(
     await page.getByText('more nights to see your first direction').first().isVisible(),
     'Identity has its own tab and says when a direction will appear',
   );
-  await page.locator('.tab[data-go="patterns"]').click();
-  await page.getByText('Your patterns, not their highlight reel.').waitFor();
+  await page.locator('.tab[data-go="growth"]').click();
+  await page.getByRole('heading', { name: 'Growth', exact: true }).waitFor();
   check(
-    !(await page.locator('[data-ptab="identity"]').count()),
-    'Patterns no longer holds Identity',
+    (await page.locator('.tab[data-go="growth"]').innerText()).trim() === 'Growth' &&
+      !(await page.locator('[data-go="patterns"]').count()) &&
+      !(await page.getByText('Your patterns, not their highlight reel.').count()),
+    'Patterns is now Growth',
   );
+  check(
+    (await page.locator('.g-card').count()) === 5 &&
+      (await page.locator('.g-card .g-t').count()) === 5 &&
+      (await page.locator('.g-card .g-sub').count()) === 4 &&
+      (await page.locator('.g-card').first().getAttribute('aria-labelledby')) === 'g-stars' &&
+      (await page.locator('#g-compass').innerText()) === 'Passion compass' &&
+      !(await page.getByText('Threads that last').count()) &&
+      !(await page.getByText('Try it before you decide').count()),
+    'Growth is five cards: the nights chart first, then the Passion compass, each saying plainly what it shows',
+  );
+  check(
+    (await page.locator('.g-empty').count()) >= 3,
+    'a month with few nights shows gentle empty states, not confident visuals',
+  );
+  await page.goto(`${ORIGIN}/app#patterns-year`);
+  await page.locator('.g-card').first().waitFor();
+  check(
+    page.url().endsWith('#patterns-year') &&
+      (await page.locator('[data-ptab="year"][aria-current="page"]').count()) === 1,
+    'old #patterns-year links open the Growth year view',
+  );
+  await page.locator('.tab[data-go="growth"]').click();
   check(
     !(await page.locator('.tab[data-go="profile"]').count()),
     'there is no separate Profile tab',
   );
-  await shot(page, '09-patterns');
+  check(
+    !(await page.locator('.tab[data-go="settings"]').count()),
+    'Settings is the gear at the top right, not a tab',
+  );
+  await shot(page, '09-growth');
+  await page.locator('.brand').click();
+  await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
+  check(true, 'the Beyond mark returns to Identity, the home page');
+  await page.locator('.lang-btn').click();
+  await page.locator('.tab[data-go="tonight"]').getByText('日记').waitFor();
+  check(
+    (await page.locator('.gear-btn[data-go="settings"]').getAttribute('aria-label')) === '设置',
+    'the language button switches the app to Chinese',
+  );
+  await page.locator('.lang-btn').click();
+  await page.locator('.tab[data-go="tonight"]').getByText('Journal').waitFor();
+  check(true, 'and back to English');
+  await page.locator('.gear-btn[data-go="settings"]').click();
+  await page.locator('[data-jtheme-pick="ink"]').click();
+  check(
+    (await page.evaluate(() => document.documentElement.dataset.jtheme)) === 'ink',
+    'Settings switches the colour theme',
+  );
+  await page.locator('[data-jtheme-pick="midnight"]').click();
+  check(
+    (await page.evaluate(() => document.documentElement.dataset.jtheme)) === undefined,
+    'Midnight is the default theme',
+  );
 
   console.log('settings and memory');
-  await page.locator('.tab[data-go="settings"]').click();
+  await page.locator('.gear-btn[data-go="settings"]').click();
   await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
   check(
     await page.getByText('Walks by the harbour to feel calm').isVisible(),
@@ -543,6 +825,19 @@ try {
     await page.getByText(USER.email).isVisible(),
     'Settings shows which account the journal belongs to',
   );
+  check(
+    (await page.locator('.set-nav .set-jump').count()) === 7 &&
+      (await page.locator('.set-card').count()) === 7,
+    'Settings has a menu of sections and each section is its own card',
+  );
+  await page.locator('[data-set-jump="data"]').click();
+  await sleep(700);
+  check(
+    (await page.locator('[data-set-jump="data"]').getAttribute('aria-current')) === 'true' &&
+      (await page.locator('#data').boundingBox()).y < 300,
+    'the Settings menu jumps to a section',
+  );
+  await page.evaluate(() => window.scrollTo(0, 0));
   await shot(page, '10-settings');
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download a copy' }).click();
@@ -552,33 +847,265 @@ try {
     'Download a copy exports the account',
   );
 
+  console.log('tabs open at the top');
+  await page.locator('.gear-btn[data-go="settings"]').click();
+  await sleep(300);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await sleep(250);
+  const scrolled = await page.evaluate(() => window.scrollY);
+  await page.locator('.tab[data-go="letters"]').click();
+  await sleep(300);
+  check(
+    scrolled > 200 && (await page.evaluate(() => window.scrollY)) === 0,
+    'switching tabs always opens the new tab at the top',
+  );
+  await page.evaluate(() => window.scrollTo(0, 400));
+  await sleep(150);
+  await page.locator('.gear-btn[data-go="settings"]').click();
+  await sleep(300);
+  check((await page.evaluate(() => window.scrollY)) === 0, 'Settings opens at the top');
+
   console.log('demo mode');
   await page.locator('[data-act="toggle-sample"]').click();
   const entriesBefore = db.entries.length;
   await page.locator('.tab[data-go="tonight"]').click();
-  await page.locator('[data-sample-night="0"]').click();
   check(
-    (await page.locator('#entry').inputValue()).startsWith('First month at uni'),
-    'demo mode offers sample nights that fill the page in one tap',
+    !(await page.locator('[data-sample-night]').count()),
+    'demo mode keeps the Journal page blank too',
+  );
+  await page.fill(
+    '#entry',
+    'Fictional demo night: first month at uni and I still eat lunch alone.',
   );
   await page.getByRole('button', { name: 'Seal tonight' }).click();
-  await page.getByText('Sealed for the night.').waitFor();
+  await page.locator('.skip-morning').waitFor({ timeout: 20000 });
   check(
     db.entries.length === entriesBefore + 1 && db.letters.length === 2,
     'a demo night is saved and its letter is asked of the AI, like any other night',
   );
   finishLetter(db.letters[1]);
-  await page.getByRole('button', { name: 'Skip to morning' }).click();
-  await page.getByRole('button', { name: 'Open the letter' }).click({ timeout: 20000 });
+  await page.locator('.skip-morning').click();
+  await page.getByRole('button', { name: 'Open it' }).click({ timeout: 20000 });
   await page.getByText('A calm walk by the harbour').first().waitFor();
   await sleep(400);
   check(db.letters[1].read_at !== null, 'the demo night’s AI letter opens');
   await shot(page, '11-demo-letter');
-  await page.locator('.tab[data-go="settings"]').click();
+
+  console.log('demo letter when no letter can be written');
+  db.lettersUsedUp = true;
+  const lettersBefore = db.letters.length;
+  await page.locator('.tab[data-go="tonight"]').click();
+  await page.fill(
+    '#entry',
+    'Fictional demo night: the library was quiet. I finally finished the essay.',
+  );
+  await page.getByRole('button', { name: 'Seal tonight' }).click();
+  await page.getByText('Skip to morning will show a demo letter').waitFor({ timeout: 20000 });
+  check(
+    (await page.locator('#entry').inputValue()) === '' && db.letters.length === lettersBefore,
+    'past the daily limit the words are saved and no letter is asked for',
+  );
+  await page.locator('.skip-morning').click();
+  await page.getByRole('button', { name: 'Open it' }).click({ timeout: 20000 });
+  await page.getByText('What you set down tonight').waitFor();
+  check(
+    await page.getByText('Demo mode: a pre-written sample letter').isVisible(),
+    'Demo mode shows a labelled demo letter built from the night’s own words',
+  );
+  check(
+    (await page.locator('.lt-body').innerText()).includes('library was quiet'),
+    'the demo letter quotes what was written',
+  );
+  db.lettersUsedUp = false;
+
+  console.log('the book in demo mode');
+  await page.locator('.tab[data-go="tonight"]').click();
+  await page.locator('#entry').waitFor();
+  const sd = page.locator('.bk-sd[aria-label$=", sample"]').last();
+  const kitDate = await sd.getAttribute('data-bk-day');
+  await sd.click();
+  await page.locator(`.bk-page.is-day[data-page="${kitDate}"]`).waitFor();
+  check(
+    (await page.locator('.bk-page.is-day .bk-date').innerText()).includes(
+      ', sample – Past journal',
+    ),
+    'Kit’s sample days are pages in the book, marked sample',
+  );
+  const kitWords = (await page.locator('.bk-page.is-day .bk-entries p').first().innerText()).slice(
+    0,
+    40,
+  );
+  await sleep(400);
+  await shot(page, '11a-book-phone');
+  const openKit = async () => {
+    await page.locator('.bk-page.is-day .bk-read').click();
+    await page.locator('.letter, .env-stage').first().waitFor();
+    if (await page.locator('[data-openenv]').count()) await page.locator('[data-openenv]').click();
+    await page.locator('.letter').waitFor();
+    await page.locator('.words-d summary').click();
+  };
+  await openKit();
+  check(
+    (await page.locator('.words-d .words').innerText()).includes(kitWords),
+    'a Kit day’s words match its letter',
+  );
+  await page.locator('[data-letter-back-book]').click();
+  await page.locator(`.bk-page[data-page="${kitDate}"]`).waitFor();
+  check(true, 'going back from a letter opened in the book returns to that page');
+  await openKit();
+  await page.locator('.words-book').click();
+  await page.locator(`.bk-page[data-page="${kitDate}"]`).waitFor();
+  check(true, '“Open in your journal” opens the book at that day');
+  await page.locator('[data-bk-cal]').click();
+  const calBtn = page.locator('.bk-sheet button.bk-cd.has').first();
+  const calDay = await calBtn.getAttribute('data-bk-day');
+  await calBtn.click();
+  await page.locator('.bk-sheet').waitFor({ state: 'detached' });
+  await page.locator(`.bk-page[data-page="${calDay}"]`).waitFor();
+  check(true, 'the calendar sheet turns to a highlighted day');
+  await page.setViewportSize({ width: 1280, height: 860 });
+  await page.locator('.bk-wrap.is-two').waitFor();
+  check(
+    (await page.locator('.bk-spread .bk-page.left').count()) === 1 &&
+      (await page.locator('.bk-spread .bk-page.right').count()) === 1 &&
+      !(await page.locator('.bk-strip').count()) &&
+      (await page.locator('[data-bk-cal]').boundingBox()).width < 200 &&
+      (await page.locator('[data-bk-cal]').boundingBox()).x > 900,
+    'a wide screen shows a two-page spread with a small calendar top right',
+  );
+  await page.locator('[data-bk-cal]').click();
+  await page.locator('.bk-sheet .bk-back-today').click();
+  await page.locator('.bk-spread .bk-page.right.is-write').waitFor();
+  check(
+    (await page.locator('.bk-spread .bk-page.left.is-day').count()) === 1,
+    'on today, the writing page is on the right of the spread',
+  );
+  await sleep(400);
+  await shot(page, '11b-book-desktop');
+  await page.locator('[data-bk-cal]').click();
+  const target = page.locator('.bk-sheet button.bk-cd.has:not(.is-on)').first();
+  const tDay = await target.getAttribute('data-bk-day');
+  await target.click();
+  await page.locator(`.bk-spread .bk-page[data-page="${tDay}"]`).waitFor();
+  check(true, 'clicking a highlighted day in the calendar turns to it');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('.bk-wrap.is-one').waitFor();
+
+  console.log('growth in demo mode');
+  await page.locator('.tab[data-go="growth"]').click();
+  await page.locator('.g-compass').waitFor();
+  check(
+    (await page.locator('.g-compass .g-pt b').count()) >= 3 &&
+      (await page.locator('.g-dot').count()) >= 3 &&
+      (await page.locator('.g-rank-row').count()) >= 3,
+    'Demo mode fills every Growth card from Kit’s letters',
+  );
+  await shot(page, '11c-growth-month');
+  await page.locator('[data-ptab="year"]').click();
+  await page.locator('.g-film').waitFor();
+  check((await page.locator('.g-film .frame').count()) >= 5, 'the Year view has the Life Film');
+  await shot(page, '11d-growth-year');
+
+  console.log('a direction’s own page');
+  await page.locator('.tab[data-go="identity"]').click();
+  await page.locator('.bubble[data-bubble="community-builder"]').waitFor();
+  await sleep(1600);
+  check(
+    !(await page.locator('.spread, .focus, .dir-list').count()),
+    'the Identity page is just the map',
+  );
+  await page.locator('.bubble[data-bubble="community-builder"]').click();
+  await page.locator('.dir-head').waitFor();
+  await sleep(700);
+  await shot(page, '11e-direction');
+  check(
+    page.url().endsWith('#identity/community-builder') &&
+      (await page.getByRole('heading', { name: 'Community Builder' }).isVisible()) &&
+      (await page.locator('.dir-line').innerText()).split('.').filter(Boolean).length === 1 &&
+      (await page.getByText('A possibility, not a label.').isVisible()),
+    'a bubble opens its own page with one plain sentence and its note',
+  );
+  const firstJournal = {};
+  firstJournal.community = await page.locator('.dir-j b').first().innerText();
+  check(
+    (await page.locator('.dir-j').count()) >= 3 &&
+      (await page.locator('.tl-star[data-open]').count()) >= 3,
+    'the page has the timeline and a box for each journal',
+  );
+  check(
+    (await page.locator('#dir-try').count()) === 1,
+    'Try it shows suggestions from its letters',
+  );
+  await page.locator('.dir-j').first().click();
+  await page.locator('.letter, .env-stage').first().waitFor();
+  await page.locator('[data-letter-back-dir="community-builder"]').click();
+  await page.locator('.dir-head').waitFor();
+  check(
+    page.url().endsWith('#identity/community-builder'),
+    'going back from a letter returns to its direction',
+  );
+  await page.locator('[data-dir-back]').click();
+  await page.locator('#stage').waitFor();
+  await sleep(900);
+  check(
+    page.url().endsWith('#identity') &&
+      (await page.locator('.bubble.is-back[data-bubble="community-builder"]').count()) === 1,
+    'Back returns to the map and lights up the bubble it came from',
+  );
+  await page.locator('.bubble[data-bubble="community-builder"]').click();
+  await page.locator('.dir-head').waitFor();
+  await page.goBack();
+  await page.locator('#stage').waitFor();
+  await sleep(800);
+  check(
+    page.url().endsWith('#identity') && (await page.locator('.dir-head').count()) === 0,
+    'the phone’s back returns to the map',
+  );
+  for (const [key, name] of [
+    ['curious-learner', 'learner'],
+    ['creative-explorer', 'creative'],
+  ]) {
+    await page.goto(`${ORIGIN}/app#identity/${key}`);
+    await page.locator('.dir-head').waitFor();
+    firstJournal[name] = await page.locator('.dir-j b').first().innerText();
+  }
+  check(
+    new Set(Object.values(firstJournal)).size === 3,
+    'each Kit direction leads with a different journal of its own',
+  );
+  await page.locator('[data-dir-fit]').click();
+  await sleep(300);
+  check(
+    (await page.locator('.dir-st').innerText()).includes('Confirmed') &&
+      !(await page.locator('.dir-decide').count()),
+    'This fits me confirms it and the choice goes away',
+  );
+  await page.locator('[data-dir-change]').click();
+  await page.locator('[data-dir-unsure]').click();
+  check(
+    (await page.locator('.dir-decide').count()) === 1,
+    'Changed your mind? turns it back into a suggestion',
+  );
+  await page.goto(`${ORIGIN}/app#identity/curious-learner`);
+  await page.locator('.dir-head').waitFor();
+  await page.locator('[data-dir-pop]').click();
+  await page.locator('.toast-undo').waitFor();
+  await sleep(1500);
+  check(
+    !(await page.locator('.bubble[data-bubble="curious-learner"]').count()),
+    'Pop it removes the bubble from the map',
+  );
+  await page.locator('.toast-undo button').click();
+  await page.locator('.bubble[data-bubble="curious-learner"]').waitFor();
+  check(true, 'Undo brings it back');
+  await page.goto(`${ORIGIN}/app#identity/astronaut`);
+  await page.locator('#stage').waitFor();
+  check(page.url().endsWith('#identity'), 'an unknown direction link goes to the map');
+  await page.locator('.gear-btn[data-go="settings"]').click();
   await page.locator('[data-act="toggle-sample"]').click();
   await page.locator('.tab[data-go="tonight"]').click();
   check(!(await page.locator('.samples').count()), 'Normal mode has no sample nights');
-  await page.locator('.tab[data-go="settings"]').click();
+  await page.locator('.gear-btn[data-go="settings"]').click();
 
   console.log('sign out');
   await page.getByRole('button', { name: 'Sign out' }).click();

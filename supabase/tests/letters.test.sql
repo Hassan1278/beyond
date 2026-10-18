@@ -100,6 +100,8 @@ SELECT is((SELECT attempts FROM private.letter_jobs),1,'Context cancellation doe
 SET LOCAL ROLE service_role;
 SELECT throws_ok($$SELECT public.letter_finish(pg_temp.id('claim'),pg_temp.lease('claim'),pg_temp.content('Two steps',NULL)||'{"steps":[{},{}]}','fixture')$$,'P0001','bad_request','A letter needs exactly three steps');
 SELECT throws_ok($$SELECT public.letter_finish(pg_temp.id('claim'),pg_temp.lease('claim'),pg_temp.content('Bad model',NULL),'bad model name')$$,'P0001','bad_request','Model names are validated');
+SELECT throws_ok($$SELECT public.letter_finish(pg_temp.id('claim'),pg_temp.lease('claim'),pg_temp.content('Version 3 without a body',NULL)||'{"version":3,"steps":[]}'::jsonb,'fixture')$$,'P0001','bad_request','A version 3 letter needs a body');
+SELECT throws_ok($$SELECT public.letter_finish(pg_temp.id('claim'),pg_temp.lease('claim'),pg_temp.content('Version 3 with two steps',NULL)||'{"version":3,"body":"Hey,","steps":[{},{}]}'::jsonb,'fixture')$$,'P0001','bad_request','A version 3 letter has at most one step');
 SELECT is(public.letter_finish(pg_temp.id('claim'),pg_temp.lease('claim'),pg_temp.content('A quiet walk',jsonb_build_array(jsonb_build_object('text','Walks to clear the head'),jsonb_build_object('text','fictional told memory, corrected'),jsonb_build_object('text','A third memory is ignored'))),'fixture-model'),true,'Valid output is stored once');
 SELECT throws_ok($$SELECT public.letter_finish(pg_temp.id('claim'),pg_temp.lease('claim'),pg_temp.content('Replay',NULL),'fixture')$$,'P0001','conflict','A replayed completion cannot write another letter');
 RESET ROLE;

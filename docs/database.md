@@ -10,19 +10,19 @@ Supabase (Postgres 17 + Auth) lives in [`supabase/`](../supabase). The folder ke
 
 ## Tables
 
-| Table                         | Holds                                                                                                                                 |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `public.profiles`             | One row per Auth user; active/deleting state                                                                                          |
-| `public.journal_entries`      | Revisioned nights; deleted ones become content-free stubs                                                                             |
-| `public.user_settings`        | Voice, letter language, delivery time, early opening, onboarding, directions, memory pause, timezone; private forgotten-memory hashes |
-| `public.approved_memories`    | Memories you told Beyond (`told`) or a letter learned (`learned`, `edited` once you change it)                                        |
-| `public.letters`              | One letter per sealed night: status, checked content, delivery time, read/early/private, to-do states                                 |
-| `public.letter_notes`         | Month (`2026-10`) and year (`Y2026`) notes, with private source letter ids                                                            |
-| `public.todos`                | Standalone to-dos (API only; the journal app keeps to-dos on letters)                                                                 |
-| `private.letter_jobs`         | Metadata-only letter jobs with fenced leases and backoff                                                                              |
-| `private.ai_daily_usage`      | Daily letter/note/transcription counts per person                                                                                     |
-| `private.account_deletions`   | Durable account-deletion queue                                                                                                        |
-| `private.api_request_budgets` | Per-user request rate limits                                                                                                          |
+| Table                         | Holds                                                                                                                                                                              |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `public.profiles`             | One row per Auth user; active/deleting state                                                                                                                                       |
+| `public.journal_entries`      | Revisioned nights; deleted ones become content-free stubs                                                                                                                          |
+| `public.user_settings`        | Voice, letter language, delivery time, early opening, onboarding, welcome answers, directions, memory pause, timezone, the unsealed journal draft; private forgotten-memory hashes |
+| `public.approved_memories`    | Memories you told Beyond (`told`) or a letter learned (`learned`, `edited` once you change it)                                                                                     |
+| `public.letters`              | One letter per sealed night: status, checked content, delivery time, read/early/private, to-do states                                                                              |
+| `public.letter_notes`         | Month (`2026-10`) and year (`Y2026`) notes, with private source letter ids                                                                                                         |
+| `public.todos`                | Standalone to-dos (API only; the journal app keeps to-dos on letters)                                                                                                              |
+| `private.letter_jobs`         | Metadata-only letter jobs with fenced leases and backoff                                                                                                                           |
+| `private.ai_daily_usage`      | Daily letter/note/transcription counts per person                                                                                                                                  |
+| `private.account_deletions`   | Durable account-deletion queue                                                                                                                                                     |
+| `private.api_request_budgets` | Per-user request rate limits                                                                                                                                                       |
 
 Clients can only read their own live rows through RLS, and only while their Auth session is still live. All writes go through validated `security definer` RPCs with an empty search path. The `private` schema is never exposed to clients.
 

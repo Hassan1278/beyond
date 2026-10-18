@@ -9,6 +9,7 @@ import {
   ApiClientError,
   createApiClient,
   type AccountExportQuery,
+  type Entry,
   type Letter,
   type Memory,
   type Note,
@@ -40,9 +41,22 @@ export interface JournalBackend {
   updateSettings(patch: SettingsPatch, revision: number): Promise<Settings>;
   letters(): Promise<Letter[]>;
   letter(id: string): Promise<Letter>;
+  /** One page of entries, newest first (the journal book loads more as you flip back). */
+  entries(cursor?: string): Promise<{ entries: Entry[]; next_cursor: string | null }>;
   seal(
     text: string,
     idempotencyKey: string,
+    journalDate: string,
+    deliverAt: string,
+  ): Promise<Letter>;
+  /**
+   * Adds more writing to a night that is already sealed, so the night keeps one
+   * letter. Editing the entry removes its unread letter (a privacy cascade);
+   * the letter is then asked for again over everything written that night.
+   */
+  addToNight(
+    entryId: string,
+    text: string,
     journalDate: string,
     deliverAt: string,
   ): Promise<Letter>;
@@ -262,10 +276,34 @@ export function journalBackend(): JournalBackend {
         all((cursor) => http().letters.list(cursor ? { limit: '100', cursor } : { limit: '100' })),
       ),
     letter: (id) => guard(() => http().letters.get(id)),
+    entries: (cursor) =>
+      guard(() => http().entries.list(cursor ? { limit: '100', cursor } : { limit: '100' })),
     async seal(text, idempotencyKey, journalDate, deliverAt) {
       const entry = await guard(() =>
         http().entries.create({ text, idempotency_key: idempotencyKey, reflection_opt_in: false }),
       );
+      return guard(() =>
+        http().letters.request({
+          entry_id: entry.id,
+          expected_revision: entry.revision,
+          journal_date: journalDate,
+          deliver_at: deliverAt,
+          consent: true,
+        }),
+      );
+    },
+    async addToNight(entryId, text, journalDate, deliverAt) {
+      let entry = await guard(() => http().entries.get(entryId));
+      // a retry after a dropped connection must not add the same words twice
+      if (!entry.text.endsWith(text)) {
+        const current = entry;
+        entry = await guard(() =>
+          http().entries.update(entryId, {
+            text: `${current.text}\n\n${text}`,
+            expected_revision: current.revision,
+          }),
+        );
+      }
       return guard(() =>
         http().letters.request({
           entry_id: entry.id,

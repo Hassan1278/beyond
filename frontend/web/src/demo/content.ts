@@ -276,7 +276,7 @@ export const SCREENS: ScreenMeta[] = [
   },
   {
     id: 'patterns',
-    title: 'Patterns & Wrapped',
+    title: 'Growth & Wrapped',
     time: '12:40',
     theme: 'lt',
     tab: 'patterns',
