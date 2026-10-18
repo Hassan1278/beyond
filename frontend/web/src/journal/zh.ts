@@ -790,6 +790,28 @@ Object.assign(PHRASES, {
   'Draft saved': '草稿已保存',
   'Open in your journal': '在日记里打开',
   'Last night’s letter': '昨晚的来信',
+  'Passion compass': '热情罗盘',
+  'Write anything': '想写什么都可以',
+  'Settings sections': '设置分类',
+  'Kit’s fictional sample letters next to yours, for showing Beyond to others. Nights you seal are saved and answered by the AI in both modes.':
+    '在你的来信旁边显示虚构人物 Kit 的示例信，方便向别人展示 Beyond。两种模式下，你封存的夜晚都会保存，并由 AI 回信。',
+  'Demo mode: Kit’s sample letters next to yours': '演示模式：在你的来信旁边显示 Kit 的示例信',
+  'Applies to your next letter. The voice changes the tone only, never the facts.':
+    '从下一封信开始生效。语气只改变口吻，不会改变事实。',
+  'Beyond adds this itself. The letter writer never sees it.':
+    '由 Beyond 自己加上，写信的 AI 看不到。',
+  'Your letter is ready at this time the next morning.': '第二天早上这个时间，你的信就准备好了。',
+  '“Read it now”': '“现在就读”',
+  'Let me open a letter right away instead of waiting for the morning.':
+    '让我马上打开来信，不用等到早上。',
+  'Let me open a letter right away (“Read it now”)': '让我马上打开来信（“现在就读”）',
+  'Auto writes back in the language you wrote in. Your words are always quoted as you wrote them.':
+    '自动：用你写日记的语言回信。你的原话总是照原样引用。',
+  'Each one shows where it came from. Edit or forget anything, any time.':
+    '每一条都写明来源。随时可以修改或忘记。',
+  'Only the entry it writes about, the headlines of a few earlier letters, and your memories (unless paused). Never letters you keep out of Growth.':
+    '只有它要回信的那篇日记、几封旧信的标题，以及你的记忆（除非已暂停）。不包括你设为不计入成长的信。',
+  'A JSON file of everything in your account.': '包含你账户里所有内容的 JSON 文件。',
   'What you love, are good at and care about': '你喜欢的、擅长的、在乎的',
   'Read from this month’s nights: what you enjoy, what you do well, what matters to you, and what’s within reach.':
     '来自这个月的夜晚：你喜欢做的、做得好的、在乎的，以及触手可及的机会。',
@@ -820,6 +842,10 @@ const nights = (k: string): string => `${k} 个晚上`;
 
 /** Wording with a date, count or name in it. Content (headlines, quotes) passes through as is. */
 export const ZH_PATTERNS: [RegExp, (...m: string[]) => string][] = [
+  [
+    /^\s*– (Past journal|Earlier today)$/,
+    (k) => ` – ${k === 'Past journal' ? '过去的日记' : '今天早些时候'}`,
+  ],
   [new RegExp(`^How this month differs from ${MONTHS}$`), (m) => `这个月和${mo(m)}有什么不同`],
   [/^Read the letter: (.+)$/s, (t) => `读信：${t}`],
   [

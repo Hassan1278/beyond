@@ -462,8 +462,8 @@ try {
   check(
     (await page.locator('.bk-page.is-write .bk-rule .bk-date').isVisible()) &&
       !(await page.locator('#prompt, .tn-prompt').count()) &&
-      (await page.locator('#entry').getAttribute('placeholder')) === "What's on your mind tonight?",
-    'Journal is a blank notebook page: the date top left, tonight’s question inside the page',
+      (await page.locator('#entry').getAttribute('placeholder')) === 'Write anything',
+    'Journal is a blank notebook page: the date top left, “Write anything” inside the page',
   );
   check(
     !(await page.locator('.tn .lantern-wrap, .tn .samples, .tn .glance, .tn .arrived').count()),
@@ -516,9 +516,10 @@ try {
     (await page.locator('.bk-page.is-day .bk-entries li').count()) === 1 &&
       (await page.locator('.bk-page.is-day .bk-entries').innerText()).includes('harbour') &&
       /\d{1,2}:\d\d(am|pm)/.test(await page.locator('.bk-page.is-day .bk-time').innerText()) &&
-      (await page.locator('.bk-page.is-day .bk-seal[aria-label="Sealed"]').count()) === 1 &&
+      (await page.locator('.bk-page.is-day .bk-date').innerText()).includes('Earlier today') &&
+      !(await page.locator('.bk-page.is-day .bk-seal').count()) &&
       (await page.locator('.bk-page.is-day').getByText('Letter on its way').isVisible()),
-    'a sealed day is a page with its words, their time, a seal and the letter on its way',
+    'a sealed day is a page with its words, their time, a past-journal label and the letter on its way',
   );
   check(
     !(await page.locator('.bk-page.is-day textarea, .bk-page.is-day [contenteditable]').count()),
@@ -708,11 +709,12 @@ try {
   check(
     (await page.locator('.g-card').count()) === 5 &&
       (await page.locator('.g-card .g-t').count()) === 5 &&
-      (await page.locator('.g-card .g-sub').count()) === 5 &&
-      (await page.locator('.g-card').first().getAttribute('aria-labelledby')) === 'g-compass' &&
+      (await page.locator('.g-card .g-sub').count()) === 4 &&
+      (await page.locator('.g-card').first().getAttribute('aria-labelledby')) === 'g-stars' &&
+      (await page.locator('#g-compass').innerText()) === 'Passion compass' &&
       !(await page.getByText('Threads that last').count()) &&
       !(await page.getByText('Try it before you decide').count()),
-    'Growth is five cards, the compass first, each saying plainly what it shows',
+    'Growth is five cards: the nights chart first, then the Passion compass, each saying plainly what it shows',
   );
   check(
     (await page.locator('.g-empty').count()) >= 3,
@@ -780,6 +782,19 @@ try {
     await page.getByText(USER.email).isVisible(),
     'Settings shows which account the journal belongs to',
   );
+  check(
+    (await page.locator('.set-nav .set-jump').count()) === 7 &&
+      (await page.locator('.set-card').count()) === 7,
+    'Settings has a menu of sections and each section is its own card',
+  );
+  await page.locator('[data-set-jump="data"]').click();
+  await sleep(700);
+  check(
+    (await page.locator('[data-set-jump="data"]').getAttribute('aria-current')) === 'true' &&
+      (await page.locator('#data').boundingBox()).y < 300,
+    'the Settings menu jumps to a section',
+  );
+  await page.evaluate(() => window.scrollTo(0, 0));
   await shot(page, '10-settings');
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download a copy' }).click();
@@ -868,7 +883,9 @@ try {
   await sd.click();
   await page.locator(`.bk-page.is-day[data-page="${kitDate}"]`).waitFor();
   check(
-    (await page.locator('.bk-page.is-day .bk-date').innerText()).endsWith(', sample'),
+    (await page.locator('.bk-page.is-day .bk-date').innerText()).includes(
+      ', sample – Past journal',
+    ),
     'Kit’s sample days are pages in the book, marked sample',
   );
   const kitWords = (await page.locator('.bk-page.is-day .bk-entries p').first().innerText()).slice(
