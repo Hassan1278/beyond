@@ -802,7 +802,8 @@ main > .page {
 }
 .page-next a {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
+  text-align: right;
   align-items: center;
   gap: 24px;
   max-width: var(--max);
