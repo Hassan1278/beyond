@@ -1030,7 +1030,12 @@ try {
   );
   await page.locator('.skip-morning').click();
   await page.getByRole('button', { name: 'Open it' }).click({ timeout: 20000 });
-  await page.getByText('What you set down tonight').waitFor();
+  await page.locator('.lt-body').waitFor();
+  check(
+    !/[\u201c\u201d"]/.test(await page.locator('.lt-body').innerText()) &&
+      (await page.locator('.headline').innerText()) === 'A day worth remembering',
+    'the demo letter reads as a personal letter, with no quotation marks',
+  );
   check(
     await page.getByText('Demo mode: a pre-written sample letter').isVisible(),
     'Demo mode shows a labelled demo letter built from the night’s own words',
@@ -1071,6 +1076,11 @@ try {
   check(
     (await page.locator('.words-d .words').innerText()).includes(kitWords),
     'a Kit day’s words match its letter',
+  );
+  check(
+    !/[\u201c\u201d"]/.test(await page.locator('.lt-body').innerText()) &&
+      (await page.locator('.lt-body p').count()) >= 3,
+    'Kit’s letter is a flowing personal letter with no quotation marks',
   );
   await page.locator('[data-letter-back-book]').click();
   await page.locator(`.bk-page[data-page="${kitDate}"]`).waitFor();

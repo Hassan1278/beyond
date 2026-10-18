@@ -1568,3 +1568,5 @@ main.v-identity:not(:has(.dir-head)) { max-width: 1360px; }
 .v-growth .g-pt b { font-size: 13px; line-height: 1.3; }
 .v-growth .g-pt-k { font-size: 10px; }
 .v-growth .g-pt .fine { font-size: 10.5px; }
+/* the bar's two titles, each with a line beneath */
+.id-layout .id-do .id-k { padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1.5px solid color-mix(in srgb, var(--cream) 22%, transparent); }

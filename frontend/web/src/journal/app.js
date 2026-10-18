@@ -1274,19 +1274,43 @@ function demoLetter(night) {
   const parts = text.split(/(?<=[.!?。！？])\s+|\n+/).map((x) => x.trim()).filter((x) => countWords(x) >= 2);
   const clipQ = (x) => (x.length > 90 ? x.slice(0, 90).replace(/\s+\S*$/, '') : x);
   const first = parts[0] ? clipQ(parts[0]) : clipQ(text.trim());
-  const longest = parts.slice(1).sort((a, b) => b.length - a.length)[0];
-  const n = countWords(text); const k = night.texts.length;
-  const echo = (x) => x.replace(/[.。!！?？]+$/, '').replace(/^\s*(I|i)\b/, 'you').replace(/\bI\b/g, 'you').replace(/\bmy\b/gi, 'your').replace(/\bam\b/g, 'are');
+  const k = night.texts.length;
+  const echo = (x) => x.replace(/[.。!！?？]+$/, '').replace(/^\s*(hi|hey|hello)[,!.\s]+/i, '').replace(/^\s*(I|i)\b/, 'you').replace(/\bI'm\b/gi, 'you’re').replace(/\bI\b/g, 'you').replace(/\bmy\b/gi, 'your').replace(/\bam\b/g, 'are').replace(/\bme\b/g, 'you');
+  // a plain read of the night: the feeling that shows most, and an earlier night with the same one
+  const FEEL = [
+    ['stressed', /stress|overwhelm|anxious|panic|worried|壓力|好攰心|焦慮|擔心/i], ['tired', /tired|exhausted|drained|sleepy|攰|累/i],
+    ['lonely', /lonely|alone|by myself|孤單|一個人/i], ['good', /happy|excited|proud|progress|finally|finished|great|開心|好正|做完/i], ['sad', /sad|cry|upset|down|唔開心|傷心/i],
+  ];
+  const feelOf = (t) => (FEEL.find(([, re]) => re.test(t)) || [null])[0];
+  const feel = feelOf(text);
+  const earlier = feel && [...S.letters, ...S.demoLetters].filter((l) => l.date < night.date).sort((x, y) => y.date.localeCompare(x.date)).find((l) => (l.entries || []).some((e) => feelOf(e.text) === feel));
+  const sign = { friend: ['Talk soon,', 'Your friend'], mentor: ['All the best,', 'Your mentor'], future: ['With love,', 'You, later'] }[S.voice] || null;
+  const zsign = { friend: '遲啲再傾，\n你嘅朋友', mentor: '祝好，\n你嘅導師', future: '愛你嘅，\n將來嘅你' }[S.voice] || '';
+  const EN = {
+    stressed: ['A lot on your shoulders tonight', 'Stress like that usually means something matters to you, and it has all landed at once. When everything feels urgent, it helps to find the one small piece that is actually yours to do next, and let the rest wait until tomorrow.', 'What is the one part of this that is actually yours to handle tomorrow?', 'Write down the single next thing, then close the laptop for tonight.'],
+    tired: ['Running low tonight', 'Being this tired is information too. It might be your body asking for a slower evening rather than a better plan, and that is a reasonable thing to listen to.', 'What would a slightly easier tomorrow look like?', 'Go to bed twenty minutes earlier than usual tonight.'],
+    lonely: ['A quiet kind of night', 'Feeling alone is heavy, even when you know it will pass. It does not mean there is something wrong with you; it usually means you are ready for a little more connection than you have right now.', 'Who is one person you would like to feel a bit closer to?', 'Send one easy message to someone you miss.'],
+    good: ['A day worth remembering', 'It is worth slowing down on a good day as much as a hard one. Something went right, and knowing exactly what it was makes it easier to find your way back to it.', 'What made today feel this good, exactly?', 'Write one line about what made today work, so you can find it again.'],
+    sad: ['A heavier night', 'Some nights are just heavy, and they do not need to be fixed straight away. Putting it into words is already a way of being kind to yourself.', 'What would feel gentle to you tomorrow?', 'Do one small kind thing for yourself before bed.'],
+    none: ['What you set down tonight', 'Writing it down, even briefly, is a way of taking your day seriously. The small details people skip are often where the real story is.', 'What would you want to notice about tomorrow?', 'Before you write tomorrow, read tonight’s first line once more.'],
+  }[feel || 'none'];
+  const ZH = {
+    stressed: ['今晚擔住好多嘢', '壓力咁大，通常代表有啲嘢對你好重要，而佢哋一次過壓落嚟。可以先搵出聽日真係屬於你嘅嗰一小步，其他留返遲啲先。', '聽日邊一部分係真係要由你處理？', '寫低下一步，然後今晚就收工。'],
+    tired: ['今晚有啲攰', '咁攰都係一種訊號，可能係你個身體想你今晚慢少少，而唔係要一個更好嘅計劃。', '聽日點樣可以輕鬆少少？', '今晚早二十分鐘瞓。'],
+    good: ['值得記住嘅一日', '好嘅日子都值得慢慢睇。知道今日係乜嘢令佢咁好，下次就更容易搵返。', '今日究竟係乜嘢令你咁開心？', '寫一句今日做得好嘅嘢。'],
+    none: ['你今晚寫低嘅嘢', '肯寫低，已經係認真對待自己嘅一日。好多真正重要嘅嘢，都喺啲細節入面。', '聽日你想留意啲乜？', '聽日寫之前，再讀一次今晚嘅第一句。'],
+  }[(feel && ['stressed', 'tired', 'good'].includes(feel)) ? feel : 'none'];
+  const word = { stressed: 'stressed', tired: 'tired', lonely: 'alone', good: 'good about the day', sad: 'low' }[feel];
   const t = zh ? {
-    title: '你今晚寫低嘅嘢',
-    body: [`嗨 {{name}}，`, `你今晚寫咗 ${n} 個字${k > 1 ? `，分 ${k} 次寫低` : ''}。你一開始就寫${first.slice(0, 40)}，最先寫出嚟嘅說話，往往係一直喺度等緊嘅嗰句。`,
-      longest ? `你寫得最長嘅，係${clipQ(longest).slice(0, 40)}。佢佔咗最多位置，背後可能有最多嘢。` : '', '呢封係示範信：只係用你自己嘅說話，俾你睇吓早上嘅信係點樣。', '今晚再傾，\n朋友'].filter(Boolean).join('\n\n'),
-    q: '今日有冇一個時刻，你想再慢少少？', step: '今晚寫之前，將上面嗰句再讀一次。',
+    title: ZH[0],
+    body: [`${S.letterName ? `${S.letterName}：` : '你好：'}`, `今晚你一坐低，第一樣寫低嘅係${first.slice(0, 40)}。`, ZH[1],
+      earlier ? `呢個感覺唔係第一次出現，${fmtDay(earlier.date)}你都寫過類似嘅嘢，或者可以諗吓嗰幾日有咩共通點。` : (k > 1 ? `今日你返嚟寫咗 ${k} 次，睇得出呢件事一直喺你心入面。` : ''), zsign].filter(Boolean).join('\n\n'),
+    q: ZH[2], step: ZH[3],
   } : {
-    title: 'What you set down tonight',
-    body: [`Hey {{name}},`, `You wrote ${plural(n, 'word')} tonight${k > 1 ? `, across ${k} moments` : ''}, and you started with ${echo(first)}. The first words are often the ones that were already waiting.`,
-      longest ? `The thought that took the most room was that ${echo(clipQ(longest))}. It may be the one with the most behind it.` : '', 'This is a demo letter: it shows what a morning letter looks like, using only your own words.', 'Talk tonight,\nYour friend'].filter(Boolean).join('\n\n'),
-    q: 'What would you want to notice about today, before you write again tonight?', step: 'Before you write tonight, read your first line from last night once more.',
+    title: EN[0],
+    body: [`Hey {{name}},`, `You sat down tonight and the first thing you wrote was that ${echo(first)}.${k > 1 ? ` You came back to the page ${k} times today, so this has clearly been on your mind.` : ''}`, EN[1],
+      earlier ? `It is also not the first time. On ${fmtDay(earlier.date)} you wrote about feeling ${word} too, so it might be worth asking what those days have in common.` : '', sign ? sign.join('\n') : ''].filter(Boolean).join('\n\n'),
+    q: EN[2], step: EN[3],
   };
   const now = new Date().toISOString();
   return {
@@ -1297,7 +1321,7 @@ function demoLetter(night) {
       reflection_question: t.q, small_step: { text: t.step, minutes: 2, category: 'reflection' },
       steps: [{ text: t.step, kind: 'reflection', minutes: 2, why: '' }], openQuestions: [t.q],
       night_type: 'quiet', safety_flag: 'none', safetyConcern: false, tone: 'ordinary', themes: ['ordinary'],
-      evidence: [first, longest].filter(Boolean), activities: [], compass: { loves: [], good_at: [], matters: [], within_reach: [] }, interests: [], remember: [],
+      evidence: [first].filter(Boolean), activities: [], compass: { loves: [], good_at: [], matters: [], within_reach: [] }, interests: [], remember: [],
     }),
   };
 }
@@ -1761,8 +1785,12 @@ function drawSky() {
   const pts = []; let c = 0;
   // Demo mode: Kit wrote most days, so most days get a star, each opening one of Kit's sample letters; a few days are skipped
   const kits = demoOn() ? sampleLetters() : []; const kitFor = (d) => kits.length ? kits[Math.floor(seeded(`kit-letter-${d}`)() * kits.length)] : null;
-  const demoDay = (d) => demoOn() && seeded(`kit-night-${d}`)() < .82;
-  for (let d = from; d <= end; d = addDays(d, 1)) { const l = byDay.get(d) || null; const demo = !l && demoDay(d); if (l || demo) c += 1; pts.push({ date: d, c, l, demo }); }
+  // like a real person: streaks, a missed day here and there, the odd few-day break
+  let wroteYesterday = true;
+  for (let d = from; d <= end; d = addDays(d, 1)) {
+    const l = byDay.get(d) || null; const demo = !l && demoOn() && seeded(`kit-night-${d}`)() < (wroteYesterday ? .62 : .36);
+    if (l || demo) c += 1; wroteYesterday = !!(l || demo); pts.push({ date: d, c, l, demo });
+  }
   const top = Math.max(4, c); const step = top <= 6 ? 1 : top <= 12 ? 2 : top <= 30 ? 5 : top <= 60 ? 10 : 25; const maxY = Math.ceil(top / step) * step;
   const X = (date) => L + (dayDiff(date, from) / span) * (W - L - R); const Y = (n) => T + (1 - n / maxY) * (H - T - B);
   const path = pts.map((p, i) => `${i ? 'L' : 'M'} ${X(p.date).toFixed(1)} ${Y(p.c).toFixed(1)}`).join(' ');
