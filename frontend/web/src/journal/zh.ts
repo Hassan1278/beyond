@@ -766,6 +766,33 @@ for (const [n, nz] of Object.entries(SUPPORT_NAMES)) {
 }
 for (const [m] of Object.entries(MONTH)) PHRASES[m] = mo(m);
 for (const [m] of Object.entries(MON)) PHRASES[m] = mo(m);
+// Journal book
+Object.assign(PHRASES, {
+  'Days in your journal': '日记里的日子',
+  'Open the calendar': '打开日历',
+  Calendar: '日历',
+  'Highlighted days have writing. Tap one to turn to it.':
+    '亮起的日子有写过东西。点一下就翻到那一天。',
+  'Turn to an earlier day': '翻到更早的一天',
+  'Turn to a later day': '翻到更晚的一天',
+  'Your journal starts here.': '你的日记从这里开始。',
+  'Every night you seal becomes a page you can turn back to.':
+    '每个封存的夜晚，都会变成可以翻回去看的一页。',
+  'Letter on its way': '来信在路上',
+  "This letter couldn't be written yet.": '这封信暂时还没能写好。',
+  Sealed: '已封存',
+  Today: '今天',
+  'Previous month': '上个月',
+  'Next month': '下个月',
+  'Back to today': '回到今天',
+  'Close the calendar': '关闭日历',
+  Close: '关闭',
+  'Draft saved': '草稿已保存',
+  'Open in your journal': '在日记里打开',
+  Read: '阅读',
+  Filters: '筛选',
+  'demo letter': '演示信',
+});
 for (const [w, z] of Object.entries(WD)) PHRASES[w] = z;
 
 export const ZH: Record<string, string> = PHRASES;
@@ -774,6 +801,16 @@ const nights = (k: string): string => `${k} 个晚上`;
 
 /** Wording with a date, count or name in it. Content (headlines, quotes) passes through as is. */
 export const ZH_PATTERNS: [RegExp, (...m: string[]) => string][] = [
+  [/^(\d+) letters? so far$/, (k) => `目前共有 ${k} 封来信`],
+  [new RegExp(`^${DAY}, demo letter$`), (w, d, m) => `${day(w, d, m)}，演示信`],
+  [/^(\d{1,2}):(\d{2})(am|pm)$/, (h, m, x) => `${x === 'am' ? '上午' : '下午'} ${h}:${m}`],
+  [/^Sealed\. Your letter arrives at (\d\d:\d\d)\.$/, (t) => `已封存。你的信会在 ${t} 送达。`],
+  [new RegExp(`^Today, ${DAY}: write$`), (w, d, m) => `今天，${day(w, d, m)}：写日记`],
+  [
+    new RegExp(`^${DAY}, today(: write)?$`),
+    (w, d, m, x) => `${day(w, d, m)}，今天${x ? '：写日记' : ''}`,
+  ],
+  [new RegExp(`^${DAY}: write$`), (w, d, m) => `${day(w, d, m)}：写日记`],
   [/^(\d+) nights?, newest first\.$/, (k) => `${k} 个晚上，最新的在前。`],
   [/^Show all (\d+)$/, (k) => `显示全部 ${k} 篇`],
   [/^Popped (.+)\.$/, (d) => `已戳破“${dir(d)}”。`],

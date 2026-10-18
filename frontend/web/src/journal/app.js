@@ -280,7 +280,7 @@ function writeLetter(id) {
   return (async () => {
     try { mergeLetter(await backend.retryLetter(id)); }
     catch (e) { L.status = 'failed'; L.error = e?.code === 'rate_limited' ? ERR.rate_limited : 'Couldn’t reach Beyond. Check your connection and try again.'; }
-    if (!document.querySelector('.ascend, .overnight')) render();
+    if (!document.querySelector('.bk-sealing, .overnight')) render();
     watchLetters();
   })();
 }
@@ -290,7 +290,8 @@ let lettersScroll = 0; // going back from a letter returns to the same place in 
 function go(r, p = null, opts = {}) {
   const from = route;
   if (from === 'letters' && r === 'letter') lettersScroll = window.scrollY;
-  if (r !== 'letter') letterFromDir = null;
+  if (r !== 'letter') { letterFromDir = null; letterFromBook = null; }
+  if (r === 'tonight' && from !== 'tonight' && !opts.keepBook) BK.at = 'write'; // the Journal tab opens on today's page
   route = r; param = p;
   const token = p ? `${route}${route === 'identity' ? '/' : '-'}${p}` : route;
   if (!opts.replace && location.hash.slice(1) !== token) { try { history.pushState(null, '', `#${token}`); } catch (e) { /* frame may refuse */ } }
@@ -338,6 +339,7 @@ const I = {
   right: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m10 6 6 6-6 6"/></svg>',
   x: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   crescent: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 3.2a9 9 0 1 0 5.3 13.7A7.4 7.4 0 0 1 15.5 3.2Z"/></svg>',
+  cal: `<svg viewBox="0 0 24 24" ${HAND}><path d="M4.2 6.4c5.2-.4 10.4-.4 15.6 0 .3 4.5.3 9 0 13.4-5.2.4-10.4.4-15.6 0-.3-4.4-.3-8.9 0-13.4Z"/><path d="M4.4 10.2c5.1-.2 10.2-.2 15.3 0"/><path d="M8.4 4v4M15.6 4v4"/><path d="M8 14h.1M12 14h.1M16 14h.1M8 17h.1M12 17h.1" stroke-width="2.2"/></svg>`,
   check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
   pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>',
   stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2.5"/></svg>',
@@ -444,6 +446,7 @@ function sampleBanner() {
 const DEV = process.env.NODE_ENV !== 'production';
 // Development only: /app?onboarding=1 shows the welcome again, for demos and testing.
 let replayWelcome = DEV && new URLSearchParams(location.search).get('onboarding') === '1';
+let draftSupported = false; // the account can keep an unsealed draft
 let welcomeSupported = false; // the account can store welcome_seen and the answers
 const needsWelcome = () => replayWelcome || (welcomeSupported ? !S.welcomeSeen : !S.onboarded);
 const W = { step: 0, shown: -1, reasons: new Set(), other: '', voice: null, name: '', ready: false, timer: 0, seenFirst: false };
@@ -544,42 +547,90 @@ function voiceCards() {
   return Object.entries(VOICES).map(([k, v]) => `<button class="voice" data-voice="${k}" aria-pressed="${S.voice === k}"><b>${v.name}</b><span>${v.desc}</span><i>“${esc(v.example)}”</i></button>`).join('');
 }
 
-/* ----- tonight: open and write ----- */
+/* ----- Journal: a book -----
+   Today's page is where you write. Every earlier day you wrote on is a page you can
+   flip back to: read-only, so a letter always matches its night. Days with no
+   writing are skipped. Pages come from the letters already loaded, plus your
+   entries fetched a hundred at a time as you flip back (so an entry still waiting
+   for its letter is in the book too). Only the open page or spread is drawn. */
 let promptTimer = null; let lastWords = 0;
-const SPEAK_PROMPTS = ['Just say it. Nothing replies.', 'Start with how today felt.', '今日發生咗咩？慢慢講。', 'What’s still on your mind?', 'Say it the way you’d say it to yourself.', '今天怎么样？想到哪说到哪。'];
+const BK = { at: 'write', month: null, entries: new Map(), cursor: undefined, loading: null, two: null, focus: true };
+const bookTwo = () => window.innerWidth >= 960; // a two-page spread with the calendar beside it
+/* Writing again the same night adds a "[HH:MM]" line before the new words (see
+   sealNight), so each sealing keeps its own time on the day's page. */
+const PART_MARK = /^\[(\d{2}):(\d{2})\]$/;
+function splitEntry(text, t) {
+  const parts = []; let cur = { t, lines: [] };
+  for (const line of String(text || '').split('\n')) { const m = line.match(PART_MARK); if (m) { parts.push(cur); cur = { t: `${m[1]}:${m[2]}`, lines: [] }; } else cur.lines.push(line); }
+  parts.push(cur);
+  return parts.map((p) => ({ t: p.t || '', text: p.lines.join('\n').trim() })).filter((p) => p.text);
+}
+const entryPlain = (text) => splitEntry(text, '').map((p) => p.text).join('\n\n');
+const ampm = (t) => { if (!/^\d\d:\d\d$/.test(t || '')) return ''; const [h, m] = t.split(':').map(Number); return `${((h + 11) % 12) + 1}:${pad(m)}${h < 12 ? 'am' : 'pm'}`; };
+const nightMin = (t) => { if (!t) return 0; const m = toMin(t); return m < 240 ? m + 1440 : m; }; // after midnight still belongs to the night before
+function bookDays() {
+  const days = new Map(); const seen = new Set();
+  const day = (date) => { if (!days.has(date)) days.set(date, { date, parts: [], letters: [], sample: false }); return days.get(date); };
+  for (const L of allLetters()) {
+    const d = day(L.date); d.letters.push(L); if (L.sample) d.sample = true;
+    if (L.demo) continue; // a demo letter quotes words that are already on the page as the night's own entry
+    (L.entries || []).forEach((e, i) => { const k = e.id || `${L.id}:${i}`; if (seen.has(k)) return; seen.add(k); d.parts.push(...splitEntry(e.text, e.t)); });
+  }
+  for (const e of BK.entries.values()) {
+    if (seen.has(e.id)) continue; seen.add(e.id);
+    const at = new Date(e.created_at); day(journalDate(at)).parts.push(...splitEntry(e.text, hhmm(at)));
+  }
+  return [...days.values()].filter((d) => d.parts.length).map((d) => ({ ...d, parts: d.parts.sort((a, b) => nightMin(a.t) - nightMin(b.t)) })).sort((a, b) => a.date.localeCompare(b.date));
+}
+const bookPages = () => [...bookDays(), { write: true, date: journalDate() }];
+const pageAt = (P) => { if (BK.at === 'write') return P.length - 1; const i = P.findIndex((p) => !p.write && p.date === BK.at); return i === -1 ? P.length - 1 : i; };
+/* Two pages: the newest spread has today's writing page on the right. */
+const spreadOf = (P, i) => { const r = P.length - 1 - 2 * Math.floor((P.length - 1 - i) / 2); return [r - 1, r]; };
+const pageKey = (p) => (p.write ? 'write' : p.date);
+async function loadEntries() {
+  if (BK.loading || BK.cursor === null || !AUTH.user) return BK.loading;
+  BK.loading = (async () => {
+    try { const r = await backend.entries(BK.cursor || undefined); for (const e of r.entries) BK.entries.set(e.id, e); BK.cursor = r.next_cursor; }
+    catch (e) { if (BK.cursor === undefined) BK.cursor = null; /* the letters still show their nights */ }
+    BK.loading = null;
+  })();
+  return BK.loading;
+}
+function resetBook() { BK.at = 'write'; BK.month = null; BK.entries = new Map(); BK.cursor = undefined; BK.loading = null; }
+/* Flipping back toward the oldest page asks for the next hundred entries. */
+function moreDaysSoon(P, i) {
+  if (BK.cursor === null || BK.loading || i > 3) return;
+  loadEntries().then(() => { if (route === 'tonight') paintBook(null, { keepWrite: true }); });
+}
+
 function vTonight() {
   clearInterval(promptTimer); cancelAnimationFrame(voice.raf);
-  const speak = false; // one page: type, or tap the microphone and talk
-  const words = countWords(S.draft); lastWords = words;
-  after.push(() => {
-    const ta = $('#entry'); if (!ta) return;
-    // Speak: a fixed window that follows the newest words, so they stay in view under the light.
-    const grow = () => { ta.style.height = 'auto'; const h = Math.max(ta.scrollHeight, window.innerHeight * (speak ? 0.16 : 0.58)); ta.style.height = `${speak ? Math.min(h, window.innerHeight * 0.22) : h}px`; if (speak) ta.scrollTop = ta.scrollHeight; };
-    grow();
-    if (!speak && window.matchMedia('(pointer: fine)').matches) ta.focus({ preventScroll: true });
-    let lastLen = ta.value.length;
-    ta.addEventListener('input', () => {
-      S.draft = ta.value; save(); grow();
-      const added = ta.value.length - lastLen; lastLen = ta.value.length;
-      if (added > 0) voice.impulse = Math.min(1, voice.impulse + 0.25 + added * 0.03);
-      lastWords = countWords(ta.value);
-      $('#b-seal').disabled = !ta.value.trim();
-      if (hasCrisis(ta.value) && !$('#crisis').childElementCount) $('#crisis').innerHTML = supportInline();
-    });
-    if (hasCrisis(ta.value)) $('#crisis').innerHTML = supportInline();
-    paintVoice();
-    const list = speak ? SPEAK_PROMPTS : PROMPTS; let i = 0;
-    promptTimer = setInterval(() => {
-      const p = $('#prompt'); if (!p || route !== 'tonight') return clearInterval(promptTimer);
-      if (ta.value.trim() || voice.state === 'rec') return;
-      i = (i + 1) % list.length; p.innerHTML = `<span>${esc(list[i])}</span>`;
-    }, 5200);
-  });
-  // Journal: a blank page. The date and one quiet question, then room to write.
-  return `<section class="tn ${speak ? 'is-speak' : ''}">
+  BK.two = bookTwo();
+  if (BK.cursor === undefined && AUTH.user) loadEntries().then(() => { if (route === 'tonight') paintBook(null, { keepWrite: true }); });
+  after.push(() => { wireBook(); if (BK.focus && BK.at === 'write' && window.matchMedia('(pointer: fine)').matches) $('#entry')?.focus({ preventScroll: true }); BK.focus = true; });
+  return `<h1 class="sr-only">Journal</h1>
+    <section class="bk-wrap ${BK.two ? 'is-two' : 'is-one'}">
+      ${BK.two ? '' : `<div class="bk-top"><div class="bk-strip" id="bk-strip" role="group" aria-label="Days in your journal">${stripInner()}</div><button class="bk-cal-btn" data-bk-cal aria-label="Open the calendar">${I.cal}</button></div>`}
+      <div class="book" id="book">${bookInner()}</div>
+      ${BK.two ? `<aside class="bk-side" aria-label="Calendar"><div class="bk-cal" id="bk-cal">${calInner()}</div><p class="fine bk-side-note">Highlighted days have writing. Tap one to turn to it.</p></aside>` : ''}
+      ${skipReady() ? `<button class="skip-morning" data-act="skip">Skip to morning${I.right}</button>` : ''}
+    </section>`;
+}
+function bookInner() {
+  const P = bookPages(); const i = pageAt(P);
+  const edge = (dir, on) => `<button class="bk-edge ${dir}" data-bk="${dir}" aria-label="${dir === 'prev' ? 'Turn to an earlier day' : 'Turn to a later day'}" ${on ? '' : 'disabled'}><span class="bk-arrow">${dir === 'prev' ? I.left : I.right}</span></button>`;
+  if (BK.two) { const [l, r] = spreadOf(P, i); return `${edge('prev', l > 0)}<div class="bk-spread">${pageHtml(P[l], 'left')}${pageHtml(P[r], 'right')}</div>${edge('next', r < P.length - 1)}`; }
+  return `${edge('prev', i > 0)}<div class="bk-spread">${pageHtml(P[i], 'single')}</div>${edge('next', i < P.length - 1)}`;
+}
+function pageHtml(p, side) {
+  if (!p) return `<div class="bk-page ${side} is-blank" data-page="start"><div class="bk-start"><span class="bk-end-mark" aria-hidden="true">${I.moon}${I.star}</span><p>Your journal starts here.</p><p class="fine">Every night you seal becomes a page you can turn back to.</p></div></div>`;
+  return p.write ? writePage(side) : dayPage(p, side);
+}
+function writePage(side) {
+  return `<article class="bk-page ${side} is-write tn" data-page="write" aria-labelledby="tn-date">
       <header class="tn-head">
-        <p class="tn-date">${fmtDay(journalDate())}</p>
-        <h1 class="tn-prompt" id="prompt"><span>${esc((speak ? SPEAK_PROMPTS : PROMPTS)[0])}</span></h1>
+        <h2 class="bk-date tn-date" id="tn-date">${fmtDay(journalDate())}</h2>
+        <p class="tn-prompt" id="prompt"><span>${esc(PROMPTS[0])}</span></p>
       </header>
       <label for="entry" class="sr-only">Tonight's entry</label>
       <div class="entry-wrap">
@@ -589,11 +640,200 @@ function vTonight() {
       <p class="voice-hint" id="vhint" aria-live="polite"></p>
       <div id="crisis" style="width:100%"></div>
       ${failedNights()}
-      <div class="tn-bar">
-        <button class="btn amber" data-act="seal" id="b-seal" ${S.draft.trim() ? '' : 'disabled'}>Seal tonight</button>
-      </div>
-      ${skipReady() ? `<button class="skip-morning" data-act="skip">Skip to morning${I.right}</button>` : ''}
-    </section>`;
+      <div class="tn-bar"><span class="bk-saved" id="bk-saved" aria-live="polite"></span><button class="btn amber" data-act="seal" id="b-seal" ${S.draft.trim() ? '' : 'disabled'}>Seal tonight</button></div>
+    </article>`;
+}
+function dayLetterLink(p) {
+  const L = p.letters.find(delivered) || p.letters[0];
+  if (!L) return `<span class="bk-wait">${I.mail}Letter on its way</span>`;
+  if (L.status === 'failed') return `<span class="bk-wait">This letter couldn't be written yet.</span><button class="link" data-retry="${L.id}">Try again</button>`;
+  if (!delivered(L)) return `<span class="bk-wait">${I.mail}Letter on its way</span>`;
+  return `<button class="link bk-read" data-open="${L.id}" data-from-book="${p.date}">Read the letter${I.right}</button>`;
+}
+function dayPage(p, side) {
+  const id = `bk-d-${p.date}`;
+  return `<article class="bk-page ${side} is-day" data-page="${p.date}" aria-labelledby="${id}">
+      <header class="bk-day-head"><h2 class="bk-date" id="${id}">${fmtDay(p.date)}${p.sample ? ', sample' : ''}</h2><span class="bk-seal" role="img" aria-label="Sealed" title="Sealed">${I.crescent}</span></header>
+      <ol class="bk-entries">${p.parts.map((x) => `<li>${x.t ? `<time class="bk-time">${ampm(x.t)}</time>` : ''}<p>${esc(x.text)}</p></li>`).join('')}</ol>
+      <footer class="bk-foot">${dayLetterLink(p)}</footer>
+    </article>`;
+}
+/* Phone: the days as a strip, today at the end. */
+function stripInner() {
+  const P = bookPages(); const i = pageAt(P); const on = BK.two ? spreadOf(P, i) : [i];
+  return P.map((p, k) => { const d = parse(p.date); const cur = on.includes(k);
+    return p.write ? `<button class="bk-sd is-today ${cur ? 'is-on' : ''}" data-bk-day="write" aria-label="Today, ${fmtDay(p.date)}: write" ${cur ? 'aria-current="page"' : ''}><small>Today</small><b>${d.getDate()}</b></button>`
+      : `<button class="bk-sd ${cur ? 'is-on' : ''}" data-bk-day="${p.date}" aria-label="${fmtDay(p.date)}${p.sample ? ', sample' : ''}" ${cur ? 'aria-current="page"' : ''}><small>${WD[d.getDay()]}</small><b>${d.getDate()}</b></button>`; }).join('');
+}
+/* The month calendar (beside the book, or in a sheet on a phone). */
+function calInner() {
+  const P = bookPages(); const i = pageAt(P); const today = journalDate();
+  const has = new Set(P.filter((p) => !p.write).map((p) => p.date));
+  const on = new Set((BK.two ? spreadOf(P, i) : [i]).map((k) => P[k]).filter(Boolean).map(pageKey));
+  const firstYm = (P.find((p) => !p.write)?.date || today).slice(0, 7); const lastYm = today.slice(0, 7);
+  let ym = BK.month || (P[i].write ? today : P[i].date).slice(0, 7);
+  if (ym < firstYm) ym = firstYm; if (ym > lastYm) ym = lastYm; BK.month = ym;
+  const [y, m] = ym.split('-').map(Number); const lead = parse(`${ym}-01`).getDay(); const n = new Date(y, m, 0).getDate();
+  const cells = [];
+  for (let k = 0; k < lead; k++) cells.push('<span class="bk-cd is-pad" aria-hidden="true"></span>');
+  for (let d = 1; d <= n; d++) {
+    const date = `${ym}-${pad(d)}`; const isToday = date === today;
+    const key = isToday && !has.has(date) ? 'write' : date; const cur = on.has(key) || (isToday && on.has('write'));
+    if (has.has(date) || isToday) cells.push(`<button class="bk-cd ${has.has(date) ? 'has' : ''} ${isToday ? 'is-today' : ''} ${cur ? 'is-on' : ''}" data-bk-day="${key}" aria-label="${fmtDay(date)}${isToday ? ', today' : ''}${has.has(date) ? '' : ': write'}" ${cur ? 'aria-current="date"' : ''}>${d}</button>`);
+    else cells.push(`<span class="bk-cd">${d}</span>`);
+  }
+  return `<div class="bk-cal-h"><button class="bk-mo" data-bk-month="-1" aria-label="Previous month" ${ym <= firstYm ? 'disabled' : ''}>${I.left}</button><b>${MONTH[m - 1]} ${y}</b><button class="bk-mo" data-bk-month="1" aria-label="Next month" ${ym >= lastYm ? 'disabled' : ''}>${I.right}</button></div>
+    <div class="bk-cal-g" role="group" aria-label="${MONTH[m - 1]} ${y}">${WD.map((w) => `<span class="bk-wd" aria-hidden="true">${w}</span>`).join('')}${cells.join('')}</div>
+    ${BK.at !== 'write' ? '<button class="link bk-back-today" data-bk-day="write">Back to today</button>' : ''}`;
+}
+function paintNav() {
+  const s = $('#bk-strip'); if (s) { s.innerHTML = stripInner(); const b = s.querySelector('.is-on'); if (b) s.scrollLeft = b.offsetLeft - s.clientWidth / 2 + b.offsetWidth / 2; }
+  const c = $('#bk-cal'); if (c) c.innerHTML = calInner();
+  const sh = $('.bk-sheet .bk-cal'); if (sh) sh.innerHTML = calInner();
+}
+/* Redraw the open pages. dir 'back' | 'fwd' turns the page; keepWrite leaves the
+   writing page alone (so nothing being typed is touched). */
+function paintBook(dir = null, { keepWrite = false } = {}) {
+  const book = $('#book'); if (!book) return;
+  if (keepWrite && $('#entry')) {
+    const tmp = document.createElement('div'); tmp.innerHTML = bookInner();
+    const oldPages = [...book.querySelectorAll('.bk-spread > .bk-page')]; const newPages = [...tmp.querySelectorAll('.bk-spread > .bk-page')];
+    if (oldPages.length === newPages.length && oldPages.every((p, k) => (p.dataset.page === 'write') === (newPages[k].dataset.page === 'write'))) {
+      oldPages.forEach((p, k) => { if (p.dataset.page !== 'write' && p.outerHTML !== newPages[k].outerHTML) p.replaceWith(newPages[k]); });
+      book.querySelectorAll('.bk-edge').forEach((e, k) => { const n = tmp.querySelectorAll('.bk-edge')[k]; if (n) e.disabled = n.disabled; });
+      paintNav(); return;
+    }
+  }
+  const ghosts = [];
+  if (dir && !reduceMotion()) {
+    const r0 = book.getBoundingClientRect();
+    for (const pg of book.querySelectorAll('.bk-spread > .bk-page')) {
+      const g = pg.cloneNode(true); const r = pg.getBoundingClientRect();
+      g.querySelectorAll('[id]').forEach((x) => x.removeAttribute('id')); g.removeAttribute('aria-labelledby'); g.setAttribute('aria-hidden', 'true'); g.inert = true;
+      const ta = pg.querySelector('textarea'); if (ta) g.querySelector('textarea').value = ta.value;
+      g.classList.add('bk-ghost'); g.dataset.side = pg.classList.contains('left') ? 'left' : pg.classList.contains('right') ? 'right' : 'single';
+      Object.assign(g.style, { left: `${r.left - r0.left}px`, top: `${r.top - r0.top}px`, width: `${r.width}px`, height: `${r.height}px` });
+      ghosts.push([g, pg.scrollTop]);
+    }
+  }
+  book.innerHTML = bookInner();
+  ghosts.forEach(([g, top]) => { book.appendChild(g); g.scrollTop = top; });
+  wireBook({ nav: false });
+  paintNav();
+  if (dir) turnPages(book, ghosts.map(([g]) => g), dir);
+  const P = bookPages(); moreDaysSoon(P, BK.two ? spreadOf(P, pageAt(P))[0] : pageAt(P));
+}
+/* A short page turn (about 340ms), from the spine. Reduced motion: a quick fade. */
+function turnPages(book, ghosts, dir) {
+  const spread = book.querySelector('.bk-spread'); const T = 340; const E1 = 'cubic-bezier(.45,0,.75,.4)', E2 = 'cubic-bezier(.2,.6,.3,1)';
+  const done = () => ghosts.forEach((g) => g.remove());
+  if (reduceMotion() || !ghosts.length) { done(); spread.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: 'ease-out' }); return; }
+  const side = (s) => ghosts.find((g) => g.dataset.side === s);
+  const page = (s) => spread.querySelector(`.bk-page.${s}`);
+  const shade = (el, a, b, dur, delay, easing) => el.animate([{ '--bk-shade': a }, { '--bk-shade': b }], { duration: dur, delay, easing, fill: 'both' });
+  if (!BK.two) {
+    const g = side('single'); const p = page('single'); if (!g || !p) return done();
+    if (dir === 'fwd') { g.style.zIndex = 3; g.style.transformOrigin = 'left center'; g.animate([{ transform: 'rotateY(0)', opacity: 1 }, { transform: 'rotateY(-100deg)', opacity: .4 }], { duration: T, easing: E1, fill: 'forwards' }).finished.then(done, done); shade(g, 0, .5, T, 0, E1); }
+    else { g.style.zIndex = 0; p.style.zIndex = 2; p.style.transformOrigin = 'left center'; p.animate([{ transform: 'rotateY(-100deg)', opacity: .4 }, { transform: 'rotateY(0)', opacity: 1 }], { duration: T, easing: E2 }).finished.then(done, done); shade(p, .5, 0, T, 0, E2); }
+    return;
+  }
+  const H = T / 2;
+  if (dir === 'fwd') { // the right page lifts and lands on the left
+    const gl = side('left'), gr = side('right'), nl = page('left'); if (!gr || !nl) return done();
+    if (gl) gl.style.zIndex = 1; gr.style.zIndex = 3; nl.style.zIndex = 2;
+    gr.style.transformOrigin = 'left center'; nl.style.transformOrigin = 'right center';
+    gr.animate([{ transform: 'rotateY(0)' }, { transform: 'rotateY(-90deg)' }], { duration: H, easing: E1, fill: 'forwards' });
+    shade(gr, 0, .45, H, 0, E1);
+    nl.animate([{ transform: 'rotateY(90deg)' }, { transform: 'rotateY(0)' }], { duration: H, delay: H, easing: E2, fill: 'backwards' }).finished.then(done, done);
+    shade(nl, .45, 0, H, H, E2);
+  } else { // the left page lifts and lands on the right
+    const gl = side('left'), gr = side('right'), nr = page('right'); if (!gl || !nr) return done();
+    if (gr) gr.style.zIndex = 1; gl.style.zIndex = 3; nr.style.zIndex = 2;
+    gl.style.transformOrigin = 'right center'; nr.style.transformOrigin = 'left center';
+    gl.animate([{ transform: 'rotateY(0)' }, { transform: 'rotateY(90deg)' }], { duration: H, easing: E1, fill: 'forwards' });
+    shade(gl, 0, .45, H, 0, E1);
+    nr.animate([{ transform: 'rotateY(-90deg)' }, { transform: 'rotateY(0)' }], { duration: H, delay: H, easing: E2, fill: 'backwards' }).finished.then(done, done);
+    shade(nr, .45, 0, H, H, E2);
+  }
+}
+function flipBook(where) {
+  const P = bookPages(); const from = pageAt(P);
+  let to;
+  if (where === 'prev' || where === 'next') {
+    const step = where === 'prev' ? -1 : 1;
+    if (BK.two) { const [l, r] = spreadOf(P, from); to = where === 'prev' ? l - 1 : r + 1; } else to = from + step;
+    if (to < 0 || to >= P.length) return;
+  } else to = where === 'write' ? P.length - 1 : P.findIndex((p) => !p.write && p.date === where);
+  if (to < 0) return;
+  BK.at = pageKey(P[to]); BK.month = null;
+  const same = BK.two ? spreadOf(P, to)[1] === spreadOf(P, from)[1] : to === from;
+  if (same) return paintNav();
+  paintBook(to < from ? 'back' : 'fwd');
+}
+function wireBook({ nav = true } = {}) {
+  const book = $('#book'); if (!book) return;
+  if (nav) paintNav();
+  if (!book.dataset.wired) {
+    book.dataset.wired = '1';
+    let sx = 0, sy = 0, from = null;
+    book.addEventListener('touchstart', (e) => { const t = e.touches[0]; from = e.target.closest('textarea, input, select, .bk-strip') ? null : e.target; sx = t.clientX; sy = t.clientY; }, { passive: true });
+    book.addEventListener('touchend', (e) => {
+      if (!from) return; const t = e.changedTouches[0]; const dx = t.clientX - sx, dy = t.clientY - sy; from = null;
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) flipBook(dx < 0 ? 'next' : 'prev');
+    }, { passive: true });
+  }
+  wireEntry();
+}
+/* Today's page: type, or tap the microphone and talk. */
+function wireEntry() {
+  const ta = $('#entry'); if (!ta || ta.dataset.wired) return;
+  ta.dataset.wired = '1';
+  const words = countWords(S.draft); lastWords = words;
+  const grow = () => { if (BK.two) { ta.style.height = ''; return; } ta.style.height = 'auto'; ta.style.height = `${Math.max(ta.scrollHeight, window.innerHeight * 0.42)}px`; };
+  grow();
+  let lastLen = ta.value.length;
+  ta.addEventListener('input', () => {
+    S.draft = ta.value; saveDraft(); grow();
+    const added = ta.value.length - lastLen; lastLen = ta.value.length;
+    if (added > 0) voice.impulse = Math.min(1, voice.impulse + 0.25 + added * 0.03);
+    lastWords = countWords(ta.value);
+    $('#b-seal').disabled = !ta.value.trim();
+    if (hasCrisis(ta.value) && !$('#crisis').childElementCount) $('#crisis').innerHTML = supportInline();
+  });
+  if (hasCrisis(ta.value)) $('#crisis').innerHTML = supportInline();
+  paintVoice();
+  clearInterval(promptTimer); let i = 0;
+  promptTimer = setInterval(() => {
+    const p = $('#prompt'); if (!p || route !== 'tonight') return clearInterval(promptTimer);
+    if (ta.value.trim() || voice.state === 'rec') return;
+    i = (i + 1) % PROMPTS.length; p.innerHTML = `<span>${esc(PROMPTS[i])}</span>`;
+  }, 5200);
+}
+window.addEventListener('resize', () => { if (route === 'tonight' && BK.two !== null && bookTwo() !== BK.two && !document.querySelector('.bk-sealing')) { BK.focus = false; render(); } });
+document.addEventListener('keydown', (e) => {
+  if (route !== 'tonight' || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  if (e.target.closest?.('textarea, input, select, [contenteditable]') || document.querySelector('.present, .bk-sealing, .overnight, .sheet-wrap')) return;
+  e.preventDefault(); flipBook(e.key === 'ArrowLeft' ? 'prev' : 'next');
+});
+/* Phone: the full month in a sheet. */
+function openCalSheet() {
+  closeCalSheet();
+  const w = document.createElement('div'); w.className = 'bk-sheet';
+  w.innerHTML = `<button class="bk-sheet-bg" data-bk-sheet-close tabindex="-1" aria-label="Close the calendar"></button><div class="bk-sheet-card" role="dialog" aria-modal="true" aria-label="Calendar"><div class="bk-cal">${calInner()}</div><button class="link" data-bk-sheet-close>Close</button></div>`;
+  $('#layer').appendChild(w);
+  setTimeout(() => w.querySelector('.bk-cd.is-on, .bk-cd.has, .bk-mo')?.focus({ preventScroll: true }), 50);
+}
+function closeCalSheet() { const w = $('.bk-sheet'); if (!w) return; w.remove(); $('[data-bk-cal]')?.focus({ preventScroll: true }); }
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('.bk-sheet')) closeCalSheet(); });
+/* Unsealed words are kept as a draft on your account (never in this browser, never
+   sent to the letter writer) a second after you stop typing, once the account
+   supports drafts (migration 20261019000000_drafts). Until then they stay in memory. */
+let draftTimer = null;
+function saveDraft(now = false) {
+  if (!draftSupported) return;
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(async () => { await syncSettings(); const s = $('#bk-saved'); if (s && synced && (synced.draft ?? '') === (S.draft.trim() ? S.draft : '')) s.textContent = S.draft.trim() ? 'Draft saved' : ''; }, now ? 0 : 1000);
+  const s = $('#bk-saved'); if (s) s.textContent = '';
 }
 /* A letter that couldn't be written stays findable here, with a way to try again. */
 function failedNights() {
@@ -860,36 +1100,34 @@ function drawVoice(g, W, ts, L, bins) {
   }
 }
 
-/* ----- seal: words go into the lantern, the lantern rises ----- */
+/* ----- seal: the book closes for a moment, then opens on a fresh page ----- */
 async function seal() {
   if (voice.state === 'rec') stopRecording(true);
   voice.state = 'idle';
   const ta = $('#entry'); const text = (ta?.value || '').trim();
   if (!text) return;
   const date = journalDate();
-  window.scrollTo(0, 0); // the words float up into a light above the page
-  const rect = ta.getBoundingClientRect(); const lrect = { left: window.innerWidth / 2 - 48, top: Math.max(72, rect.top - 120), width: 96, height: 96 };
-  // The words rise straight away; saving happens alongside, and the page comes back
-  // ready for more. If saving fails, the words return to the page.
+  // Saving starts straight away, alongside the animation. If it fails, the words come back to the page.
   const sealing = sealNight(text, date).then((L) => ({ L }), (e) => ({ e }));
   if (demoOn()) demoNight = demoNight?.date === date && !demoNight.done ? { date, texts: [...demoNight.texts, text] } : { date, texts: [text] };
-  S.draft = ''; save();
-  await ascend(text, rect, lrect);
-  go('tonight');
+  S.draft = ''; saveDraft(true);
+  await closeBook(() => { BK.at = 'write'; BK.month = null; BK.focus = false; if (route === 'tonight' && $('#book')) paintBook(); else go('tonight'); });
   const r = await sealing;
   if (r.e) {
     refresh();
     if (r.e?.code === 'rate_limited') {
       // the daily limit comes after the words are saved: they're kept, only the letter waits
+      BK.cursor = undefined; loadEntries().then(() => { if (route === 'tonight') paintBook(null, { keepWrite: true }); });
       syncSkip();
       toast(demoOn() ? 'Your words are saved. Today’s letters are used up, so Skip to morning will show a demo letter.' : 'Your words are saved. Today’s letters are used up, so this night’s letter has to wait.');
       return;
     }
     if (demoNight?.date === date) demoNight.texts = demoNight.texts.filter((t) => t !== text);
-    if (!$('#entry')?.value.trim()) { S.draft = text; save(); if (route === 'tonight') render(); }
+    if (!$('#entry')?.value.trim()) { S.draft = text; saveDraft(true); if (route === 'tonight') paintBook(); }
     toast(r.e?.code === 'unauthorized' ? 'Please sign in again. Your words are still here.' : 'Couldn’t seal tonight. Your words are still here; check your connection and try again.');
     return;
   }
+  if (route === 'tonight') paintBook(null, { keepWrite: true });
   syncSkip();
 }
 /* Skip to morning shows while a letter waits. With no letter writer switched on, Demo
@@ -903,40 +1141,45 @@ function skipReady() {
 }
 /* Show Skip to morning once a letter waits, without redrawing what's being written. */
 function syncSkip() {
-  const tn = route === 'tonight' && $('.tn'); if (!tn) return;
+  const tn = route === 'tonight' && $('.bk-wrap'); if (!tn) return;
   const want = skipReady();
   const btn = tn.querySelector('.skip-morning');
   if (want && !btn) tn.insertAdjacentHTML('beforeend', `<button class="skip-morning" data-act="skip">Skip to morning${I.right}</button>`);
   if (!want && btn) btn.remove();
 }
-async function ascend(text, rect, lrect) {
-  const layer = $('#layer');
-  // English splits into words; Chinese (no spaces) into single characters, so long lines wrap and float up one by one.
-  const CJK = /[　-〿㐀-鿿＀-￯]/;
-  const words = (text.match(/[　-〿㐀-鿿＀-￯]|[^\s　-〿㐀-鿿＀-￯]+/g) || []).slice(0, 140);
-  const ov = document.createElement('div'); ov.className = 'ascend'; ov.setAttribute('role', 'status'); ov.setAttribute('aria-label', 'Sealed');
-  const top = Math.min(Math.max(rect.top + 20, 80), window.innerHeight * 0.55);
-  ov.innerHTML = `<span class="stars" aria-hidden="true"></span>
-    <div class="words" style="left:${rect.left + 22}px;top:${top}px;width:${Math.max(120, rect.width - 44)}px">${words.map((w) => `<span class="w">${esc(w)}${CJK.test(w) ? '' : ' '}</span>`).join('')}</div>
-    <div class="lantern" style="left:${lrect.left}px;top:${lrect.top}px;width:${lrect.width}px;height:${lrect.height}px;--k:1;--b:1.05"></div>`;
-  layer.appendChild(ov);
-  const lantern = ov.querySelector('.lantern');
-  const lx = lrect.left + lrect.width / 2, ly = lrect.top + lrect.height / 2;
-  if (!reduceMotion()) {
-    const spans = [...ov.querySelectorAll('.w')];
-    const step = Math.min(18, 450 / Math.max(1, spans.length));
-    const anims = spans.map((s, i) => {
-      const b = s.getBoundingClientRect();
-      const tx = lx - (b.left + b.width / 2), ty = ly - (b.top + b.height / 2);
-      return s.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${tx * .6}px, ${ty * .6}px) scale(.6)`, opacity: .8, offset: .6 }, { transform: `translate(${tx}px, ${ty}px) scale(.1)`, opacity: 0 }],
-        { duration: 750, delay: 80 + i * step, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' }).finished;
-    });
-    const glow = tone('glow-rgb'); lantern.animate([{ filter: `brightness(1) drop-shadow(0 0 30px rgba(${glow},.55))` }, { filter: `brightness(1.6) drop-shadow(0 0 70px rgba(${glow},.9))` }], { duration: 830 + spans.length * step, fill: 'forwards' });
-    await Promise.all(anims);
-    await lantern.animate([{ transform: 'translate(0,0) scale(1)' }, { transform: `translate(${window.innerWidth * .18}px, ${-(ly - window.innerHeight * .08)}px) scale(.3)`, opacity: 0 }], { duration: 750, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }).finished;
-  } else await sleep(300);
-  await ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished;
-  ov.remove();
+/* About a second: the cover closes over today's page, a moon seal and the delivery
+   time, then it opens again on a fresh page (drawn underneath by reopen). Any tap or
+   key skips it. Reduced motion: just the words, briefly. */
+function closeBook(reopen) {
+  return new Promise((resolve) => {
+    window.scrollTo(0, 0);
+    const pg = $('.bk-page.is-write') || $('#book');
+    const r = pg ? pg.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+    const top = Math.max(0, r.top); const h = Math.max(220, Math.min(r.bottom, window.innerHeight) - top);
+    const ov = document.createElement('div'); ov.className = 'bk-sealing'; ov.setAttribute('role', 'status');
+    Object.assign(ov.style, { left: `${r.left}px`, top: `${top}px`, width: `${r.width}px`, height: `${h}px` });
+    ov.innerHTML = `<div class="bk-cover"><span class="bk-stamp" aria-hidden="true">${I.crescent}</span><p class="bk-sealed">Sealed. Your letter arrives at ${deliverTime()}.</p></div>`;
+    $('#layer').appendChild(ov);
+    const cover = ov.querySelector('.bk-cover'); const anims = []; let reopened = false; let finished = false;
+    const doReopen = () => { if (!reopened) { reopened = true; reopen(); } };
+    const finish = () => { if (finished) return; finished = true; anims.forEach((a) => a.cancel()); doReopen(); ov.remove(); document.removeEventListener('keydown', finish, true); resolve(); };
+    ov.addEventListener('pointerdown', finish); document.addEventListener('keydown', finish, true);
+    const run = (el, k, o) => { const a = el.animate(k, { fill: 'both', ...o }); anims.push(a); return a; };
+    if (reduceMotion()) {
+      run(cover, [{ opacity: 0 }, { opacity: 1 }], { duration: 120 });
+      setTimeout(() => { if (finished) return; doReopen(); run(ov, [{ opacity: 1 }, { opacity: 0 }], { duration: 150, delay: 0 }).finished.then(finish, finish); }, 1100);
+      return;
+    }
+    const twoPages = BK.two && pg?.classList.contains('right');
+    cover.style.transformOrigin = twoPages || !BK.two ? 'left center' : 'right center';
+    run(cover, [{ transform: 'rotateY(-92deg)', opacity: .3 }, { transform: 'rotateY(0)', opacity: 1 }], { duration: 360, easing: 'cubic-bezier(.3,.6,.3,1)' });
+    run(ov.querySelector('.bk-stamp'), [{ transform: 'scale(.4) rotate(-20deg)', opacity: 0 }, { transform: 'scale(1.12) rotate(4deg)', opacity: 1, offset: .7 }, { transform: 'none', opacity: 1 }], { duration: 260, delay: 300, easing: 'ease-out' });
+    run(ov.querySelector('.bk-sealed'), [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 220, delay: 380 });
+    setTimeout(() => {
+      if (finished) return; doReopen();
+      run(cover, [{ transform: 'rotateY(0)', opacity: 1 }, { transform: 'rotateY(-92deg)', opacity: .2 }], { duration: 260, easing: 'cubic-bezier(.5,0,.8,.4)' }).finished.then(finish, finish);
+    }, 860);
+  });
 }
 
 /* ----- overnight: the night passes while Claude finishes ----- */
@@ -1030,7 +1273,7 @@ function demoLetter(night) {
    Beyond is open after it's delivered (or straight after Skip to morning). */
 const presented = new Set();
 function presentLetters() {
-  if (!AUTH.user || ['welcome', 'login'].includes(route) || document.querySelector('.present, .overnight, .ascend, .sheet-wrap')) return;
+  if (!AUTH.user || ['welcome', 'login'].includes(route) || document.querySelector('.present, .overnight, .bk-sealing, .sheet-wrap')) return;
   const list = [...S.letters, ...S.demoLetters].filter((l) => delivered(l) && !l.readAt && !presented.has(l.id)).sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt || '').localeCompare(a.createdAt || ''));
   if (!list.length) return;
   list.forEach((l) => presented.add(l.id));
@@ -1050,20 +1293,53 @@ function presentLetters() {
 }
 async function closePresent(openId) {
   const w = $('.present'); if (!w) return;
-  if (openId) {
-    w.querySelector('#present-env')?.classList.add('is-open');
-    w.querySelectorAll('button').forEach((b) => { b.disabled = true; });
-    await sleep(reduceMotion() ? 50 : 1300);
-    opening = openId; patchLetter(openId, { readAt: new Date().toISOString() });
-    go('letter', openId);
-  }
+  if (openId) { w.querySelectorAll('button').forEach((b) => { b.disabled = true; }); return openEnvelope(w.querySelector('#present-env'), openId, w); }
   await w.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'forwards' }).finished;
   w.remove();
+}
+/* Opening a letter, like a real envelope: the flap opens, then the paper slides up out
+   of the pocket (in front of the envelope's back and the open flap, behind its front).
+   Once it has cleared the envelope it moves to the top layer and grows into the open
+   letter, which fades in underneath it. About 1.5 seconds, as before. Reduced motion:
+   the letter simply fades in. */
+async function openEnvelope(env, id, overlay = null) {
+  const show = () => { opening = id; patchLetter(id, { readAt: new Date().toISOString() }); if (route === 'letter' && param === id) render(); else go('letter', id); window.scrollTo(0, 0); return $('.letter'); };
+  const dropOverlay = (ms) => { if (!overlay) return; overlay.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms, fill: 'forwards' }).finished.then(() => overlay.remove(), () => overlay.remove()); };
+  if (!env || reduceMotion()) {
+    const art = show(); dropOverlay(200);
+    art?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: 'ease-out' });
+    return;
+  }
+  env.getAnimations().forEach((a) => a.pause()); // hold the envelope still while the paper leaves it
+  const flap = env.querySelector('.env-flap'), paper = env.querySelector('.env-paper'), wax = env.querySelector('.env-seal');
+  wax.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.6)' }], { duration: 200, easing: 'ease-in', fill: 'forwards' });
+  // the flap is in front until it stands upright, then folds back behind the paper
+  flap.animate([{ transform: 'rotateX(0)', zIndex: 5 }, { transform: 'rotateX(90deg)', zIndex: 5, offset: .5 }, { transform: 'rotateX(90deg)', zIndex: 1, offset: .501 }, { transform: 'rotateX(180deg)', zIndex: 1 }], { duration: 440, delay: 80, easing: 'cubic-bezier(.4,0,.3,1)', fill: 'forwards' });
+  const er = env.getBoundingClientRect(), pr0 = paper.getBoundingClientRect();
+  const rise = pr0.bottom - er.top + 6; // until its bottom edge is clear of the envelope's top
+  await paper.animate([{ transform: 'translateY(0)' }, { transform: `translateY(${-rise}px)` }], { duration: 560, delay: 300, easing: 'cubic-bezier(.3,.1,.25,1)', fill: 'forwards' }).finished;
+  // clear of the envelope: hand the paper to the top layer in the same frame
+  const pr = paper.getBoundingClientRect();
+  const fly = document.createElement('div'); fly.className = 'env-fly'; fly.setAttribute('aria-hidden', 'true'); fly.innerHTML = paper.innerHTML;
+  Object.assign(fly.style, { left: `${pr.left}px`, top: `${pr.top}px`, width: `${pr.width}px`, height: `${pr.height}px` });
+  $('#layer').appendChild(fly); paper.style.visibility = 'hidden';
+  const art = show(); dropOverlay(320);
+  if (!art) { fly.remove(); return; }
+  art.style.opacity = '0';
+  const ar = art.getBoundingClientRect(); const h = Math.max(pr.height, Math.min(ar.height, window.innerHeight - Math.max(0, ar.top) - 12));
+  fly.querySelectorAll('i').forEach((x) => x.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 240, fill: 'forwards' }));
+  await fly.animate([{ left: `${pr.left}px`, top: `${pr.top}px`, width: `${pr.width}px`, height: `${pr.height}px`, borderRadius: '2px' },
+    { left: `${ar.left}px`, top: `${ar.top}px`, width: `${ar.width}px`, height: `${h}px`, borderRadius: getComputedStyle(art).borderRadius || '4px' }],
+  { duration: 460, easing: 'cubic-bezier(.25,.8,.25,1)', fill: 'forwards' }).finished;
+  art.style.opacity = '';
+  art.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out' });
+  await fly.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 200, fill: 'forwards' }).finished;
+  fly.remove();
 }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('.present')) closePresent(); });
 
 /* ----- letter ----- */
-let opening = null; let letterFromDir = null; // a letter opened from a direction page returns there
+let opening = null; let letterFromDir = null; let letterFromBook = null; // a letter opened from a direction page, or the book, returns there
 let secHans = false;
 const secLabel = (k) => { const [en, zh, c, hans] = SECTIONS[k]; return `<h2 class="ls-label" style="--c:${c}"><b>${en}</b><span lang="${secHans ? 'zh-Hans' : 'zh-Hant-HK'}">${secHans ? hans : zh}</span></h2>`; };
 function vLetter() {
@@ -1075,7 +1351,7 @@ function vLetter() {
   secHans = c.language === 'zh-hans' || (c.language === 'en' && S.lang === 'zh-hans');
   const greet = c.greeting ?? v[lang][0]; const sign = c.signoff ?? v[lang][1];
   const backDir = letterFromDir && DIRECTIONS.find((x) => x.key === letterFromDir);
-  const backBtn = backDir ? `<button class="link back" data-letter-back-dir="${backDir.key}">${I.left}${esc(backDir.name)}</button>` : `<button class="link back" data-go="letters">${I.left}Letters</button>`;
+  const backBtn = backDir ? `<button class="link back" data-letter-back-dir="${backDir.key}">${I.left}${esc(backDir.name)}</button>` : letterFromBook ? `<button class="link back" data-letter-back-book="${letterFromBook}">${I.left}Journal</button>` : `<button class="link back" data-go="letters">${I.left}Letters</button>`;
   if (!L.readAt && opening !== L.id) {
     return `${backBtn}
       <section class="env-stage">
@@ -1114,7 +1390,8 @@ function vLetter() {
           : `<button class="btn sm ${st === 'tried' ? 'secondary' : 'amber'}" data-step-done="${L.id}" aria-pressed="${st === 'tried'}">${st === 'tried' ? `${I.check} Done` : 'Mark as done'}</button>${st === 'tried' ? '' : `<button class="link" data-step-skip="${L.id}">Not for me</button>`}`}</div>
       </section>` : ''}
       <details class="words-d" style="--i:5"><summary>Your words from that night</summary>
-        <ul class="words">${L.entries.map((e) => `<li><span class="k">${esc(e.t || '')}</span><p>${esc(e.text)}</p></li>`).join('')}</ul>
+        <ul class="words">${L.entries.flatMap((e) => splitEntry(e.text, e.t)).map((x) => `<li><span class="k">${esc(ampm(x.t) || x.t)}</span><p>${esc(x.text)}</p></li>`).join('')}</ul>
+        <button class="link words-book" data-book-day="${L.date}">Open in your journal${I.right}</button>
       </details>
       ${(() => { const learned = (S.memories || []).filter((m) => m.letterIds.includes(L.id)); return learned.length ? `<div class="remembers" style="--i:6"><span class="k">Beyond will remember</span><ul>${learned.map((m) => `<li>${esc(m.text)}</li>`).join('')}</ul><button class="link" data-go="settings" data-to="memory">See, edit or forget</button></div>` : ''; })()}
       <div class="provenance" style="--i:7"><span>${by}</span>
@@ -1158,54 +1435,46 @@ function drawSheet({ first = false, burst = null, celebrate = false } = {}) {
   if (first) w.querySelector('.check')?.focus({ preventScroll: true });
 }
 
-/* ----- letters: the latest one as a cover, then every letter, searchable ----- */
-function letterRow(l, extra = '') {
-  const d = parse(l.date); const p = progress(l);
-  return `<li class="lrow">
-    <button class="lmain" data-open="${l.id}"><time>${d.getDate()}<small>${WD[d.getDay()]}</small></time>
-      <span class="head">${!l.readAt ? '<i class="new" aria-label="New"></i>' : ''}<span class="h">${extra && extra.head ? extra.head : esc(l.content.headline)}</span>${l.sample ? '<span class="smp">sample</span>' : l.demo ? '<span class="smp">demo</span>' : ''}${extra && extra.snip ? `<span class="snip">${extra.snip}</span>` : ''}</span></button>
-    <button class="ring-btn" data-todo="${l.id}" aria-label="Small step for ${fmtDay(l.date)}: ${p.complete ? 'done, gold seal' : 'not done yet'}">${ring(l, 40)}</button>
-  </li>`;
+/* ----- letters: a small latest-letter card, then search and filters, then every letter as a card ----- */
+/* One short line from the letter (or, failing that, the night's own words). */
+function letterLine(l) {
+  const c = l.content || {};
+  if (c.recap) return c.recap;
+  const para = fillName(String(c.body || '')).split(/\n{2,}/).map((x) => x.trim()).find((x) => x.length > 30 && !/^(hey|hi|dear|good morning)\b/i.test(x));
+  return para || entryPlain((l.entries || [])[0]?.text || '');
+}
+function letterCard(l, extra = {}) {
+  const sealed = progress(l).complete; const th = realThemes(l).find((t) => THEMES[t]);
+  const tag = l.sample ? 'sample' : l.demo ? 'demo letter' : '';
+  return `<li><button class="lc" data-open="${l.id}">
+      <span class="lc-top"><time class="lc-date" datetime="${l.date}">${fmtDay(l.date)}${tag ? `, ${tag}` : ''}</time>${!l.readAt ? '<span class="lc-new">New</span>' : ''}</span>
+      <span class="lc-h">${extra.head || esc(l.content.title || l.content.headline)}</span>
+      <span class="lc-line">${extra.snip || esc(clip(letterLine(l), 120))}</span>
+      ${sealed || th ? `<span class="lc-tags">${sealed ? `<span class="lc-seal">${goldSeal(18)}<span>Gold seal</span></span>` : ''}${th ? `<span class="lc-tag">${esc(cap(THEMES[th]))}</span>` : ''}</span>` : ''}
+      <span class="lc-chev" aria-hidden="true">${I.right}</span>
+    </button></li>`;
 }
 function vLetters() {
   const list = allLetters();
   const ready = list.filter(delivered);
   const pending = S.letters.filter((l) => !delivered(l));
-  const nights = new Set(list.map((l) => l.date)).size;
-  const firstNight = list.length ? list.reduce((m, l) => (l.date < m.date ? l : m)) : null;
-  const seals = ready.filter((l) => progress(l).complete).length;
-  const cover = ready[0];
-  if (nights >= 5 && !countedUp) { countedUp = true; after.push(() => countUp($('.count-up'))); }
-  after.push(() => { tiltCover($('.cover')); riseOnScroll('.month-group'); });
-  return `<header class="page-head">
-      <h1 class="display">Letters</h1>
-      <p class="lead">${nights ? `<span class="count-up" data-n="${nights}">${nights}</span> ${nights === 1 ? 'night' : 'nights'} written since ${fmtLong(firstNight.date)}. ${plural(ready.length, 'letter')} arrived, ${seals} with a gold seal.` : 'Your morning letters collect here.'}</p>
+  const latest = ready[0];
+  after.push(() => riseOnScroll('.month-group'));
+  return `<header class="lp-head">
+      <h1 class="lp-title">Letters</h1>
+      <p class="lp-sub">${ready.length ? `${plural(ready.length, 'letter')} so far` : 'Your morning letters collect here.'}</p>
     </header>
     ${sampleBanner()}
     ${pending.length ? `<p class="arrived">${I.mail}<span>Your letter for ${fmtDay(pending[0].date)} arrives at ${atTime(pending[0])}.</span> <button class="link" data-go="tonight">Open Journal</button></p>` : ''}
-    ${!cover ? `<section class="empty"><span class="empty-mark" aria-hidden="true">${I.moon}${I.star}</span><p class="lead">No letters yet. Write tonight and the first one arrives tomorrow morning.</p><button class="btn amber" data-go="tonight">Write tonight</button></section>` : `
-    <section class="cover-wrap" aria-label="Latest letter">
-      <article class="cover paper">
-        <span class="paper-moon" aria-hidden="true">${I.moon}${I.star}</span>
-        <p class="cover-k">${!cover.readAt ? 'New letter' : 'Latest letter'}, ${fmtDay(cover.date)}${cover.sample ? ', sample' : cover.demo ? ', demo letter' : ''}</p>
-        <button class="cover-h" data-open="${cover.id}">${esc(cover.content.headline)}</button>
-        <p class="cover-r">${esc(clip(cover.content.recap, 240))}</p>
-        <div class="row"><button class="btn sm" data-open="${cover.id}">Read the letter</button><button class="todo-cta cover-todo" data-todo="${cover.id}">${ring(cover, 40)}<span class="t"><b>One small step</b><span>${progress(cover).complete ? 'Gold seal earned.' : 'Not done yet'}</span></span></button></div>
-      </article>
+    ${!latest ? `<section class="empty"><span class="empty-mark" aria-hidden="true">${I.moon}${I.star}</span><p class="lead">No letters yet. Write tonight and the first one arrives tomorrow morning.</p><button class="btn amber" data-go="tonight">Write tonight</button></section>` : `
+    <section class="lp-latest" aria-label="Latest letter">
+      <button class="lp-card ${!latest.readAt ? 'is-new' : ''}" data-open="${latest.id}">
+        <span class="lp-k">${!latest.readAt ? 'New letter' : 'Latest letter'}, ${fmtDay(latest.date)}${latest.sample ? ', sample' : latest.demo ? ', demo letter' : ''}</span>
+        <span class="lp-t lc-h">${esc(latest.content.title || latest.content.headline)}</span>
+        <span class="btn sm lp-read">Read</span>
+      </button>
     </section>
-    <section class="spread" id="archive"><div class="sec-col"><h2 class="sec">All letters</h2><p class="fine">Search titles, summaries, the words you wrote and your to-dos, in any language.</p></div><div>${archive()}</div></section>`}`;
-}
-/* The cover letter leans toward the pointer, like paper picked up off a desk. */
-function tiltCover(el) {
-  if (!el || reduceMotion() || !window.matchMedia('(pointer: fine)').matches) return;
-  let raf = 0;
-  el.addEventListener('pointermove', (e) => {
-    cancelAnimationFrame(raf);
-    raf = requestAnimationFrame(() => { const r = el.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
-      el.style.setProperty('--ry', `${((x - .5) * 7).toFixed(2)}deg`); el.style.setProperty('--rx', `${((.5 - y) * 6).toFixed(2)}deg`);
-      el.style.setProperty('--sx', `${(x * 100).toFixed(1)}%`); el.style.setProperty('--sy', `${(y * 100).toFixed(1)}%`); el.classList.add('is-tilting'); });
-  });
-  el.addEventListener('pointerleave', () => { cancelAnimationFrame(raf); el.classList.remove('is-tilting'); el.style.setProperty('--rx', '0deg'); el.style.setProperty('--ry', '0deg'); });
+    <section class="lp-archive" id="archive" aria-label="All letters">${archive()}</section>`}`;
 }
 /* Below-the-fold groups rise in as they scroll into view; anything on screen is shown at once. */
 function riseOnScroll(selector) {
@@ -1784,20 +2053,12 @@ function startBubbles(visible) {
 }
 /* ----- memories and shared helpers ----- */
 let confirmDelete = false; let memEditing = null; let confirmAccount = false; let freshFor = null;
-const fmtLong = (s) => { const d = parse(s); return `${d.getDate()} ${MONTH[d.getMonth()]} ${d.getFullYear()}`; };
 function memRow(m) {
   const src = m.kind === 'told' ? 'You told Beyond' : m.letterIds.map((id) => findLetter(id)).filter(Boolean).map((l) => `<button class="link" data-open="${l.id}">${fmtDay(l.date)}</button>`).join(', ') || 'From a letter';
   if (memEditing === m.id) return `<li class="mem"><form class="mem-edit" data-memform="${m.id}"><label class="sr-only" for="mem-${m.id}">Edit memory</label><input id="mem-${m.id}" class="login-in" value="${esc(m.text)}" maxlength="140"><button class="btn sm amber" type="submit">Save</button><button class="link" type="button" data-memcancel>Cancel</button></form></li>`;
   return `<li class="mem ${memoryInUse(m) && !S.memoryPaused ? '' : 'is-off'}"><p>${esc(m.text)}</p>
     <span class="fine">${m.kind === 'told' ? src : `Learned from ${src}`}${m.sample ? ', sample' : ''}${!memoryInUse(m) ? '. Not used: its letter is kept out of Growth' : ''}</span>
     <span class="mem-acts">${m.sample ? '' : `<button class="link" data-memedit="${m.id}">Edit</button>`}<button class="link" data-memforget="${m.id}">Forget</button></span></li>`;
-}
-let countedUp = false;
-function countUp(el) {
-  if (!el || reduceMotion()) return;
-  const n = +el.dataset.n; const t0 = performance.now(); const dur = 1100;
-  const tick = (t) => { const k = Math.min(1, (t - t0) / dur); el.textContent = String(Math.round(n * (1 - (1 - k) ** 3))); if (k < 1 && document.body.contains(el)) requestAnimationFrame(tick); };
-  el.textContent = '0'; requestAnimationFrame(tick);
 }
 /* ----- all letters: by month, searchable, filterable ----- */
 const arch = { q: '', month: '', theme: '', gold: false };
@@ -1822,7 +2083,7 @@ function snippetOf(text, terms, n = 150) {
 }
 /* The four places a word can be: title, summary, your own words, the to-dos. */
 function letterFields(l) {
-  return { title: l.content.headline || '', summary: l.content.recap || '', words: (l.entries || []).map((e) => e.text).join('\n\n'), todos: (l.content.steps || []).map((x) => x.text) };
+  return { title: l.content.title || l.content.headline || '', summary: l.content.recap || fillName(String(l.content.body || '')), words: (l.entries || []).map((e) => entryPlain(e.text)).join('\n\n'), todos: (l.content.steps || []).map((x) => x.text) };
 }
 function searchLetters(list, terms) {
   if (!terms.length) return list.map((l) => ({ l, hits: 0 }));
@@ -1846,7 +2107,7 @@ function archiveCount() {
   const n = found.length; const hits = found.reduce((a, x) => a + x.hits, 0);
   const filtered = arch.month || arch.theme || arch.gold;
   if (terms.length) return `${n === 1 ? '1 letter matches' : `${n} letters match`} “${esc(arch.q.trim())}”${n ? `, ${plural(hits, 'mention')}` : ''}${filtered ? ' with these filters' : ''}.`;
-  return filtered ? `${plural(n, 'letter')} of ${ready.length}.` : `${plural(ready.length, 'letter')}.`;
+  return filtered ? `${plural(n, 'letter')} of ${ready.length}.` : ''; // the header already says how many
 }
 function archiveResults() {
   const { ready, terms, found } = archiveMatches();
@@ -1855,15 +2116,15 @@ function archiveResults() {
   const groups = {};
   for (const x of found) (groups[x.l.date.slice(0, 7)] = groups[x.l.date.slice(0, 7)] || []).push(x);
   const LABEL = { summary: 'Summary', words: 'Your words', todos: 'To-do' };
-  return Object.entries(groups).map(([m, xs]) => `<section class="month-group"><h3><b>${MONTH[+m.slice(5) - 1]}</b> ${m.slice(0, 4)}<span>${plural(xs.length, 'letter')}</span></h3>
-    <ul class="lrows">${xs.map(({ l }) => {
-      if (!terms.length) return letterRow(l);
+  return Object.entries(groups).map(([m, xs]) => `<section class="month-group" aria-labelledby="mg-${m}"><h2 class="lp-month" id="mg-${m}"><span>${MONTH[+m.slice(5) - 1]} ${m.slice(0, 4)}</span><small>${plural(xs.length, 'letter')}</small></h2>
+    <ul class="lc-list">${xs.map(({ l }) => {
+      if (!terms.length) return letterCard(l);
       const f = letterFields(l); let snip = '';
       for (const k of ['summary', 'words', 'todos']) {
         const hit = k === 'todos' ? f.todos.find((t) => termRe(terms).test(t)) : f[k];
         const sn = hit && snippetOf(hit, terms); if (sn) { snip = `<em>${LABEL[k]}</em> ${sn}`; break; }
       }
-      return letterRow(l, { head: hl(f.title, terms), snip });
+      return letterCard(l, { head: hl(f.title, terms), snip });
     }).join('')}</ul></section>`).join('');
 }
 function archive() {
@@ -1874,10 +2135,10 @@ function archive() {
   if (arch.theme && !themes.includes(arch.theme)) arch.theme = '';
   return `<div class="arch-controls">
       <label class="search" for="arch-q">${I.search}<span class="sr-only">Search your letters</span><input id="arch-q" type="search" value="${esc(arch.q)}" placeholder="Search titles, summaries, your words and to-dos" autocomplete="off" spellcheck="false"></label>
-      <div class="arch-filters">
-        <label class="pick" for="arch-month"><span>Month</span><select id="arch-month"><option value="">All</option>${months.map((m) => `<option value="${m}" ${arch.month === m ? 'selected' : ''}>${MONTH[+m.slice(5) - 1]} ${m.slice(0, 4)}</option>`).join('')}</select></label>
-        <label class="pick" for="arch-theme"><span>Theme</span><select id="arch-theme"><option value="">All</option>${themes.map((t) => `<option value="${t}" ${arch.theme === t ? 'selected' : ''}>${esc(cap(THEMES[t]))}</option>`).join('')}</select></label>
-        <button class="filter-seal" data-act="arch-gold" aria-pressed="${arch.gold}">${goldSeal(20)}<span>Gold seal only</span></button>
+      <div class="arch-filters" role="group" aria-label="Filters">
+        <label class="chip-pick ${arch.month ? 'is-on' : ''}" for="arch-month"><span>Month</span><select id="arch-month"><option value="">All</option>${months.map((m) => `<option value="${m}" ${arch.month === m ? 'selected' : ''}>${MONTH[+m.slice(5) - 1]} ${m.slice(0, 4)}</option>`).join('')}</select></label>
+        <label class="chip-pick ${arch.theme ? 'is-on' : ''}" for="arch-theme"><span>Theme</span><select id="arch-theme"><option value="">All</option>${themes.map((t) => `<option value="${t}" ${arch.theme === t ? 'selected' : ''}>${esc(cap(THEMES[t]))}</option>`).join('')}</select></label>
+        <button class="filter-seal chip" data-act="arch-gold" aria-pressed="${arch.gold}">${goldSeal(18)}<span>Gold seal only</span></button>
       </div>
       <p class="arch-count" id="arch-count" aria-live="polite">${archiveCount()}</p>
     </div>
@@ -2045,7 +2306,15 @@ document.addEventListener('click', async (ev) => {
   }
   if (d.todo) return openSheet(d.todo);
   if (d.go) { go(d.go); if (d.to) $(`#${d.to}`)?.scrollIntoView({ block: 'start' }); return; }
-  if (d.open) { pTip = null; letterFromDir = d.fromDir || null; return go('letter', d.open); }
+  if (d.open) { pTip = null; letterFromDir = d.fromDir || null; letterFromBook = d.fromBook || null; return go('letter', d.open); }
+  if (d.bk) return flipBook(d.bk);
+  if (d.bkDay) { const sheet = $('.bk-sheet'); flipBook(d.bkDay); if (sheet) closeCalSheet(); return; }
+  if (d.bkMonth) { const [y, m] = (BK.month || journalDate().slice(0, 7)).split('-').map(Number); const t = new Date(y, m - 1 + Number(d.bkMonth), 1); BK.month = `${t.getFullYear()}-${pad(t.getMonth() + 1)}`; const box = el.closest('.bk-cal'); paintNav(); box?.querySelector(`.bk-mo[data-bk-month="${d.bkMonth}"]:not([disabled])`)?.focus(); return; }
+  if (d.bkCal !== undefined) return openCalSheet();
+  if (d.bkSheetClose !== undefined) return closeCalSheet();
+  if (d.bookDay) { BK.at = d.bookDay; BK.month = null; return go('tonight', null, { keepBook: true }); }
+  // a letter opened from the book goes back to that page
+  if (d.letterBackBook) { BK.at = d.letterBackBook; if (location.hash.startsWith('#letter')) { try { return history.back(); } catch (e) { /* fall through */ } } return go('tonight', null, { keepBook: true }); }
   // the letter was opened from that direction page in this visit, so step back to it rather than stacking another entry
   if (d.letterBackDir) { if (location.hash.startsWith('#letter')) { try { return history.back(); } catch (e) { /* fall through */ } } return go('identity', d.letterBackDir); }
   if (d.back !== undefined) { if (history.length > 1) history.back(); else go('settings'); return; }
@@ -2113,13 +2382,7 @@ document.addEventListener('click', async (ev) => {
   if (d.jthemePick) { setJournalTheme(d.jthemePick); return render(); }
   if (d.presentOpen) return closePresent(d.presentOpen);
   if (d.presentLater !== undefined) return closePresent();
-  if (d.openenv) {
-    const env = $('#env'); el.disabled = true;
-    if (env) env.classList.add('is-open');
-    await sleep(reduceMotion() ? 50 : 1500);
-    opening = d.openenv; patchLetter(d.openenv, { readAt: new Date().toISOString() });
-    render(); window.scrollTo(0, 0); return;
-  }
+  if (d.openenv) { el.disabled = true; return openEnvelope($('#env'), d.openenv); }
   if (d.retry) { writeLetter(d.retry); return render(); }
   if (d.login) { loginMode = d.login; loginNote = ''; return render(); }
   if (d.copy) { try { await navigator.clipboard.writeText(d.copy); toast(`Copied ${d.copy}`); } catch (e) { const r = document.createRange(); r.selectNodeContents(el.parentElement.querySelector('b')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } return; }
@@ -2170,8 +2433,7 @@ document.addEventListener('input', (ev) => {
 });
 document.addEventListener('change', async (ev) => {
   const t = ev.target;
-  if (t.id === 'arch-month') { arch.month = t.value; refreshArchive(); }
-  if (t.id === 'arch-theme') { arch.theme = t.value; refreshArchive(); }
+  if (t.id === 'arch-month' || t.id === 'arch-theme') { arch[t.id === 'arch-month' ? 'month' : 'theme'] = t.value; t.closest('.chip-pick')?.classList.toggle('is-on', !!t.value); refreshArchive(); }
   if (t.id === 'dtime') { S.deliverTime = t.value; save(); toast(`New letters will arrive at ${t.value}.`); }
   if (t.id === 'lname') { S.letterName = t.value.trim().slice(0, LETTER_NAME_MAX) || null; save(); toast(S.letterName ? 'Your letters will use that name.' : 'Your letters won’t use a name.'); }
   if (t.id === 'ylang') { S.lang = t.value; save(); }
@@ -2207,15 +2469,18 @@ let ACCOUNT = { deletion: false, letters: false, voice: false };
 let syncing = false; let syncAgain = false;
 const SETTING_FIELDS = [['voice', 'voice'], ['lang', 'letter_language'], ['deliverTime', 'delivery_time'], ['allowEarly', 'allow_early'], ['memoryPaused', 'memory_paused'], ['onboarded', 'onboarded'], ['dirs', 'directions']];
 const WELCOME_FIELDS = [['welcomeSeen', 'welcome_seen'], ['welcomeReasons', 'welcome_reasons'], ['welcomeOther', 'welcome_other'], ['letterName', 'letter_name']];
-const settingFields = () => (welcomeSupported ? [...SETTING_FIELDS, ...WELCOME_FIELDS] : SETTING_FIELDS);
+const settingFields = () => [...SETTING_FIELDS, ...(welcomeSupported ? WELCOME_FIELDS : []), ...(draftSupported ? [['draft', 'draft']] : [])];
 const settingValue = (k) => (k === 'dirs' ? { ...(S.dirs || {}) } : k === 'allowEarly' ? S.allowEarly !== false : k === 'memoryPaused' || k === 'onboarded' || k === 'welcomeSeen' ? !!S[k]
-  : k === 'welcomeReasons' ? [...(S.welcomeReasons || [])] : k === 'welcomeOther' || k === 'letterName' ? S[k] || null : S[k]);
+  : k === 'welcomeReasons' ? [...(S.welcomeReasons || [])] : k === 'welcomeOther' || k === 'letterName' ? S[k] || null
+  : k === 'draft' ? (S.draft.trim() ? S.draft.slice(0, MAX_NIGHT) : null) : S[k]);
 function applySettings(s) {
   synced = s;
   S.voice = s.voice; S.lang = s.letter_language; S.deliverTime = s.delivery_time; S.allowEarly = s.allow_early;
   S.memoryPaused = s.memory_paused; S.onboarded = s.onboarded; S.dirs = { ...(s.directions || {}) };
   welcomeSupported = typeof s.welcome_seen === 'boolean';
   S.welcomeSeen = !!s.welcome_seen; S.welcomeReasons = [...(s.welcome_reasons || [])]; S.welcomeOther = s.welcome_other ?? null; S.letterName = s.letter_name ?? null;
+  draftSupported = Object.hasOwn(s, 'draft');
+  if (draftSupported && s.draft && !S.draft.trim()) S.draft = s.draft; // unsealed words from last time
 }
 async function syncSettings() {
   if (!synced) return;
@@ -2227,7 +2492,7 @@ async function syncSettings() {
   try { synced = await backend.updateSettings(patch, synced.revision); }
   catch (e) {
     if (e?.code === 'conflict') { try { synced = await backend.settings(); syncAgain = true; } catch (x) { /* next change retries */ } }
-    else if (e?.code !== 'unauthorized') toast('Couldn’t save that setting. Check your connection.');
+    else if (e?.code !== 'unauthorized' && Object.keys(patch).some((k) => k !== 'draft')) toast('Couldn’t save that setting. Check your connection.');
   }
   syncing = false;
   if (syncAgain) { syncAgain = false; syncSettings(); }
@@ -2274,7 +2539,7 @@ function sendLetterPatch(L, body, before) {
       const cur = S.letters.find((l) => l.id === L.id);
       if (cur) Object.assign(cur, { readAt: before.readAt, early: before.early, private: before.private, actions: before.actions, deliverAt: before.deliverAt });
       toast(e?.code === 'forbidden' ? '“Read it now” is turned off in Settings.' : 'Couldn’t save that. Check your connection.');
-      if (!document.querySelector('.ascend, .overnight')) { if (sheetId) drawSheet(); else render(); }
+      if (!document.querySelector('.bk-sealing, .overnight')) { if (sheetId) drawSheet(); else render(); }
     }
   });
   letterQueues.set(L.id, next);
@@ -2285,7 +2550,10 @@ function sendLetterPatch(L, body, before) {
    the same words reuses the same key, so a flaky connection never saves twice.
    Writing again the same night adds to that night's entry, so the morning brings
    one letter over everything written that day. A night whose letter has already
-   arrived (Skip to morning, or after it's read) starts a new one instead. */
+   arrived (Skip to morning, or after it's read) starts a new one instead.
+   The cutoff between nights is 4am (journalDate): everything sealed before then
+   is in that night's letter, which is rewritten over all of it at each sealing
+   and delivered at the morning time; from 4am, writing belongs to the next night. */
 let sealKey = null; let sealText = null;
 const MAX_NIGHT = 20000; // the server's limit for one entry
 let nightEntry = null; // tonight's entry, remembered even while its letter is asked for again
@@ -2293,10 +2561,12 @@ async function sealNight(text, date) {
   const open = S.letters.find((l) => l.date === date && l.entryId && !l.readAt && !delivered(l));
   const arrived = (id) => S.letters.some((l) => l.entryId === id && (l.readAt || delivered(l)));
   const entryId = open?.entryId ?? (nightEntry?.date === date && !arrived(nightEntry.entryId) ? nightEntry.entryId : null);
-  const fits = !open || (open.entries[0]?.text || '').length + 2 + text.length <= MAX_NIGHT;
+  // each later sealing starts with its time on a line of its own, so the book can show it
+  const part = `[${hhmm()}]\n${text}`;
+  const fits = !open || (open.entries[0]?.text || '').length + 2 + part.length <= MAX_NIGHT;
   if (entryId && fits) {
     nightEntry = { date, entryId };
-    const x = await backend.addToNight(entryId, text, date, deliverAtFor(date));
+    const x = await backend.addToNight(entryId, part, date, deliverAtFor(date));
     S.letters = S.letters.filter((l) => l.entryId !== entryId); // its old letter is gone with the edit
     const L = mergeLetter(x);
     watchLetters();
@@ -2345,17 +2615,17 @@ async function refresh() {
       const [letters, memories, notes] = await Promise.all([backend.letters(), backend.memories(), backend.notes()]);
       S.letters = letters.map(toLetter); S.memories = memories.map(toMemory); S.notes = toNotes(notes);
       const changed = before !== JSON.stringify(S.letters.map((l) => [l.id, l.status, l.revision])) || deliveredBefore !== S.letters.filter(delivered).length;
-      const busy = route === 'welcome' || document.querySelector('.ascend, .overnight, .sheet-wrap') || (route === 'tonight' && $('#entry') && document.activeElement === $('#entry')) || (document.activeElement?.id === 'arch-q') || memEditing;
-      if (changed && !busy) { render(); presentLetters(); }
+      const busy = route === 'welcome' || document.querySelector('.bk-sealing, .overnight, .sheet-wrap') || (route === 'tonight' && !$('#book') && $('#entry') && document.activeElement === $('#entry')) || (document.activeElement?.id === 'arch-q') || memEditing;
+      if (changed && !busy) { if (route === 'tonight' && $('#book')) { paintBook(null, { keepWrite: true }); syncSkip(); } else render(); presentLetters(); }
     } catch (e) { /* offline for a moment: keep what's here */ }
     refreshing = null;
   })();
   return refreshing;
 }
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { refresh(); if (claudeState !== 'ready') checkAI(); } });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { refresh(); if (claudeState !== 'ready') checkAI(); } else if (draftTimer) saveDraft(true); });
 setInterval(() => {
   // A sealed letter arrives at its time even if nothing else happens.
-  if (!AUTH.user || route !== 'tonight' || document.querySelector('.ascend, .overnight, .sheet-wrap')) return;
+  if (!AUTH.user || route !== 'tonight' || document.querySelector('.bk-sealing, .overnight, .sheet-wrap')) return;
   presentLetters();
 }, 30000);
 
@@ -2396,7 +2666,7 @@ async function clearJournal() {
   try {
     await backend.clearAll();
     confirmDelete = false;
-    S.letters = []; S.demoLetters = []; S.demoNights = []; S.memories = []; S.notes = {}; S.dirs = {}; S.draft = '';
+    S.letters = []; S.demoLetters = []; S.demoNights = []; S.memories = []; S.notes = {}; S.dirs = {}; S.draft = ''; resetBook();
     try { const fresh = await backend.settings(); synced = await backend.updateSettings(keep, fresh.revision); applySettings(synced); } catch (e) { /* defaults are fine */ }
     toast('Your journal was deleted.'); render();
   } catch (e) { confirmDelete = false; needFreshSignIn(e, 'clear'); }
@@ -2414,7 +2684,7 @@ async function signOut() {
 function resetToLogin(note) {
   clearTimeout(watchTimer); closeSheet(false);
   AUTH = { auth: true, user: null }; synced = null;
-  const prefs = loadPrefs(); S = { ...fresh(), ...prefs };
+  const prefs = loadPrefs(); S = { ...fresh(), ...prefs }; resetBook();
   loginMode = 'signin'; loginNote = note || ''; route = 'login'; param = null;
   try { history.replaceState(null, '', '/app'); } catch (e) { /* fine */ }
   render();

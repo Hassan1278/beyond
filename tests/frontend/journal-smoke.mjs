@@ -53,6 +53,7 @@ const db = {
     welcome_seen: false,
     welcome_reasons: [],
     welcome_other: null,
+    draft: null,
     revision: 1,
     updated_at: now(),
   },
@@ -147,6 +148,8 @@ async function api(route) {
   if (path === '/ai') return ok(route, { letters: true, notes: true, transcribe: false });
   if (path === '/letters' && req.method() === 'GET')
     return ok(route, { items: [...db.letters].reverse(), next_cursor: null });
+  if (path === '/entries' && req.method() === 'GET')
+    return ok(route, { entries: [...db.entries].reverse(), next_cursor: null });
   if (path === '/entries' && req.method() === 'POST') {
     const e = {
       id: uuid(),
@@ -466,11 +469,25 @@ try {
     !(await page.locator('.tn .lantern-wrap, .tn .samples, .tn .glance, .tn .arrived').count()),
     'Journal keeps nothing else around the writing',
   );
+  check(
+    (await page.locator('#book .bk-page.is-write #entry').count()) === 1 &&
+      (await page.locator('.bk-wrap.is-one .bk-strip .bk-sd.is-today.is-on').count()) === 1 &&
+      (await page.locator('.bk-edge.next').isDisabled()),
+    'Journal is a book opened at today’s writing page, with a date strip on a phone',
+  );
   await shot(page, '03-tonight');
 
   console.log('seal');
   await page.fill('#entry', SECRET_WORDS);
   await page.getByRole('button', { name: 'Seal tonight' }).click();
+  await page.locator('.bk-sealing').waitFor();
+  check(
+    (await page.locator('.bk-sealing').innerText()).includes(
+      'Sealed. Your letter arrives at 08:00.',
+    ),
+    'sealing shows the seal and the delivery time',
+  );
+  await page.locator('.bk-sealing').waitFor({ state: 'detached', timeout: 5000 });
   await page.locator('.skip-morning').waitFor({ timeout: 20000 });
   check(
     (await page.locator('#entry').inputValue()) === '' &&
@@ -491,20 +508,91 @@ try {
   );
   check(!stored.includes('harbour'), 'nothing the person wrote is in browser storage');
 
-  console.log('write again the same night');
+  console.log('the book');
+  await page.locator('.bk-sd:not(.is-today)').last().waitFor();
+  await page.locator('.bk-edge.prev').click();
+  await page.locator('.bk-page.is-day').waitFor();
+  check(
+    (await page.locator('.bk-page.is-day .bk-entries li').count()) === 1 &&
+      (await page.locator('.bk-page.is-day .bk-entries').innerText()).includes('harbour') &&
+      /\d{1,2}:\d\d(am|pm)/.test(await page.locator('.bk-page.is-day .bk-time').innerText()) &&
+      (await page.locator('.bk-page.is-day .bk-seal[aria-label="Sealed"]').count()) === 1 &&
+      (await page.locator('.bk-page.is-day').getByText('Letter on its way').isVisible()),
+    'a sealed day is a page with its words, their time, a seal and the letter on its way',
+  );
+  check(
+    !(await page.locator('.bk-page.is-day textarea, .bk-page.is-day [contenteditable]').count()),
+    'past pages are read-only',
+  );
+  await page.locator('.bk-page.is-day .bk-date').click();
+  await page.keyboard.press('ArrowRight');
+  await page.locator('#entry').waitFor();
+  check(true, 'the arrow keys turn the pages');
+  await page.evaluate(() => {
+    const el = document.querySelector('.bk-page.is-write .tn-head');
+    const touch = (x) => [new Touch({ identifier: 1, target: el, clientX: x, clientY: 300 })];
+    el.dispatchEvent(
+      new TouchEvent('touchstart', {
+        bubbles: true,
+        touches: touch(80),
+        changedTouches: touch(80),
+      }),
+    );
+    el.dispatchEvent(
+      new TouchEvent('touchend', { bubbles: true, touches: [], changedTouches: touch(300) }),
+    );
+  });
+  await page.locator('.bk-page.is-day').waitFor();
+  check(true, 'swiping turns back a page');
+  await page.locator('.bk-sd.is-today').click();
+  await page.locator('#entry').waitFor();
+  check(true, 'tapping Today in the strip turns to the writing page');
+
+  console.log('draft');
   await page.fill('#entry', LATER_WORDS);
+  for (let t = 0; t < 40 && db.settings.draft !== LATER_WORDS; t++) await sleep(100);
+  check(
+    db.settings.draft === LATER_WORDS && db.letters.length === 1 && db.entries[0].revision === 1,
+    'unsealed words are saved as a draft on the account, and nothing is sent to the letter writer',
+  );
+  check(
+    !(
+      JSON.stringify(await page.evaluate(() => ({ ...localStorage, ...sessionStorage }))) || ''
+    ).includes('grandma'),
+    'the draft is never in browser storage',
+  );
+  await page.reload();
+  await page.locator('#entry').waitFor();
+  check(
+    (await page.locator('#entry').inputValue()) === LATER_WORDS,
+    'the draft is still there after leaving',
+  );
+
+  console.log('write again the same night');
   await page.getByRole('button', { name: 'Seal tonight' }).click();
   // wait for the second seal to reach the server, then for the page to come back
   for (let t = 0; t < 100 && !(db.letters.length === 1 && db.entries[0].revision === 2); t++)
     await sleep(100);
-  await page.locator('.ascend').waitFor({ state: 'detached', timeout: 20000 });
+  await page.locator('.bk-sealing').waitFor({ state: 'detached', timeout: 20000 });
   await page.locator('.skip-morning').waitFor();
   check(
     db.letters.length === 1 &&
       db.entries.length === 1 &&
-      db.letters[0].entry.text === `${SECRET_WORDS}\n\n${LATER_WORDS}`,
-    'writing again the same night adds to it: one letter over everything written',
+      new RegExp(`^${SECRET_WORDS}\\n\\n\\[\\d\\d:\\d\\d\\]\\n${LATER_WORDS}$`).test(
+        db.letters[0].entry.text,
+      ),
+    'writing again the same night adds to it, with its own time: one letter over everything written',
   );
+  for (let t = 0; t < 40 && db.settings.draft !== null; t++) await sleep(100);
+  check(db.settings.draft === null, 'sealing clears the draft');
+  await page.locator('.bk-edge.prev').click();
+  await page.locator('.bk-page.is-day').waitFor();
+  check(
+    (await page.locator('.bk-page.is-day .bk-entries li').count()) === 2 &&
+      (await page.locator('.bk-page.is-day .bk-time').count()) === 2,
+    'both sealings that night are on the day’s page, each with its time',
+  );
+  await page.locator('.bk-sd.is-today').click();
 
   console.log('letter arrives');
   finishLetter(db.letters[0]);
@@ -555,16 +643,26 @@ try {
   await page.locator('.tab[data-go="letters"]').click();
   await page.getByRole('heading', { name: 'Letters', exact: true }).waitFor();
   check(
-    await page.locator('.cover').getByText('A calm walk by the harbour').isVisible(),
-    'the newest letter is the cover of Letters',
+    await page.locator('.lp-card').getByText('A calm walk by the harbour').isVisible(),
+    'the newest letter is a small card at the top of Letters',
+  );
+  check(
+    (await page.locator('.lp-head').boundingBox()).height < 120 &&
+      (await page.locator('#arch-q').boundingBox()).y < 844,
+    'the header is small and search is on screen without scrolling',
+  );
+  check(
+    (await page.locator('#arch-results .lc[data-open]').count()) === 1 &&
+      (await page.locator('#arch-results .lp-month').count()) === 1,
+    'each letter is its own card under a month heading',
   );
   check(
     await page.locator('#arch-results').getByText('A calm walk by the harbour').isVisible(),
     'the letter is also in All letters',
   );
   check(
-    await page.getByText('1 night written since').isVisible(),
-    'Letters counts the nights written',
+    await page.getByText('1 letter so far').isVisible(),
+    'Letters says how many letters so far',
   );
 
   console.log('search all letters');
@@ -758,6 +856,74 @@ try {
     'the demo letter quotes what was written',
   );
   db.lettersUsedUp = false;
+
+  console.log('the book in demo mode');
+  await page.locator('.tab[data-go="tonight"]').click();
+  await page.locator('#entry').waitFor();
+  const sd = page.locator('.bk-sd[aria-label$=", sample"]').last();
+  const kitDate = await sd.getAttribute('data-bk-day');
+  await sd.click();
+  await page.locator(`.bk-page.is-day[data-page="${kitDate}"]`).waitFor();
+  check(
+    (await page.locator('.bk-page.is-day .bk-date').innerText()).endsWith(', sample'),
+    'Kit’s sample days are pages in the book, marked sample',
+  );
+  const kitWords = (await page.locator('.bk-page.is-day .bk-entries p').first().innerText()).slice(
+    0,
+    40,
+  );
+  await sleep(400);
+  await shot(page, '11a-book-phone');
+  const openKit = async () => {
+    await page.locator('.bk-page.is-day .bk-read').click();
+    await page.locator('.letter, .env-stage').first().waitFor();
+    if (await page.locator('[data-openenv]').count()) await page.locator('[data-openenv]').click();
+    await page.locator('.letter').waitFor();
+    await page.locator('.words-d summary').click();
+  };
+  await openKit();
+  check(
+    (await page.locator('.words-d .words').innerText()).includes(kitWords),
+    'a Kit day’s words match its letter',
+  );
+  await page.locator('[data-letter-back-book]').click();
+  await page.locator(`.bk-page[data-page="${kitDate}"]`).waitFor();
+  check(true, 'going back from a letter opened in the book returns to that page');
+  await openKit();
+  await page.locator('.words-book').click();
+  await page.locator(`.bk-page[data-page="${kitDate}"]`).waitFor();
+  check(true, '“Open in your journal” opens the book at that day');
+  await page.locator('[data-bk-cal]').click();
+  const calBtn = page.locator('.bk-sheet button.bk-cd.has').first();
+  const calDay = await calBtn.getAttribute('data-bk-day');
+  await calBtn.click();
+  await page.locator('.bk-sheet').waitFor({ state: 'detached' });
+  await page.locator(`.bk-page[data-page="${calDay}"]`).waitFor();
+  check(true, 'the calendar sheet turns to a highlighted day');
+  await page.setViewportSize({ width: 1280, height: 860 });
+  await page.locator('.bk-wrap.is-two').waitFor();
+  check(
+    (await page.locator('.bk-spread .bk-page.left').count()) === 1 &&
+      (await page.locator('.bk-spread .bk-page.right').count()) === 1 &&
+      (await page.locator('#bk-cal button.bk-cd.has').count()) >= 1 &&
+      !(await page.locator('.bk-strip').count()),
+    'a wide screen shows a two-page spread with the calendar beside it',
+  );
+  await page.locator('.bk-back-today').click();
+  await page.locator('.bk-spread .bk-page.right.is-write').waitFor();
+  check(
+    (await page.locator('.bk-spread .bk-page.left.is-day').count()) === 1,
+    'on today, the writing page is on the right of the spread',
+  );
+  await sleep(400);
+  await shot(page, '11b-book-desktop');
+  const target = page.locator('#bk-cal button.bk-cd.has:not(.is-on)').first();
+  const tDay = await target.getAttribute('data-bk-day');
+  await target.click();
+  await page.locator(`.bk-spread .bk-page[data-page="${tDay}"]`).waitFor();
+  check(true, 'clicking a highlighted day in the calendar turns to it');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('.bk-wrap.is-one').waitFor();
 
   console.log('growth in demo mode');
   await page.locator('.tab[data-go="growth"]').click();

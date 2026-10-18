@@ -134,6 +134,7 @@ Return only valid JSON in this shape:
 }
 If safety_flag is "urgent", set small_step to null and reflection_question to null.
 
+(Beyond app) entry: when the user wrote more than once that night, each later part starts with a line like [23:30], the time it was sealed. Treat the parts as one night, in order. Never copy the [HH:MM] lines into evidence.
 (Beyond app) themes: choose 1 to 3 only from this list: ${THEME_KEYS.join(', ')}.
 (Beyond app) evidence: copy each phrase exactly as the user wrote it, a few words each, so it can be checked against the entry.
 (Beyond app) For the Growth page, also fill these from tonight's entry only, never invented. Leave a list empty when the entry gives nothing:

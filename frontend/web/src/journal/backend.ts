@@ -9,6 +9,7 @@ import {
   ApiClientError,
   createApiClient,
   type AccountExportQuery,
+  type Entry,
   type Letter,
   type Memory,
   type Note,
@@ -40,6 +41,8 @@ export interface JournalBackend {
   updateSettings(patch: SettingsPatch, revision: number): Promise<Settings>;
   letters(): Promise<Letter[]>;
   letter(id: string): Promise<Letter>;
+  /** One page of entries, newest first (the journal book loads more as you flip back). */
+  entries(cursor?: string): Promise<{ entries: Entry[]; next_cursor: string | null }>;
   seal(
     text: string,
     idempotencyKey: string,
@@ -273,6 +276,8 @@ export function journalBackend(): JournalBackend {
         all((cursor) => http().letters.list(cursor ? { limit: '100', cursor } : { limit: '100' })),
       ),
     letter: (id) => guard(() => http().letters.get(id)),
+    entries: (cursor) =>
+      guard(() => http().entries.list(cursor ? { limit: '100', cursor } : { limit: '100' })),
     async seal(text, idempotencyKey, journalDate, deliverAt) {
       const entry = await guard(() =>
         http().entries.create({ text, idempotency_key: idempotencyKey, reflection_opt_in: false }),

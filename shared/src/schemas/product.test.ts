@@ -28,6 +28,8 @@ describe('explicit private product inputs', () => {
     { expected_revision: 1, welcome_other: '   ' },
     { expected_revision: 1, welcome_other: 'x'.repeat(151) },
     { expected_revision: 1, welcome_seen: 'yes' },
+    { expected_revision: 1, draft: '   ' },
+    { expected_revision: 1, draft: 'x'.repeat(20_001) },
   ])('rejects unsafe settings patch %#', (value) =>
     expect(patchSettingsSchema.safeParse(value).success).toBe(false),
   );
@@ -42,6 +44,12 @@ describe('explicit private product inputs', () => {
     expect(
       patchSettingsSchema.safeParse({ expected_revision: 1, welcome_other: null }).success,
     ).toBe(true);
+  });
+  it('accepts a draft kept as typed, or cleared', () => {
+    expect(
+      patchSettingsSchema.safeParse({ expected_revision: 1, draft: '  Fictional\n' }).success,
+    ).toBe(true);
+    expect(patchSettingsSchema.safeParse({ expected_revision: 1, draft: null }).success).toBe(true);
   });
   it('requires explicit approval and source choice', () => {
     const base = { text: 'Fictional memory', source_entry_id: null, idempotency_key: id };
