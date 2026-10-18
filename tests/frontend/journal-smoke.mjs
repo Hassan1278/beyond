@@ -790,7 +790,8 @@ try {
     'Identity has its own tab and says when a direction will appear',
   );
   check(
-    (await page.locator('.id-step .id-k').innerText()).toLowerCase() === 'today’s goal' &&
+    (await page.locator('.id-step .id-k').innerText()) === 'Actionable Step' &&
+      (await page.locator('.id-todos .id-k').innerText()) === 'To-Do List' &&
       (await page.locator('.id-layout > .id-do .id-step + .id-todos').count()) === 1 &&
       (await page.locator('.id-step .id-step-t').innerText()).includes('Walk ten minutes') &&
       (await page.locator('.id-step.is-done').count()) === 1,
@@ -836,12 +837,12 @@ try {
   for (let t = 0; t < 30 && db.todos.length; t++) await sleep(100);
   check(db.todos.length === 0, 'clearing a line removes its to-do');
   await page.locator('.tab[data-go="growth"]').click();
-  await page.getByRole('heading', { name: 'Growth', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Patterns', exact: true }).waitFor();
   check(
     (await page.locator('.tab[data-go="growth"]').innerText()).trim() === 'Growth' &&
       !(await page.locator('[data-go="patterns"]').count()) &&
       !(await page.getByText('Your patterns, not their highlight reel.').count()),
-    'Patterns is now Growth',
+    'the Growth tab’s page is called Patterns',
   );
   check(
     (await page.locator('.g-card').count()) === 5 &&
@@ -1098,9 +1099,19 @@ try {
   );
   check(
     (await page.locator('.g-stars .ns-star').count()) >= 10 &&
-      (await page.locator('.g-quad').count()) === 4,
-    'in Demo mode most days have a star, and the energy map names its four boxes',
+      !(await page.locator('.g-quad').count()) &&
+      (await page.locator('.g-stars .ns-star[data-star]').count()) >= 10,
+    'in Demo mode most days have a star, and every star opens a letter',
   );
+  await page.locator('.g-stars .ns-star[data-star]').nth(3).click({ force: true });
+  await page.locator('.letter, .env-stage').first().waitFor();
+  check(
+    (await page.locator('[data-letter-back-growth]').count()) === 1,
+    'a star opens its letter with a way back to Growth',
+  );
+  await page.locator('[data-letter-back-growth]').click();
+  await page.locator('.g-stars').waitFor();
+  check(page.url().endsWith('#growth'), 'Back from that letter returns to Growth, not Letters');
   await shot(page, '11c-growth-month');
   await page.locator('[data-ptab="year"]').click();
   await page.locator('.g-film').waitFor();

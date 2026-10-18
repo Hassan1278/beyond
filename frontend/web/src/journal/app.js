@@ -289,7 +289,7 @@ let lettersScroll = 0; // going back from a letter returns to the same place in 
 function go(r, p = null, opts = {}) {
   const from = route;
   if (from === 'letters' && r === 'letter') lettersScroll = window.scrollY;
-  if (r !== 'letter') { letterFromDir = null; letterFromBook = null; }
+  if (r !== 'letter') { letterFromDir = null; letterFromBook = null; letterFromGrowth = false; }
   dirEditing = false;
   if (r === 'tonight' && from !== 'tonight' && !opts.keepBook) { BK.at = 'write'; BK.opening = true; } // the Journal tab opens on today's page, opening like a real book
   route = r; param = p;
@@ -1360,7 +1360,7 @@ async function openEnvelope(env, id, overlay = null) {
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('.present')) closePresent(); });
 
 /* ----- letter ----- */
-let opening = null; let letterFromDir = null; let letterFromBook = null; // a letter opened from a direction page, or the book, returns there
+let opening = null; let letterFromDir = null; let letterFromBook = null; let letterFromGrowth = false; // a letter opened from a direction page, or the book, returns there
 let secHans = false;
 const secLabel = (k) => { const [en, zh, c, hans] = SECTIONS[k]; return `<h2 class="ls-label" style="--c:${c}"><b>${en}</b><span lang="${secHans ? 'zh-Hans' : 'zh-Hant-HK'}">${secHans ? hans : zh}</span></h2>`; };
 function vLetter() {
@@ -1372,7 +1372,7 @@ function vLetter() {
   secHans = c.language === 'zh-hans' || (c.language === 'en' && S.lang === 'zh-hans');
   const greet = c.greeting ?? v[lang][0]; const sign = c.signoff ?? v[lang][1];
   const backDir = letterFromDir && DIRECTIONS.find((x) => x.key === letterFromDir);
-  const backBtn = backDir ? `<button class="link back" data-letter-back-dir="${backDir.key}">${I.left}${esc(backDir.name)}</button>` : letterFromBook ? `<button class="link back" data-letter-back-book="${letterFromBook}">${I.left}Journal</button>` : `<button class="link back" data-go="letters">${I.left}Letters</button>`;
+  const backBtn = backDir ? `<button class="link back" data-letter-back-dir="${backDir.key}">${I.left}${esc(backDir.name)}</button>` : letterFromBook ? `<button class="link back" data-letter-back-book="${letterFromBook}">${I.left}Journal</button>` : letterFromGrowth ? `<button class="link back" data-letter-back-growth>${I.left}Growth</button>` : `<button class="link back" data-go="letters">${I.left}Letters</button>`;
   if (!L.readAt && opening !== L.id) {
     return `${backBtn}
       <section class="env-stage">
@@ -1602,7 +1602,7 @@ function vGrowth() {
     body = growthMonth(all);
   }
   return `<header class="g-head">
-      <h1 class="g-title">Growth</h1>
+      <h1 class="g-title">Patterns</h1>
       <div class="g-controls"><nav class="switch" aria-label="Growth views">${PTABS.map(([k, l]) => `<button data-ptab="${k}" ${tab === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>${head}</div>
     </header>
     <div class="g-grid">${body}</div>`;
@@ -1674,8 +1674,6 @@ function compassInner(g, earlier = null) {
     ${earlier ? `<p class="fine g-was">In ${esc(earlier.month)} you were pointing toward ${esc(earlier.label)}. Now ${esc(g.needle)}.</p>` : ''}
     ${selItems.length ? nightsList(selItems) : ''}`;
 }
-/* The four boxes of the energy map, each named in its corner: [label, right side, bottom]. */
-const QUADS = [['Energizing · bored', false, false], ['Energizing · absorbed', true, false], ['Draining · bored', false, true], ['Draining · absorbed', true, true]];
 function aliveInner(g) {
   const dots = g.activities.slice(0, 8);
   if (dots.length < 3) return gEmpty('A few more nights and your map will fill in.');
@@ -1684,8 +1682,7 @@ function aliveInner(g) {
   const sel = gSel?.kind === 'dot' ? gSel.key : null;
   // dots on the same spot fan out a little; each label takes the first free place beside its dot
   const spots = new Map();
-  const boxes = [{ x0: W / 2 - 48, x1: W / 2 + 48, y0: P - 22, y1: P - 6 }, { x0: W / 2 - 36, x1: W / 2 + 36, y0: H - P + 8, y1: H - P + 24 }, { x0: P, x1: P + 40, y0: H / 2 + 3, y1: H / 2 + 17 }, { x0: W - P - 56, x1: W - P, y0: H / 2 + 3, y1: H / 2 + 17 }];
-  QUADS.forEach(([t, right, low]) => { const w = t.length * 6.6; const x0 = right ? W - P - 8 - w : P + 8; const y = low ? H - P - 8 : H / 2 - 8; boxes.push({ x0, x1: x0 + w, y0: y - 11, y1: y + 3 }); });
+  const boxes = [{ x0: W / 2 - 70, x1: W / 2 + 70, y0: P - 24, y1: P - 4 }, { x0: W / 2 - 46, x1: W / 2 + 46, y0: H - P + 6, y1: H - P + 26 }, { x0: P, x1: P + 54, y0: H / 2 + 2, y1: H / 2 + 18 }, { x0: W - P - 76, x1: W - P, y0: H / 2 + 2, y1: H / 2 + 18 }];
   const free = (bx) => bx.x0 >= 2 && bx.x1 <= W - 2 && bx.y0 >= 2 && bx.y1 <= H - 2 && !boxes.some((o) => bx.x0 < o.x1 && bx.x1 > o.x0 && bx.y0 < o.y1 && bx.y1 > o.y0);
   const placed = dots.map((d) => {
     let cx = X(d.b), cy = Y(d.e); const key = `${Math.round(cx / 8)}|${Math.round(cy / 8)}`; const k = spots.get(key) || 0; spots.set(key, k + 1);
@@ -1711,7 +1708,6 @@ function aliveInner(g) {
       <line class="g-axis" x1="${P}" x2="${W - P}" y1="${H / 2}" y2="${H / 2}"/><line class="g-axis" y1="${P}" y2="${H - P}" x1="${W / 2}" x2="${W / 2}"/>
       <text class="g-ax" x="${P}" y="${H / 2 + 14}">bored</text><text class="g-ax" x="${W - P}" y="${H / 2 + 14}" text-anchor="end">absorbed</text>
       <text class="g-ax" x="${W / 2}" y="${P - 10}" text-anchor="middle">gives you energy</text><text class="g-ax" x="${W / 2}" y="${H - P + 20}" text-anchor="middle">drains you</text>
-      ${QUADS.map(([t, right, low]) => `<text class="g-quad ${right && !low ? 'is-hot' : ''}" x="${right ? W - P - 8 : P + 8}" y="${low ? H - P - 8 : H / 2 - 8}" text-anchor="${right ? 'end' : 'start'}">${t}</text>`).join('')}
       ${out.join('')}
     </svg></div>
     ${sel ? nightsList((dots.find((d) => gKey(d.name) === sel) || { letters: [] }).letters) : ''}`;
@@ -1751,7 +1747,8 @@ function drawSky() {
   const today = journalDate(); const end = to < today ? to : today; const span = Math.max(1, dayDiff(to, from));
   const byDay = new Map(); for (const l of [...list].sort((a, b) => a.date.localeCompare(b.date))) if (!byDay.has(l.date)) byDay.set(l.date, l);
   const pts = []; let c = 0;
-  // Demo mode: Kit wrote most days, so most days get a star (not a letter to open); a few days are skipped
+  // Demo mode: Kit wrote most days, so most days get a star, each opening one of Kit's sample letters; a few days are skipped
+  const kits = demoOn() ? sampleLetters() : []; const kitFor = (d) => kits.length ? kits[Math.floor(seeded(`kit-letter-${d}`)() * kits.length)] : null;
   const demoDay = (d) => demoOn() && seeded(`kit-night-${d}`)() < .82;
   for (let d = from; d <= end; d = addDays(d, 1)) { const l = byDay.get(d) || null; const demo = !l && demoDay(d); if (l || demo) c += 1; pts.push({ date: d, c, l, demo }); }
   const top = Math.max(4, c); const step = top <= 6 ? 1 : top <= 12 ? 2 : top <= 30 ? 5 : top <= 60 ? 10 : 25; const maxY = Math.ceil(top / step) * step;
@@ -1771,7 +1768,7 @@ function drawSky() {
     <text class="ns-ax-t" x="12" y="${(T + H - B) / 2}" text-anchor="middle" transform="rotate(-90 12 ${(T + H - B) / 2})">Days journaled</text>
     ${pts.length > 1 ? `<path d="${path}" class="ns-line" pathLength="1"/>` : ''}
     ${ticks === 'month' ? pts.filter((p) => !p.l && !p.demo).map((p) => `<circle class="ns-miss" cx="${X(p.date).toFixed(1)}" cy="${Y(p.c).toFixed(1)}" r="2.4"/>`).join('') : ''}
-    ${pts.filter((p) => p.demo).map((p) => `<g class="ns-star is-demo" transform="translate(${X(p.date).toFixed(1)} ${Y(p.c).toFixed(1)})" aria-hidden="true"><circle r="${(3.6 * scale * 4).toFixed(1)}" class="halo" fill="url(#glow)"/><path d="${sparkle(p.date, 3.6 * scale * 1.7)}" class="core"/></g>`).join('')}
+    ${pts.filter((p) => p.demo).map((p) => { const L = kitFor(p.date); return `<g class="ns-star is-demo" transform="translate(${X(p.date).toFixed(1)} ${Y(p.c).toFixed(1)})" ${L ? `tabindex="0" role="button" aria-label="${esc(fmtDay(p.date))}, sample: ${esc(L.content.title || L.content.headline)}" data-star="${L.id}"` : 'aria-hidden="true"'}><circle r="${(3.6 * scale * 4).toFixed(1)}" class="halo" fill="url(#glow)"/><path d="${sparkle(p.date, 3.6 * scale * 1.7)}" class="core"/><circle r="12" fill="transparent"/></g>`; }).join('')}
     ${pts.filter((p) => p.l).map((p, i) => { const r = seeded(p.l.id); return `<g class="ns-star ${fresh ? 'ns-new' : ''}" transform="translate(${X(p.date).toFixed(1)} ${Y(p.c).toFixed(1)})" style="--tw:${(2.5 + r() * 3.5).toFixed(2)}s;--dl:${(r() * 3).toFixed(2)}s;--d:${Math.min(i * 45, 1600)}ms" tabindex="0" role="button" aria-label="${esc(fmtDay(p.l.date))}: ${esc(p.l.content.title || p.l.content.headline)}" data-star="${p.l.id}"><circle r="${(4.4 * scale * 4).toFixed(1)}" class="halo" fill="url(#glow)"/><path d="${sparkle(p.l.id, 4.4 * scale * 1.7)}" class="core"/><circle r="14" fill="transparent"/></g>`; }).join('')}
   </svg>${!byDay.size && !c ? '<p class="ns-empty">No letters here yet. Each night you write becomes a star.</p>' : ''}`;
 }
@@ -1899,15 +1896,15 @@ function paintTodos(focusNew = false) {
 function stepsHome() {
   const L = todaysLetter(); const step = L?.content.small_step;
   const from = L ? `${L.date === addDays(journalDate(), -1) ? 'From this morning’s letter' : `From your letter for ${fmtDay(L.date)}`}${L.sample ? ', sample' : ''}` : '';
-  return `<aside class="id-do" aria-label="Today’s goal and your to-dos">
+  return `<aside class="id-do" aria-label="Actionable step and to-do list">
       <div class="id-card id-step ${L?.actions?.['step.0'] === 'tried' ? 'is-done' : ''}">
-        <h2 class="id-k">Today’s goal</h2>
+        <h2 class="id-k">Actionable Step</h2>
         ${L ? `<p class="id-step-t">${esc(step.text)}</p><p class="id-step-m">${from} · ${step.minutes} min</p>
         <div class="row id-step-row">${stepButtons(L)}</div>`
         : '<p class="id-step-m">Your next letter brings one goal for the day. It shows here.</p>'}
       </div>
       <div class="id-card id-todos">
-        <h2 class="id-k">Your to-dos</h2>
+        <h2 class="id-k">To-Do List</h2>
         <div class="todo-box">${todoLinesHtml()}</div>
       </div>
     </aside>`;
@@ -2343,7 +2340,7 @@ function toast(msg) { const t = document.createElement('div'); t.className = 'to
 /* ---------- events ---------- */
 document.addEventListener('click', async (ev) => {
   const star = ev.target.closest('[data-star]');
-  if (star) return go('letter', star.dataset.star);
+  if (star) { letterFromGrowth = true; return go('letter', star.dataset.star); }
   const el = ev.target.closest('button, a, [data-close], [data-gdot], [data-open]');
   if (!el) { if (route === 'growth' && pTip && !ev.target.closest('.ns-tip')) { pTip = null; drawSky(); } return; }
   const d = el.dataset;
@@ -2385,6 +2382,8 @@ document.addEventListener('click', async (ev) => {
   if (d.bkSheetClose !== undefined) return closeCalSheet();
   if (d.bookDay) { BK.at = d.bookDay; BK.month = null; return go('tonight', null, { keepBook: true }); }
   // a letter opened from the book goes back to that page
+  // a letter opened from a star in Growth goes straight back there
+  if (d.letterBackGrowth !== undefined) { if (location.hash.startsWith('#letter')) { try { return history.back(); } catch (e) { /* fall through */ } } return go('growth'); }
   if (d.letterBackBook) { BK.at = d.letterBackBook; if (location.hash.startsWith('#letter')) { try { return history.back(); } catch (e) { /* fall through */ } } return go('tonight', null, { keepBook: true }); }
   // the letter was opened from that direction page in this visit, so step back to it rather than stacking another entry
   if (d.letterBackDir) { if (location.hash.startsWith('#letter')) { try { return history.back(); } catch (e) { /* fall through */ } } return go('identity', d.letterBackDir); }
@@ -2542,7 +2541,7 @@ document.addEventListener('change', async (ev) => {
 });
 document.addEventListener('keydown', (ev) => {
   const g = ev.target.closest?.('[data-star]');
-  if (g && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); return go('letter', g.dataset.star); }
+  if (g && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); letterFromGrowth = true; return go('letter', g.dataset.star); }
   const dot = ev.target.closest?.('[data-gdot], .tl-star[data-open]');
   if (dot && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); dot.dispatchEvent(new MouseEvent('click', { bubbles: true })); return; }
   if (ev.key === 'Escape') { if ($('.sheet-wrap')) closeSheet(); else if (pTip) { pTip = null; drawSky(); } }

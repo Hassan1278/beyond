@@ -1232,13 +1232,20 @@ main.v-tonight { max-width: 1320px; padding-top: 6px; padding-bottom: 96px; gap:
 .bk-saved { margin-right: auto; font-size: 12.5px; color: var(--faint); }
 @media (max-width: 520px) { .bk-page.tn .tn-bar > .btn { flex: 0 0 auto; } }
 /* an earlier day: read-only, on the same rules */
-.bk-entries { --rule: 28px; list-style: none; margin: 0; padding: 12px 2px 0; flex: 1; display: grid; align-content: start; gap: 0; }
-/* Each entry starts on a dotted rule whose dots part for its time; the words sit right below.
-   One entry's top rule is the line under the one before, so no rule is ever doubled. */
-.bk-entries li { position: relative; } /* the words' own top rule is the line the time sits on */
+.bk-entries { --rule: 30px; --above: 10px; --below: 14px; list-style: none; margin: 0; padding: 14px 2px 0; flex: 1; display: grid; align-content: start; gap: 0; }
+/* Each entry: a dotted rule with its time in it, a little space, then the words on their own
+   rules. The rule under an entry's last line is the next entry's time line, so lines never
+   double, and there is room above and below each time. */
+.bk-entries li { position: relative; background: var(--dots) 0 -1px / 6px 2px repeat-x; }
 .bk-sep { position: absolute; left: 0; top: 0; height: 0; }
-.bk-time { position: absolute; left: 12px; top: -5px; z-index: 1; padding: 0 5px; white-space: nowrap; background: var(--night-2); font: 600 9px/10px var(--f-ui); letter-spacing: .07em; color: var(--faint); }
-.bk-entries p { font: 400 15.5px/var(--rule) var(--f-display); white-space: pre-wrap; overflow-wrap: anywhere; background: var(--dots) 0 calc(var(--rule) / 2) / 6px var(--rule) repeat; }
+.bk-time { position: absolute; left: 12px; top: -6px; z-index: 1; padding: 0 6px; white-space: nowrap; background: var(--night-2); font: 600 9.5px/12px var(--f-ui); letter-spacing: .07em; color: var(--faint); }
+.bk-entries p { position: relative; padding: var(--above) 0 var(--below); font: 400 15.5px/var(--rule) var(--f-display); white-space: pre-wrap; overflow-wrap: anywhere;
+  background: var(--dots) 0 calc(var(--above) + var(--rule) / 2) / 6px var(--rule) repeat; }
+/* hide the two rows of dots that fall in the space above and below the words */
+.bk-entries p::before, .bk-entries p::after { content: ""; position: absolute; left: 0; right: 0; height: 4px; background: var(--night-2); }
+.bk-entries p::before { top: calc(var(--above) - 2px); }
+.bk-entries p::after { bottom: calc(var(--below) - 2px); }
+.bk-entries li:last-child p::after { display: none; }
 .bk-foot { flex: none; padding-top: 8px; border-top: 1.5px solid color-mix(in srgb, var(--cream) 30%, transparent); display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 12px; }
 .bk-read { display: inline-flex; align-items: center; gap: 5px; font-size: 13.5px; }
 .bk-read svg { width: 13px; height: 13px; }
@@ -1521,4 +1528,25 @@ main.v-identity:not(:has(.dir-head)) { max-width: 1360px; }
 .g-map text.g-quad { fill: color-mix(in srgb, var(--cream) 62%, transparent); font: 600 9.5px var(--f-ui); letter-spacing: .04em; text-transform: uppercase; }
 .g-map text.g-quad.is-hot { fill: var(--amber); }
 .ns-star.is-demo .core { fill: var(--cream); opacity: .85; }
-.ns-star.is-demo { pointer-events: none; }
+
+/* Identity bar: fills the height beside the map; clear titles; each to-do its own box */
+.id-layout { align-items: stretch; }
+.id-layout .id-do { align-self: stretch; display: flex; flex-direction: column; gap: 14px; position: static; }
+.id-layout .id-do .id-k { font: 700 18px/1.2 var(--f-ui); }
+.id-layout .id-step { padding: 16px 16px 16px; gap: 8px; }
+.id-layout .id-todos { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+.id-todos .todo-box { flex: 1; align-content: start; gap: 10px; }
+.todo-list.is-lines { gap: 8px; }
+.todo-list.is-lines .todo-i { background: var(--night); border: 1px solid color-mix(in srgb, var(--cream) 20%, var(--night-2)); border-radius: 10px; padding: 4px 10px; min-height: 44px; }
+.todo-list.is-lines .todo-i:focus-within { border-color: var(--amber); }
+.todo-list.is-lines .todo-i.is-done { background: color-mix(in srgb, var(--night) 60%, var(--night-2)); }
+.todo-in { padding: 10px 0; }
+.todo-in:focus { box-shadow: none; }
+.todo-more { width: 100%; height: 40px; border-radius: 10px; font-size: 20px; }
+
+/* Growth: bolder card headings; the energy map's four directions, easy to read */
+.v-growth .g-t { font-weight: 600; }
+.g-map text.g-ax { fill: color-mix(in srgb, var(--cream) 80%, transparent); font: 600 12px var(--f-ui); letter-spacing: .06em; text-transform: uppercase; }
+.ns-star.is-demo { pointer-events: auto; cursor: pointer; }
+.ns-star .halo { pointer-events: none; }
+.id-layout .id-do { align-items: stretch; }
