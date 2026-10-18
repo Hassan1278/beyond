@@ -16,6 +16,7 @@ import {
   type PatchLetter,
   type PatchSettings,
   type Settings,
+  type Todo,
   type SpokenLanguage,
 } from '@beyond/shared';
 
@@ -63,6 +64,15 @@ export interface JournalBackend {
   updateLetter(id: string, patch: PatchLetter): Promise<Letter>;
   retryLetter(id: string): Promise<Letter>;
   memories(): Promise<Memory[]>;
+  /** Your own to-dos (the Identity page's list). */
+  todos(): Promise<Todo[]>;
+  createTodo(title: string, idempotencyKey: string): Promise<Todo>;
+  updateTodo(
+    id: string,
+    patch: { title?: string; completed?: boolean },
+    revision: number,
+  ): Promise<Todo>;
+  deleteTodo(id: string): Promise<void>;
   createMemory(text: string, idempotencyKey: string): Promise<Memory>;
   updateMemory(id: string, text: string, revision: number): Promise<Memory>;
   deleteMemory(id: string): Promise<void>;
@@ -335,6 +345,17 @@ export function journalBackend(): JournalBackend {
       ),
     async deleteMemory(id) {
       await guard(() => http().memories.delete(id));
+    },
+    todos: () =>
+      guard(() =>
+        all((cursor) => http().todos.list(cursor ? { limit: '100', cursor } : { limit: '100' })),
+      ),
+    createTodo: (title, idempotencyKey) =>
+      guard(() => http().todos.create({ title, idempotency_key: idempotencyKey })),
+    updateTodo: (id, patch, revision) =>
+      guard(() => http().todos.update(id, { ...patch, expected_revision: revision })),
+    async deleteTodo(id) {
+      await guard(() => http().todos.delete(id));
     },
     notes: async () => (await guard(() => http().notes.list())).items,
     writeNote: (key) => guard(() => http().notes.write(key)),

@@ -792,6 +792,44 @@ Object.assign(PHRASES, {
   'Draft saved': '草稿已保存',
   'Open in your journal': '在日记里打开',
   'Last night’s letter': '昨晚的来信',
+  'Who are you becoming…': '你正在成为谁……',
+  'Identity constellation': '身份星图',
+  'Every bubble is a growing identity that keeps showing up in your journal.':
+    '每个泡泡都是一个在你日记里反复出现、正在成长的身份。',
+  'Confirm, pop, or customize: you choose which ones to grow into.':
+    '确认、戳破或自定义：由你决定要成长成哪一个。',
+  You: '你',
+  'Today’s step': '今天的一小步',
+  'Your to-dos': '你的待办',
+  'Your next letter brings one small step for the day. It shows here.':
+    '下一封信会带来今天的一小步，会显示在这里。',
+  'Anything you want to do, big or small. Add one below.': '想做的事，大小都可以。在下面添加。',
+  'Add a to-do…': '添加待办……',
+  'Add a to-do': '添加待办',
+  Add: '添加',
+  'Show all': '显示全部',
+  Customize: '自定义',
+  Name: '名称',
+  Description: '描述',
+  'Use the original': '用回原来的',
+  'Back to the original name.': '已用回原来的名称。',
+  'Saved.': '已保存。',
+  'Your letters about this': '关于这个方向的来信',
+  'Actionable steps': '可行的小步',
+  'Steps from your letters about this, and your own. They show on your Identity page too.':
+    '来自相关来信的小步，以及你自己加的。它们也会显示在自我页面上。',
+  'Steps from your letters about this will gather here. You can add your own too.':
+    '相关来信里的小步会汇集在这里。你也可以自己添加。',
+  'Add a step for this…': '为这个方向加一小步……',
+  'Receive your morning letters at': '每天早上收信时间',
+  'Search your letters': '搜索你的来信',
+  'All months': '全部月份',
+  'Read last night’s letter': '读昨晚的来信',
+  'Each star is a letter. The line climbs every night you write and stays level when you skip one.':
+    '每颗星是一封信。你每写一晚，线就往上爬一格；没写的那天，线保持持平。',
+  Day: '日期',
+  'Couldn’t add that. Check your connection.': '没能添加，请检查网络连接。',
+  'Couldn’t delete that. Check your connection.': '没能删除，请检查网络连接。',
   'Passion compass': '热情罗盘',
   'Write anything': '想写什么都可以',
   'Settings sections': '设置分类',
@@ -844,6 +882,29 @@ const nights = (k: string): string => `${k} 个晚上`;
 
 /** Wording with a date, count or name in it. Content (headlines, quotes) passes through as is. */
 export const ZH_PATTERNS: [RegExp, (...m: string[]) => string][] = [
+  [new RegExp(`^${MONTHS} (\\d{1,2})$`), (m, d) => `${mo(m)}${d}日`],
+  [
+    /^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)( · (sample|demo letter))?$/,
+    (w, x, t) => `${WD[w]}${x ? ` · ${t === 'sample' ? '示例' : '演示信'}` : ''}`,
+  ],
+  [
+    new RegExp(
+      `^(From this morning’s letter|From your letter for ${DAY})(, sample)? · (\\d+) min$`,
+    ),
+    (a, w, d, m, smp, n) =>
+      `${a.startsWith('From this') ? '来自今早的来信' : `来自${day(w, d, m)}的来信`}${smp ? '，示例' : ''} · ${n} 分钟`,
+  ],
+  [
+    new RegExp(`^Read your latest letter, from ${DAY}$`),
+    (w, d, m) => `读最新的来信（${day(w, d, m)}）`,
+  ],
+  [/^Letters about (.+)$/, (t) => `关于${theme(t)}的来信`],
+  [/^Delete (.+)$/s, (t) => `删除：${t}`],
+  [/^Add a step for (.+)$/, (t) => `为${dir(t)}加一小步`],
+  [
+    /^(\d+) letters? so far this (month|year)$/,
+    (k, x) => `${x === 'month' ? '这个月' : '今年'}目前 ${k} 封信`,
+  ],
   [
     /^\s*– (Past journal|Earlier today)$/,
     (k) => ` – ${k === 'Past journal' ? '过去的日记' : '今天早些时候'}`,

@@ -97,6 +97,8 @@ Preferences:
 - `letter_name`: optional trimmed text, 1–40 characters, or `null`; what letters call the person. The app fills it into the letter's `{{name}}`; it is never part of the letter writer's input.
 - The `welcome_*` fields and `letter_name` need migration `20261017000000_welcome`; until it is applied they are absent from responses and the app falls back to `onboarded`.
 - `draft`: the unsealed words on today's journal page, kept exactly as typed (1–20,000 characters, not blank) or `null`. Saved by the app a second after typing stops and cleared when the night is sealed; never sent to the letter writer. Needs migration `20261019000000_drafts`; until it is applied it is absent and the app keeps drafts in memory only.
+- `direction_labels`: a confirmed direction's own name (1–40 characters) and one-line description (1–160), keyed by direction, set with Customize on the direction's page. Needs migration `20261020000000_direction_labels`; until it is applied it is absent and renames last for the visit only.
+- To-dos (`/todos`) are the Identity page's list. A to-do added on a direction's page starts its title with `[<direction key>] ` (for example `[community-builder] Ask about volunteering`); the app shows it under that direction and hides the tag.
 
 Legacy `morning_time` (`07:00`/`07:30`/`08:00`) and `reflection_enabled: false` remain for compatibility. Saving preferences never writes a letter. Every change increments the revision.
 

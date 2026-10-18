@@ -101,7 +101,7 @@ const OFFLINE = false;
 let AUTH = { auth: true, user: null };
 const isGuest = () => false;
 let storageOk = true;
-function fresh() { return { v: 2, onboarded: false, welcomeSeen: false, welcomeReasons: [], welcomeOther: null, letterName: null, mode: 'own', voice: 'friend', lang: 'auto', inputMode: 'type', deliverTime: '08:00', allowEarly: true, draft: '', letters: [], demoLetters: [], demoNights: [], sampleMeta: {}, notes: {}, dirs: {}, memories: [], memoryPaused: false, forgotten: [], hiddenSampleMem: [], savedAt: 0 }; }
+function fresh() { return { v: 2, onboarded: false, welcomeSeen: false, welcomeReasons: [], welcomeOther: null, letterName: null, mode: 'own', voice: 'friend', lang: 'auto', inputMode: 'type', deliverTime: '08:00', allowEarly: true, draft: '', letters: [], demoLetters: [], demoNights: [], sampleMeta: {}, notes: {}, dirs: {}, dirLabels: {}, todos: [], memories: [], memoryPaused: false, forgotten: [], hiddenSampleMem: [], savedAt: 0 }; }
 /* Demo mode (the default): sample nights to try, Kit's fictional letters next to
    yours, and "Skip to morning". Letters are still written by the AI, as in
    Normal mode. Normal mode is just your own journal. */
@@ -290,7 +290,8 @@ function go(r, p = null, opts = {}) {
   const from = route;
   if (from === 'letters' && r === 'letter') lettersScroll = window.scrollY;
   if (r !== 'letter') { letterFromDir = null; letterFromBook = null; }
-  if (r === 'tonight' && from !== 'tonight' && !opts.keepBook) BK.at = 'write'; // the Journal tab opens on today's page
+  dirEditing = false;
+  if (r === 'tonight' && from !== 'tonight' && !opts.keepBook) { BK.at = 'write'; BK.opening = true; } // the Journal tab opens on today's page, opening like a real book
   route = r; param = p;
   const token = p ? `${route}${route === 'identity' ? '/' : '-'}${p}` : route;
   if (!opts.replace && location.hash.slice(1) !== token) { try { history.pushState(null, '', `#${token}`); } catch (e) { /* frame may refuse */ } }
@@ -442,6 +443,7 @@ const DEV = process.env.NODE_ENV !== 'production';
 // Development only: /app?onboarding=1 shows the welcome again, for demos and testing.
 let replayWelcome = DEV && new URLSearchParams(location.search).get('onboarding') === '1';
 let draftSupported = false; // the account can keep an unsealed draft
+let labelsSupported = false; // the account can keep renamed directions (until then they last for this visit)
 let welcomeSupported = false; // the account can store welcome_seen and the answers
 const needsWelcome = () => replayWelcome || (welcomeSupported ? !S.welcomeSeen : !S.onboarded);
 const W = { step: 0, shown: -1, reasons: new Set(), other: '', voice: null, name: '', ready: false, timer: 0, seenFirst: false };
@@ -549,7 +551,7 @@ function voiceCards() {
    entries fetched a hundred at a time as you flip back (so an entry still waiting
    for its letter is in the book too). Only the open page or spread is drawn. */
 let lastWords = 0;
-const BK = { at: 'write', month: null, entries: new Map(), cursor: undefined, loading: null, two: null, focus: true };
+const BK = { opening: false, at: 'write', month: null, entries: new Map(), cursor: undefined, loading: null, two: null, focus: true };
 const bookTwo = () => window.innerWidth >= 960; // a two-page spread with the calendar beside it
 /* Writing again the same night adds a "[HH:MM]" line before the new words (see
    sealNight), so each sealing keeps its own time on the day's page. */
@@ -602,7 +604,7 @@ function vTonight() {
   cancelAnimationFrame(voice.raf);
   BK.two = bookTwo();
   if (BK.cursor === undefined && AUTH.user) loadEntries().then(() => { if (route === 'tonight') paintBook(null, { keepWrite: true }); });
-  after.push(() => { wireBook(); if (BK.focus && BK.at === 'write' && window.matchMedia('(pointer: fine)').matches) $('#entry')?.focus({ preventScroll: true }); BK.focus = true; });
+  after.push(() => { wireBook(); if (BK.opening) { BK.opening = false; openBookAnim(); } if (BK.focus && BK.at === 'write' && window.matchMedia('(pointer: fine)').matches) $('#entry')?.focus({ preventScroll: true }); BK.focus = true; });
   const calBtn = `<button class="bk-cal-btn" data-bk-cal aria-label="Open the calendar" aria-haspopup="dialog">${I.cal}<span class="bk-cal-m" id="bk-cal-m">${calLabel()}</span></button>`;
   return `<h1 class="sr-only">Journal</h1>
     <section class="bk-wrap ${BK.two ? 'is-two' : 'is-one'}">
@@ -613,6 +615,26 @@ function vTonight() {
 }
 /* The calendar button says which month the open page is in. */
 function calLabel() { const P = bookPages(); const p = P[pageAt(P)]; const d = parse(p.date); return `${MON[d.getMonth()]} ${d.getFullYear()}`; }
+/* Opening the Journal tab, like the notebook in real life: the cover lifts from the
+   spine, a few pages fan after it, and it lands open (about 0.8s). Reduced motion: none. */
+function openBookAnim() {
+  const book = $('#book'); const spread = book?.querySelector('.bk-spread'); if (!spread || reduceMotion()) return;
+  const pages = [...spread.querySelectorAll(':scope > .bk-page')];
+  const right = BK.two ? pages[1] : pages[0]; const left = BK.two ? pages[0] : null; if (!right) return;
+  const r0 = book.getBoundingClientRect(); const rr = right.getBoundingClientRect();
+  const fly = document.createElement('div'); fly.className = `bk-open ${BK.two ? 'is-two' : ''}`; fly.setAttribute('aria-hidden', 'true');
+  Object.assign(fly.style, { left: `${rr.left - r0.left}px`, top: `${rr.top - r0.top}px`, width: `${rr.width}px`, height: `${rr.height}px` });
+  fly.innerHTML = '<div class="bk-open-sheet"></div><div class="bk-open-sheet"></div><div class="bk-open-sheet"></div><div class="bk-open-cover"><div class="bk-open-front"><span>Beyond</span></div><div class="bk-open-back"></div></div>';
+  book.appendChild(fly);
+  const T = 780, E = 'cubic-bezier(.45,.05,.25,1)'; const endAt = BK.two ? 'rotateY(-180deg)' : 'rotateY(-112deg)';
+  const anims = [fly.querySelector('.bk-open-cover').animate([{ transform: 'rotateY(0)' }, { transform: endAt }], { duration: T, easing: E, fill: 'forwards' })];
+  [...fly.querySelectorAll('.bk-open-sheet')].reverse().forEach((sh, i) => anims.push(sh.animate([{ transform: 'rotateY(0)', opacity: 1 }, { transform: endAt, opacity: BK.two ? .9 : 0 }], { duration: T - 140, delay: 150 + i * 70, easing: E, fill: 'both' })));
+  anims.push(fly.animate([{ opacity: 1 }, { opacity: 1, offset: .82 }, { opacity: 0 }], { duration: T + 260, fill: 'forwards' }));
+  if (left) anims.push(left.animate([{ opacity: 0 }, { opacity: 0, offset: .5 }, { opacity: 1 }], { duration: T + 200, easing: 'ease-out' }));
+  const skip = () => anims.forEach((a) => a.finish());
+  fly.addEventListener('pointerdown', skip);
+  Promise.all(anims.map((a) => a.finished)).then(() => fly.remove(), () => fly.remove());
+}
 function bookInner() {
   const P = bookPages(); const i = pageAt(P);
   const edge = (dir, on) => `<button class="bk-edge ${dir}" data-bk="${dir}" aria-label="${dir === 'prev' ? 'Turn to an earlier day' : 'Turn to a later day'}" ${on ? '' : 'disabled'}><span class="bk-arrow">${dir === 'prev' ? I.left : I.right}</span></button>`;
@@ -650,7 +672,7 @@ function dayPage(p, side) {
   const id = `bk-d-${p.date}`;
   return `<article class="bk-page ${side} is-day" data-page="${p.date}" aria-labelledby="${id}">
       <header class="bk-rule"><h2 class="bk-date" id="${id}">${fmtDay(p.date)}${p.sample ? ', sample' : ''}<span class="bk-past"> – ${p.date === journalDate() ? 'Earlier today' : 'Past journal'}</span></h2></header>
-      <ol class="bk-entries">${p.parts.map((x) => `<li>${x.t ? `<time class="bk-time">${ampm(x.t)}</time> ` : ''}<p>${esc(x.text)}</p></li>`).join('')}</ol>
+      <ol class="bk-entries">${p.parts.map((x) => `<li>${x.t ? `<time class="bk-time">${ampm(x.t)}</time>` : ''}<p>${esc(x.text)}</p></li>`).join('')}</ol>
       <footer class="bk-foot">${dayLetterLink(p)}</footer>
     </article>`;
 }
@@ -1166,7 +1188,7 @@ function closeBook(reopen) {
     const run = (el, k, o) => { const a = el.animate(k, { fill: 'both', ...o }); anims.push(a); return a; };
     if (reduceMotion()) {
       run(cover, [{ opacity: 0 }, { opacity: 1 }], { duration: 120 });
-      setTimeout(() => { if (finished) return; doReopen(); run(ov, [{ opacity: 1 }, { opacity: 0 }], { duration: 150, delay: 0 }).finished.then(finish, finish); }, 1100);
+      setTimeout(() => { if (finished) return; doReopen(); run(ov, [{ opacity: 1 }, { opacity: 0 }], { duration: 150, delay: 0 }).finished.then(finish, finish); }, 2100);
       return;
     }
     const twoPages = BK.two && pg?.classList.contains('right');
@@ -1177,7 +1199,7 @@ function closeBook(reopen) {
     setTimeout(() => {
       if (finished) return; doReopen();
       run(cover, [{ transform: 'rotateY(0)', opacity: 1 }, { transform: 'rotateY(-92deg)', opacity: .2 }], { duration: 260, easing: 'cubic-bezier(.5,0,.8,.4)' }).finished.then(finish, finish);
-    }, 860);
+    }, 1860); // the confirmation stays a second longer, then the book opens again
   });
 }
 
@@ -1442,16 +1464,18 @@ function letterLine(l) {
   const para = fillName(String(c.body || '')).split(/\n{2,}/).map((x) => x.trim()).find((x) => x.length > 30 && !/^(hey|hi|dear|good morning)\b/i.test(x));
   return para || entryPlain((l.entries || [])[0]?.text || '');
 }
+/* One letter per row: the date in words, the title, and a gold seal if its step was done.
+   While searching, the row also shows where the words were found. */
 function letterCard(l, extra = {}) {
-  const sealed = progress(l).complete; const th = realThemes(l).find((t) => THEMES[t]); const d = parse(l.date);
+  const sealed = progress(l).complete; const d = parse(l.date);
   const tag = l.sample ? 'sample' : l.demo ? 'demo letter' : '';
   return `<li><button class="lc" data-open="${l.id}" aria-label="${fmtDay(l.date)}${tag ? `, ${tag}` : ''}: ${esc(l.content.title || l.content.headline)}">
-      <time class="lc-day" datetime="${l.date}"><b>${d.getDate()}</b><small>${WD[d.getDay()]}</small></time>
+      <span class="lc-date"><b>${MONTH[d.getMonth()]} ${d.getDate()}</b><small>${WD[d.getDay()]}${tag ? ` · ${tag}` : ''}</small></span>
       <span class="lc-main">
         <span class="lc-h">${!l.readAt ? '<span class="lc-new">New</span>' : ''}${extra.head || esc(l.content.title || l.content.headline)}</span>
-        <span class="lc-line">${extra.snip || esc(clip(letterLine(l), 120))}</span>
-        ${sealed || th || tag ? `<span class="lc-tags">${sealed ? `<span class="lc-seal">${goldSeal(16)}<span>Gold seal</span></span>` : ''}${th ? `<span class="lc-tag">${esc(cap(THEMES[th]))}</span>` : ''}${tag ? `<span class="lc-tag is-plain">${tag}</span>` : ''}</span>` : ''}
+        ${extra.snip ? `<span class="lc-line">${extra.snip}</span>` : ''}
       </span>
+      ${sealed ? `<span class="lc-seal" title="Gold seal">${goldSeal(18)}<span class="sr-only">Gold seal</span></span>` : '<span></span>'}
       <span class="lc-chev" aria-hidden="true">${I.right}</span>
     </button></li>`;
 }
@@ -1463,11 +1487,10 @@ function vLetters() {
   const lastNight = latest && latest.date === addDays(journalDate(), -1);
   after.push(() => riseOnScroll('.month-group'));
   return `<header class="lp-head">
-      <div class="lp-titles"><h1 class="lp-title">Letters</h1><p class="lp-sub">${ready.length ? `${plural(ready.length, 'letter')} so far` : 'Your morning letters collect here.'}</p></div>
-      ${latest ? `<button class="lp-card ${!latest.readAt ? 'is-new' : ''}" data-open="${latest.id}" aria-label="Read the letter: ${esc(latest.content.title || latest.content.headline)}">
-        <span class="lp-k">${lastNight ? 'Last night’s letter' : `Latest letter, ${fmtDay(latest.date)}`}</span>
-        <span class="lp-t lc-h">${esc(latest.content.title || latest.content.headline)}</span>
-        <span class="btn sm lp-read">Read</span>
+      <div class="lp-titles"><h1 class="lp-title">Letters</h1>
+        <p class="lp-sub"><label for="lp-time">Receive your morning letters at</label> <select id="lp-time" class="lp-time">${timeOptions(deliverTime())}</select></p></div>
+      ${latest ? `<button class="lp-card ${!latest.readAt ? 'is-new' : ''}" data-open="${latest.id}" aria-label="Read ${lastNight ? 'last night’s letter' : `your latest letter, from ${fmtDay(latest.date)}`}">
+        <span class="lp-k">${lastNight ? 'Last night’s letter' : `Latest letter, ${fmtDay(latest.date)}`}</span><span class="btn sm lp-read">Read</span>
       </button>` : ''}
     </header>
     ${pending.length ? `<p class="arrived">${I.mail}<span>Your letter for ${fmtDay(pending[0].date)} arrives at ${atTime(pending[0])}.</span> <button class="link" data-go="tonight">Open Journal</button></p>` : ''}
@@ -1600,7 +1623,7 @@ function growthMonth(all) {
   after.push(() => { skyState = { list: inMonth, from: `${pMonth}-01`, to: lastDayOf(pMonth), ticks: 'month', theme: () => null }; drawSky(); });
   // the nights first, then the compass and what gives you energy, then what changed and what filled the month
   return [
-    card('stars', 'The nights you wrote', 'One star per night. Brighter means a lighter night.', starsInner(), 'g-span2 g-stars'),
+    card('stars', 'The nights you wrote', 'Each star is a letter. The line climbs every night you write and stays level when you skip one.', starsInner(), 'g-span2 g-stars'),
     card('compass', 'Passion compass', '', few ? gEmpty('A few more nights and your compass will start to form.') : compassInner(g)),
     card('alive', 'What gives you energy', 'Each dot is something you did. Higher means it gave you more energy; further right means you lost track of time.', few ? gEmpty('A few more nights and your map will fill in.') : aliveInner(g)),
     card('changed', `How this month differs from ${MONTH[+pk.slice(5) - 1]}`, 'Themes you wrote about more, less, or for the first time.', few ? gEmpty('A few more nights and changes will show here.') : changedInner(inMonth, prev, earlier, MON[+pk.slice(5) - 1])),
@@ -1610,7 +1633,7 @@ function growthMonth(all) {
 
 /* --- Year --- */
 function growthYear(list, all) {
-  if (!list.length) return card('stars', 'The nights you wrote', 'One star per night. Brighter means a lighter night.', gEmpty('Your year fills in as letters arrive. Each night you write becomes a star.'), 'g-span2');
+  if (!list.length) return card('stars', 'The nights you wrote', 'Each star is a letter. The line climbs every night you write and stays level when you skip one.', gEmpty('Your year fills in as letters arrive. Each night you write becomes a star.'), 'g-span2');
   const g = growthOf(list); const few = list.length < GROWTH_MIN;
   const from = `${list[0].date.slice(0, 7)}-01`; const to = gYear === journalDate().slice(0, 4) ? journalDate() : `${gYear}-12-31`;
   after.push(() => { skyState = { list, from, to, ticks: 'year', theme: () => null }; drawSky(); });
@@ -1618,7 +1641,7 @@ function growthYear(list, all) {
   const first = list.filter((l) => l.date.startsWith(months[0])); const last = list.filter((l) => l.date.startsWith(months[months.length - 1]));
   const firstNeedle = growthOf(first).needle;
   return [
-    card('stars', 'The nights you wrote', 'One star per night. Brighter means a lighter night.', starsInner(), 'g-span2 g-stars'),
+    card('stars', 'The nights you wrote', 'Each star is a letter. The line climbs every night you write and stays level when you skip one.', starsInner(), 'g-span2 g-stars'),
     card('compass', 'Passion compass', '', few ? gEmpty('A few more nights and your compass will start to form.') : compassInner(g, firstNeedle && firstNeedle !== g.needle ? { label: firstNeedle, month: MON[+months[0].slice(5) - 1] } : null)),
     card('alive', 'What gives you energy', 'Each dot is something you did. Higher means it gave you more energy; further right means you lost track of time.', few ? gEmpty('A few more nights and your map will fill in.') : aliveInner(g)),
     card('changed', 'How your year has changed', `${MONTH[+months[0].slice(5) - 1]} compared with ${MONTH[+months[months.length - 1].slice(5) - 1]}.`, few || months.length < 2 ? gEmpty('A few more months and changes will show here.') : changedInner(last, first, [], MON[+months[0].slice(5) - 1])),
@@ -1628,7 +1651,7 @@ function growthYear(list, all) {
 }
 
 function starsInner() {
-  return `<div class="sky" id="sky"></div><p class="sky-legend"><span><i class="tone-dot tone-positive"></i>lighter night</span><span><i class="tone-dot tone-difficult"></i>heavier night</span></p>`;
+  return '<div class="sky" id="sky"></div>';
 }
 function themesInner(g) {
   const top = g.themes.slice(0, 5); const max = Math.max(1, ...top.map(([, c]) => c));
@@ -1701,11 +1724,6 @@ function changedInner(now, before, earlier, prevLabel) {
   const say = (r) => (r.k === 'new' ? `New: ${THEMES[r.t]} showed up for the first time` : `${r.k === 'up' ? 'More' : 'Fewer'} nights about ${THEMES[r.t]}`);
   return `<ul class="g-changes">${rows.slice(0, 4).map((r) => `<li class="is-${r.k}"><span class="g-ic" aria-hidden="true">${icon[r.k]}</span><span>${esc(say(r))}</span></li>`).join('')}</ul>`;
 }
-function tryInner(list) {
-  if (!list.length) return gEmpty('Small experiments will appear here as your letters suggest them.');
-  return `<ul class="g-try">${list.map((l) => { const st = l.content.small_step; const done = l.actions?.['step.0'] === 'tried';
-    return `<li class="${done ? 'is-done' : ''}"><span class="g-try-ic" aria-hidden="true">${st.category === 'connection' ? I.bubbles : I.star}</span><span class="g-try-t"><b>${esc(st.text)}</b><button class="link fine" data-open="${l.id}">${fmtDay(l.date)}${l.sample ? ', sample' : ''}</button></span>${done ? `<span class="fine g-tried">${I.check} Tried</span>` : `<button class="link" data-try-skip="${l.id}">Not for me</button>`}</li>`; }).join('')}</ul>`;
-}
 function filmInner(list, months) {
   const usedQ = new Set();
   return `<div class="g-film">${months.map((ym, i) => {
@@ -1718,41 +1736,37 @@ function filmInner(list, months) {
 
 /* --- the sky (shared by Month and Year) --- */
 let lastSkyKey = '';
+/* The nights you wrote, as a climb: across the bottom the days (or months), up the
+   side the letters so far. Each letter is a glowing star one step higher; a missed day
+   stays level, with a dim dot and no glow. Tap a star to open its letter. */
 function drawSky() {
   const el = $('#sky'); if (!el || !skyState) return;
-  const { list, from, to, ticks } = skyState; const theme = skyState.theme();
-  // a new month or year: stars come out one by one; clicks on the same sky don't replay it
+  const { list, from, to, ticks } = skyState;
   const skyKey = `${from}|${to}|${list.length}`; const fresh = skyKey !== lastSkyKey; lastSkyKey = skyKey;
-  const W = el.clientWidth, H = el.clientHeight; const padX = Math.max(22, W * .05);
-  const span = Math.max(1, dayDiff(to, from));
-  const scale = W > 600 ? 1.4 : 1; const per = {};
-  const stars = list.map((l) => {
-    const r = seeded(l.id); const k = (per[l.date] = (per[l.date] || 0) + 1) - 1;
-    const t = dayDiff(l.date, from) / span; const wave = Math.sin(t * Math.PI * 2.2 + .6) * .18;
-    const yy = Math.max(24, Math.min(H - 44, H * (.44 + wave + (r() - .5) * .3)));
-    const size = ({ positive: 5.2, mixed: 4.4, ordinary: 3.8, difficult: 3.6 }[l.content.tone] || 4) * scale * (ticks === 'year' ? .85 : 1);
-    return { l, x: padX + t * (W - 2 * padX) + k * 12, y: yy, size, tw: 2.5 + r() * 3.5, dl: r() * 3 };
-  });
-  const chosen = theme ? stars.filter((s) => realThemes(s.l).includes(theme)) : [];
-  const path = chosen.map((s, i) => `${i ? 'L' : 'M'} ${s.x.toFixed(1)} ${s.y.toFixed(1)}`).join(' ');
-  let tickList = [];
-  if (ticks === 'month') { const days = dayDiff(to, from) + 1; tickList = [1, 5, 10, 15, 20, 25, days].filter((d, i, a) => d <= days && a.indexOf(d) === i && !(d !== days && days - d < 3)).map((d) => ({ x: padX + ((d - 1) / span) * (W - 2 * padX), label: String(d) })); }
-  else { let k = from.slice(0, 7); while (`${k}-01` <= to) { const off = dayDiff(`${k}-01`, from); tickList.push({ x: padX + (off / span) * (W - 2 * padX), label: MON[+k.slice(5) - 1] }); const [yy, mm] = k.split('-').map(Number); k = mm === 12 ? `${yy + 1}-01` : `${yy}-${pad(mm + 1)}`; } }
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${plural(stars.length, 'night')}${theme ? `, ${chosen.length} about ${esc(THEMES[theme])}` : ''}">
+  const W = el.clientWidth, H = el.clientHeight; const L = 44, R = 18, T = 18, B = 40;
+  const today = journalDate(); const end = to < today ? to : today; const span = Math.max(1, dayDiff(to, from));
+  const byDay = new Map(); for (const l of [...list].sort((a, b) => a.date.localeCompare(b.date))) if (!byDay.has(l.date)) byDay.set(l.date, l);
+  const pts = []; let c = 0;
+  for (let d = from; d <= end; d = addDays(d, 1)) { const l = byDay.get(d) || null; if (l) c += 1; pts.push({ date: d, c, l }); }
+  const top = Math.max(4, c); const step = top <= 6 ? 1 : top <= 12 ? 2 : top <= 30 ? 5 : top <= 60 ? 10 : 25; const maxY = Math.ceil(top / step) * step;
+  const X = (date) => L + (dayDiff(date, from) / span) * (W - L - R); const Y = (n) => T + (1 - n / maxY) * (H - T - B);
+  const path = pts.map((p, i) => `${i ? 'L' : 'M'} ${X(p.date).toFixed(1)} ${Y(p.c).toFixed(1)}`).join(' ');
+  let xt = [];
+  if (ticks === 'month') { const days = dayDiff(to, from) + 1; xt = [1, 5, 10, 15, 20, 25, days].filter((d, i, a) => a.indexOf(d) === i && !(d !== days && days - d < 3)).map((d) => ({ x: X(addDays(from, d - 1)), label: String(d) })); }
+  else { let k = from.slice(0, 7); while (`${k}-01` <= to) { xt.push({ x: X(`${k}-01`), label: MON[+k.slice(5) - 1] }); const [yy, mm] = k.split('-').map(Number); k = mm === 12 ? `${yy + 1}-01` : `${yy}-${pad(mm + 1)}`; } }
+  const yt = []; for (let n = 0; n <= maxY; n += step) yt.push(n);
+  const scale = W > 600 ? 1.15 : .95;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${plural(c, 'letter')} so far${ticks === 'month' ? ' this month' : ' this year'}">
     <defs><radialGradient id="glow"><stop offset="0" style="stop-color:var(--light-1)" stop-opacity=".9"/><stop offset=".35" style="stop-color:rgb(var(--star-rgb))" stop-opacity=".35"/><stop offset="1" style="stop-color:rgb(var(--star-rgb))" stop-opacity="0"/></radialGradient></defs>
-    ${tickList.map((t) => `<g class="ns-tick"><line x1="${t.x}" x2="${t.x}" y1="${H - 26}" y2="${H - 20}"/><text x="${t.x}" y="${H - 8}" text-anchor="middle">${t.label}</text></g>`).join('')}
-    ${chosen.length > 1 ? `<path d="${path}" class="ns-line" pathLength="1"/>` : ''}
-    ${stars.map((s, i) => { const on = !theme || realThemes(s.l).includes(theme); return `<g class="ns-star tone-${s.l.content.tone} ${on ? '' : 'is-off'} ${pTip === s.l.id ? 'is-sel' : ''} ${fresh ? 'ns-new' : ''}" transform="translate(${s.x.toFixed(1)} ${s.y.toFixed(1)})" style="--tw:${s.tw}s;--dl:${s.dl}s;--d:${Math.min(i * 45, 1600)}ms" tabindex="0" role="button" aria-label="${esc(fmtDay(s.l.date))}: ${esc(s.l.content.headline)}" data-star="${s.l.id}"><circle r="${(s.size * 4.2).toFixed(1)}" class="halo" fill="url(#glow)"/><path d="${sparkle(s.l.id, s.size * 1.7)}" class="core"/><circle r="16" fill="transparent"/></g>`; }).join('')}
-    ${theme && chosen[0] ? `<text x="${Math.min(Math.max(chosen[0].x, 60), W - 60)}" y="${chosen[0].y - 18}" class="ns-label" text-anchor="middle">${esc(cap(THEMES[theme]))}</text>` : ''}
-  </svg>${!stars.length ? '<p class="ns-empty">No kept letters here yet. Each night you write becomes a star.</p>' : ''}`;
-  const tip = pTip && stars.find((s) => s.l.id === pTip);
-  if (tip) {
-    const up = tip.y > H / 2;
-    const d = document.createElement('div'); d.className = `ns-tip ${up ? 'up' : ''}`;
-    d.style.left = `${Math.min(Math.max(tip.x, 135), W - 135)}px`; d.style.top = `${up ? tip.y - 16 : tip.y + 16}px`;
-    d.innerHTML = `<span class="k">${fmtDay(tip.l.date)}${tip.l.sample ? ', sample' : ''}</span><b>${esc(tip.l.content.headline)}</b><span class="fine">${realThemes(tip.l).map((t) => esc(THEMES[t])).join(', ')}</span><button class="link" data-open="${tip.l.id}">Read the letter</button>`;
-    el.appendChild(d);
-  }
+    ${yt.map((n) => `<g class="ns-grid"><line x1="${L}" x2="${W - R}" y1="${Y(n).toFixed(1)}" y2="${Y(n).toFixed(1)}"/><text x="${L - 8}" y="${(Y(n) + 4).toFixed(1)}" text-anchor="end">${n}</text></g>`).join('')}
+    <line class="ns-axis" x1="${L}" x2="${L}" y1="${T}" y2="${H - B}"/><line class="ns-axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>
+    ${xt.map((t) => `<g class="ns-tick"><line x1="${t.x.toFixed(1)}" x2="${t.x.toFixed(1)}" y1="${H - B}" y2="${H - B + 5}"/><text x="${t.x.toFixed(1)}" y="${H - B + 18}" text-anchor="middle">${t.label}</text></g>`).join('')}
+    <text class="ns-ax-t" x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">${ticks === 'month' ? 'Day' : 'Month'}</text>
+    <text class="ns-ax-t" x="12" y="${(T + H - B) / 2}" text-anchor="middle" transform="rotate(-90 12 ${(T + H - B) / 2})">Letters</text>
+    ${pts.length > 1 ? `<path d="${path}" class="ns-line" pathLength="1"/>` : ''}
+    ${ticks === 'month' ? pts.filter((p) => !p.l).map((p) => `<circle class="ns-miss" cx="${X(p.date).toFixed(1)}" cy="${Y(p.c).toFixed(1)}" r="2.4"/>`).join('') : ''}
+    ${pts.filter((p) => p.l).map((p, i) => { const r = seeded(p.l.id); return `<g class="ns-star ${fresh ? 'ns-new' : ''}" transform="translate(${X(p.date).toFixed(1)} ${Y(p.c).toFixed(1)})" style="--tw:${(2.5 + r() * 3.5).toFixed(2)}s;--dl:${(r() * 3).toFixed(2)}s;--d:${Math.min(i * 45, 1600)}ms" tabindex="0" role="button" aria-label="${esc(fmtDay(p.l.date))}: ${esc(p.l.content.title || p.l.content.headline)}" data-star="${p.l.id}"><circle r="${(4.4 * scale * 4).toFixed(1)}" class="halo" fill="url(#glow)"/><path d="${sparkle(p.l.id, 4.4 * scale * 1.7)}" class="core"/><circle r="14" fill="transparent"/></g>`; }).join('')}
+  </svg>${!byDay.size ? '<p class="ns-empty">No letters here yet. Each night you write becomes a star.</p>' : ''}`;
 }
 
 /* --- Identity: who you might become --- */
@@ -1765,7 +1779,8 @@ function directions() {
     const days = new Set(ev.map((l) => l.date)).size; const months = new Set(ev.map((l) => l.date.slice(0, 7))).size;
     const status = S.dirs?.[def.key] || (S.mode === 'sample' ? SAMPLE_DIRS[def.key] : null) || 'suggested';
     const explanation = ev.length ? `${plural(ev.length, 'kept letter')}${months > 1 ? `, across ${months} months,` : ''} touch on ${def.blurb}, for example “${ev[0].content.headline}”. A possibility you might recognise in yourself, if it fits. Not a label.` : 'No kept letters support this right now.';
-    return { ...def, id: def.key, evidence: ev, days, status, sufficient: days >= 3, count: Math.max(1, ev.length), explanation };
+    const lab = S.dirLabels?.[def.key]; // a confirmed direction may carry the person's own name and line
+    return { ...def, name: lab?.name || def.name, line: lab?.line || def.line, custom: !!lab, id: def.key, evidence: ev, days, status, sufficient: days >= 3, count: Math.max(1, ev.length), explanation };
   });
 }
 function bubbleLayout(items, W, H, cx0 = W * .5, cy0 = H * .5) {
@@ -1773,7 +1788,7 @@ function bubbleLayout(items, W, H, cx0 = W * .5, cy0 = H * .5) {
   const maxCount = Math.max(1, ...items.map((d) => d.count)); let lastSize = Infinity;
   // "you" sits at the centre; directions are placed around it, never on it
   const placed = [{ x: cx0, y: cy0, r: Math.min(56, Math.min(W, H) * .1) }];
-  const short = Math.min(W, H); const minD = Math.max(80, short * .17); const maxD = Math.max(minD + 36, Math.min(short * .36, 220));
+  const short = Math.min(W, H); const minD = Math.max(80, short * .17); const maxD = Math.max(minD + 36, Math.min(short * .34, 176)); // never big enough to crowd the page
   [...items].sort((a, b) => b.count - a.count || a.key.localeCompare(b.key)).forEach((d, i) => {
     let size = maxCount <= 1 ? (minD + maxD) / 2 : minD + (maxD - minD) * Math.sqrt((d.count - 1) / (maxCount - 1));
     size = Math.min(size, lastSize); // never larger than a direction with more letters
@@ -1828,58 +1843,118 @@ function vIdentity() {
   const n = nightsToFirst(all);
   after.push(() => startBubbles(visible));
   if (identArrive) after.push(() => { identArrive = false; });
-  // home: the constellation comes first, with no heading or veil in front of it
-  return `<h1 class="sr-only">Identity</h1>
+  // home: who you are becoming, the constellation, then today's step and your to-dos
+  return `<header class="id-head"><h1 class="id-title">Who are you becoming…</h1><p class="id-kicker">Identity constellation</p></header>
     <section class="ident ${identArrive ? 'is-arriving' : ''}" aria-label="Your directions">
       ${visible.length ? `<div class="stage ${identVeiled ? 'is-veiled' : ''}" id="stage">
         <canvas class="stage-sky" aria-hidden="true"></canvas>
         <div class="parallax"><div class="stage-layer"><svg class="stage-links" aria-hidden="true"></svg></div></div>
       </div>
-      <p class="fine legend">You are at the centre. Larger circles have more nights behind them, and brighter threads mean a stronger pull. Tap a direction to open it.</p>`
+      <p class="fine legend">Every bubble is a growing identity that keeps showing up in your journal.<br>Confirm, pop, or customize: you choose which ones to grow into.</p>`
       : `<div class="empty"><span class="empty-mark" aria-hidden="true">${miniMap([])}</span><p class="lead">Write ${plural(n, 'more night')} to see your first direction.</p><p class="fine">A direction appears once kept letters from at least three different nights point to it.</p><button class="btn amber" data-go="tonight">Write tonight</button></div>`}
+    </section>
+    ${stepsHome()}`;
+}
+/* Today's step (the one small step in your newest letter), then your own to-dos.
+   A to-do added on a direction's page carries that direction as a "[key] " tag at
+   the start of its title, so it shows in both places. */
+const TODO_TAG = /^\[([a-z-]+)\]\s+/;
+const todoDir = (t) => { const m = t.title.match(TODO_TAG); return m && DIRECTIONS.some((d) => d.key === m[1]) ? m[1] : null; };
+const todoText = (t) => t.title.replace(TODO_TAG, '');
+const dirLabel = (key) => S.dirLabels?.[key]?.name || DIRECTIONS.find((d) => d.key === key)?.name || key;
+const todaysLetter = () => allLetters().filter(delivered).find((l) => l.content?.small_step);
+function stepButtons(L) {
+  const st = L.actions?.['step.0'];
+  return st === 'tried' ? `<span class="id-done">${goldSeal(20)}<span>Done</span></span><button class="link" data-step-done="${L.id}">Undo</button>`
+    : st === 'skipped' ? `<span class="fine">Marked “Not for me”.</span><button class="link" data-step-skip="${L.id}">Bring it back</button>`
+    : `<button class="btn sm amber" data-step-done="${L.id}">Mark as done</button><button class="link" data-step-skip="${L.id}">Not for me</button>`;
+}
+function todoRow(t, { showDir = true } = {}) {
+  const dk = showDir && todoDir(t);
+  return `<li class="todo-i ${t.completed ? 'is-done' : ''}"><button class="todo-check" data-todo-done="${t.id}" role="checkbox" aria-checked="${t.completed}" aria-label="${esc(todoText(t))}">${I.check}</button><span class="todo-t">${esc(todoText(t))}</span>${dk ? `<button class="todo-dir" data-open-dir="${dk}">${esc(dirLabel(dk))}</button>` : ''}<button class="todo-x" data-todo-del="${t.id}" aria-label="Delete ${esc(todoText(t))}">${I.x}</button></li>`;
+}
+function stepsHome() {
+  const L = todaysLetter(); const step = L?.content.small_step;
+  const from = L ? `${L.date === addDays(journalDate(), -1) ? 'From this morning’s letter' : `From your letter for ${fmtDay(L.date)}`}${L.sample ? ', sample' : ''}` : '';
+  return `<section class="id-do" aria-label="Your steps">
+      <div class="id-card id-step ${L?.actions?.['step.0'] === 'tried' ? 'is-done' : ''}">
+        <h2 class="id-k">Today’s step</h2>
+        ${L ? `<p class="id-step-t">${esc(step.text)}</p><p class="id-step-m">${from} · ${step.minutes} min</p>
+        <div class="row id-step-row">${stepButtons(L)}<button class="link" data-open="${L.id}">Read the letter</button></div>`
+        : '<p class="id-step-m">Your next letter brings one small step for the day. It shows here.</p>'}
+      </div>
+      <div class="id-card id-todos">
+        <h2 class="id-k">Your to-dos</h2>
+        ${S.todos.length ? `<ul class="todo-list">${S.todos.map((t) => todoRow(t)).join('')}</ul>` : '<p class="id-step-m">Anything you want to do, big or small. Add one below.</p>'}
+        <form class="todo-add" id="todo-add"><label class="sr-only" for="todo-new">Add a to-do</label><input id="todo-new" class="login-in" placeholder="Add a to-do…" maxlength="200" autocomplete="off"><button class="btn sm" type="submit">Add</button></form>
+      </div>
     </section>`;
 }
+const toTodo = (t) => ({ id: t.id, title: t.title, completed: t.completed, revision: t.revision, createdAt: t.created_at });
+async function addTodo(text, dirKey = null) {
+  const title = `${dirKey ? `[${dirKey}] ` : ''}${text.trim()}`.slice(0, 2000);
+  if (!text.trim()) return;
+  try { const t = toTodo(await backend.createTodo(title, crypto.randomUUID())); S.todos = [...S.todos, t]; render(); }
+  catch (e) { toast('Couldn’t add that. Check your connection.'); }
+}
+async function toggleTodo(id) {
+  const t = S.todos.find((x) => x.id === id); if (!t) return;
+  const was = t.completed; t.completed = !was; render();
+  try { Object.assign(t, toTodo(await backend.updateTodo(id, { completed: t.completed }, t.revision))); }
+  catch (e) { t.completed = was; render(); toast('Couldn’t save that. Check your connection.'); }
+}
+async function removeTodo(id) {
+  const before = S.todos; S.todos = S.todos.filter((x) => x.id !== id); render();
+  try { await backend.deleteTodo(id); } catch (e) { S.todos = before; render(); toast('Couldn’t delete that. Check your connection.'); }
+}
 /* A direction's own page: the bubble grows into its header (see openDirection). */
-let dirShowAll = false; let dirChanging = false;
+let dirShowAll = false; let dirChanging = false; let dirEditing = false;
 function vDirection(f) {
   const journals = [...f.evidence].sort((a, b) => b.date.localeCompare(a.date));
   const shown = dirShowAll ? journals : journals.slice(0, 5);
-  const tries = dirExperiments(f);
-  const decided = f.status === 'confirmed';
+  const steps = dirSteps(f); const mine = S.todos.filter((t) => todoDir(t) === f.key);
+  const decided = f.status === 'confirmed'; const editing = decided && dirEditing;
   const lineOf = (l) => { const t = (l.entries || []).map((e) => e.text).join(' ').replace(/\s+/g, ' ').trim(); return t; };
   return `<button class="link back dir-back" data-dir-back aria-label="Back to your map">${I.left}Your map</button>
     <header class="dir-head">
       <div class="dir-bubble bubble is-${f.status}" style="--s:var(--dir-s)" aria-hidden="true">${orbMarkup(f, 'calc(var(--dir-s) * .14)')}</div>
       <div class="dir-head-t">
         <p class="dir-st ${decided ? 'is-confirmed' : ''}">${decided ? 'Confirmed' : 'Suggested'}</p>
-        <h1 class="dir-name">${esc(f.name)}</h1>
+        ${editing ? `<form class="dir-edit" id="dir-edit" data-dir="${f.key}" data-name="${esc(f.name)}" data-line="${esc(f.line)}">
+          <label class="dir-edit-f"><span>Name</span><input id="dir-edit-name" class="login-in" maxlength="40" value="${esc(f.name)}" autocomplete="off"></label>
+          <label class="dir-edit-f"><span>Description</span><textarea id="dir-edit-line" class="login-in" maxlength="160" rows="2">${esc(f.line)}</textarea></label>
+          <div class="row"><button class="btn sm amber" type="submit" id="dir-edit-save" disabled>Save</button><button class="link" type="button" data-dir-edit-cancel>Cancel</button>${f.custom ? `<button class="link" type="button" data-dir-edit-reset="${f.key}">Use the original</button>` : ''}</div>
+        </form>` : `<h1 class="dir-name">${esc(f.name)}</h1>
         <p class="dir-line">${esc(f.line)}</p>
-        <p class="fine dir-note">A possibility, not a label.</p>
+        <p class="fine dir-note">A possibility, not a label.</p>`}
       </div>
-      ${decided ? '' : `<div class="dir-decide" role="group" aria-label="Does ${esc(f.name)} fit you?">
+      ${decided ? (editing ? '' : `<button class="btn sm secondary dir-custom" data-dir-edit>Customize</button>`) : `<div class="dir-decide" role="group" aria-label="Does ${esc(f.name)} fit you?">
         <button class="dir-fit" data-dir-fit="${f.key}">${I.check}<span>This fits me</span></button>
         <button class="dir-pop" data-dir-pop="${f.key}"><span class="dir-pop-ic" aria-hidden="true"></span><span>Pop it</span></button>
       </div>`}
     </header>
     <div class="dir-cards">
       <section class="g-card dir-wide" aria-labelledby="dir-when"><header class="g-card-h"><h2 class="g-t" id="dir-when">When it showed up</h2><p class="g-sub">The nights this direction appeared.</p></header><div class="g-card-b">${directionTimeline(f)}</div></section>
-      <section class="g-card" aria-labelledby="dir-journals"><header class="g-card-h"><h2 class="g-t" id="dir-journals">Your journals about this</h2><p class="g-sub">${plural(journals.length, 'night')}, newest first.</p></header>
+      <section class="g-card" aria-labelledby="dir-journals"><header class="g-card-h"><h2 class="g-t" id="dir-journals">Your letters about this</h2><p class="g-sub">${plural(journals.length, 'night')}, newest first.</p></header>
         <div class="g-card-b"><ul class="dir-journals">${shown.map((l) => `<li><button class="dir-j" data-open="${l.id}" data-from-dir="${f.key}"><span class="k">${fmtDay(l.date)}${l.sample ? ', sample' : ''}</span><b>${esc(l.content.title || l.content.headline)}</b><span class="dir-j-line">${esc(lineOf(l))}</span><span class="dir-j-go" aria-hidden="true">${I.right}</span></button></li>`).join('')}</ul>
         ${journals.length > 5 && !dirShowAll ? `<button class="btn sm secondary" data-dir-all>Show all ${journals.length}</button>` : ''}</div></section>
-      ${tries.length ? `<section class="g-card" aria-labelledby="dir-try"><header class="g-card-h"><h2 class="g-t" id="dir-try">Try it</h2><p class="g-sub">Small ways to test this direction in real life.</p></header><div class="g-card-b">${tryInner(tries)}</div></section>` : ''}
+      <section class="g-card" aria-labelledby="dir-steps"><header class="g-card-h"><h2 class="g-t" id="dir-steps">Actionable steps</h2><p class="g-sub">Steps from your letters about this, and your own. They show on your Identity page too.</p></header>
+        <div class="g-card-b">${steps.length || mine.length ? `<ul class="todo-list">${steps.map((l) => { const st = l.actions?.['step.0']; return `<li class="todo-i is-letter ${st === 'tried' ? 'is-done' : ''}"><button class="todo-check" data-step-done="${l.id}" role="checkbox" aria-checked="${st === 'tried'}" aria-label="${esc(l.content.small_step.text)}">${I.check}</button><span class="todo-t">${esc(l.content.small_step.text)}</span><button class="todo-dir" data-open="${l.id}" data-from-dir="${f.key}">${fmtDay(l.date)}${l.sample ? ', sample' : ''}</button></li>`; }).join('')}${mine.map((t) => todoRow(t, { showDir: false })).join('')}</ul>` : '<p class="id-step-m">Steps from your letters about this will gather here. You can add your own too.</p>'}
+        <form class="todo-add" id="dir-step-add" data-dir="${f.key}"><label class="sr-only" for="dir-step-new">Add a step for ${esc(f.name)}</label><input id="dir-step-new" class="login-in" placeholder="Add a step for this…" maxlength="200" autocomplete="off"><button class="btn sm" type="submit">Add</button></form></div></section>
     </div>
     ${decided ? `<div class="dir-mind">${dirChanging
       ? `<p class="fine">Not sure anymore?</p><div class="row"><button class="link" data-dir-unsure="${f.key}">Back to a suggestion</button><button class="link" data-dir-pop="${f.key}">Pop it</button></div>`
       : `<button class="link fine" data-dir-change>Changed your mind?</button>`}</div>` : ''}`;
 }
-/* Try it on a direction page: that direction's own letters' small steps that explore or
-   connect, the same source as Growth's "Try it before you decide". */
-function dirExperiments(f) {
-  const seen = new Set();
+/* Actionable steps on a direction page: the small steps in that direction's own letters
+   that were done, today's step if it belongs here, and ones that explore or connect. */
+function dirSteps(f) {
+  const seen = new Set(); const today = todaysLetter()?.id;
   return [...f.evidence].sort((a, b) => b.date.localeCompare(a.date)).filter((l) => {
-    const st = l.content.small_step; if (!st || !['exploration', 'connection'].includes(st.category) || l.actions?.['step.0'] === 'skipped') return false;
+    const st = l.content.small_step; const a = l.actions?.['step.0']; if (!st || a === 'skipped') return false;
+    if (!(a === 'tried' || l.id === today || ['exploration', 'connection'].includes(st.category))) return false;
     if (seen.has(gKey(st.text))) return false; seen.add(gKey(st.text)); return true;
-  }).slice(0, 2);
+  }).slice(0, 4);
 }
 /* The bubble grows from the map into the page, and shrinks back on return. */
 function flyBubble(fromRect, toEl, html, cls, done) {
@@ -1937,7 +2012,7 @@ function startBubbles(visible) {
     + visible.map((d) => `<line class="spoke" data-s="${d.id}" style="--w:${(.9 + 2.4 * d.days / max).toFixed(2)}"/>`).join('');
   const core = document.createElement('div'); core.className = 'core'; core.setAttribute('aria-hidden', 'true');
   core.style.left = `${cx}px`; core.style.top = `${cy}px`;
-  core.innerHTML = '<span class="core-light"></span><span class="core-label">you</span>';
+  core.innerHTML = '<span class="core-light"></span><span class="core-label">You</span>';
   layer.appendChild(core);
   for (const d of visible) {
     const g = geo[d.id]; const fs = Math.max(13, Math.min(26, g.size / 7.6));
@@ -2096,13 +2171,13 @@ function archive() {
   const themes = [...new Set(ready.flatMap((l) => (l.content.themes || []).filter((t) => THEMES[t] && t !== 'ordinary')))].sort((a, b) => THEMES[a].localeCompare(THEMES[b]));
   if (arch.month && !months.includes(arch.month)) arch.month = '';
   if (arch.theme && !themes.includes(arch.theme)) arch.theme = '';
+  arch.gold = false; // only the month filter is offered now
   return `<div class="arch-controls">
-      <label class="search" for="arch-q">${I.search}<span class="sr-only">Search your letters</span><input id="arch-q" type="search" value="${esc(arch.q)}" placeholder="Search titles, summaries, your words and to-dos" autocomplete="off" spellcheck="false"></label>
-      <div class="arch-filters" role="group" aria-label="Filters">
-        <label class="chip-pick ${arch.month ? 'is-on' : ''}" for="arch-month"><span>Month</span><select id="arch-month"><option value="">All</option>${months.map((m) => `<option value="${m}" ${arch.month === m ? 'selected' : ''}>${MONTH[+m.slice(5) - 1]} ${m.slice(0, 4)}</option>`).join('')}</select></label>
-        <label class="chip-pick ${arch.theme ? 'is-on' : ''}" for="arch-theme"><span>Theme</span><select id="arch-theme"><option value="">All</option>${themes.map((t) => `<option value="${t}" ${arch.theme === t ? 'selected' : ''}>${esc(cap(THEMES[t]))}</option>`).join('')}</select></label>
-        <button class="filter-seal chip" data-act="arch-gold" aria-pressed="${arch.gold}">${goldSeal(18)}<span>Gold seal only</span></button>
+      <div class="arch-row">
+        <label class="search" for="arch-q">${I.search}<span class="sr-only">Search your letters</span><input id="arch-q" type="search" value="${esc(arch.q)}" placeholder="Search your letters" autocomplete="off" spellcheck="false"></label>
+        <label class="chip-pick ${arch.month ? 'is-on' : ''}" for="arch-month"><span class="sr-only">Month</span><select id="arch-month"><option value="">All months</option>${months.map((m) => `<option value="${m}" ${arch.month === m ? 'selected' : ''}>${MONTH[+m.slice(5) - 1]} ${m.slice(0, 4)}</option>`).join('')}</select></label>
       </div>
+      ${arch.theme ? `<p class="arch-theme"><span>Letters about ${esc(THEMES[arch.theme] || arch.theme)}</span><button class="link" data-act="arch-clear">Show all</button></p>` : ''}
       <p class="arch-count" id="arch-count" aria-live="polite">${archiveCount()}</p>
     </div>
     <div id="arch-results">${archiveResults()}</div>`;
@@ -2326,6 +2401,12 @@ document.addEventListener('click', async (ev) => {
     document.querySelectorAll('[data-onb-voice]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.onbVoice === W.voice)));
     return paintWelcome();
   }
+  if (d.todoDone) return toggleTodo(d.todoDone);
+  if (d.todoDel) return removeTodo(d.todoDel);
+  if (d.openDir) return go('identity', d.openDir);
+  if (d.dirEdit !== undefined) { dirEditing = true; render(); $('#dir-edit-name')?.focus(); return; }
+  if (d.dirEditCancel !== undefined) { dirEditing = false; return render(); }
+  if (d.dirEditReset) { const next = { ...(S.dirLabels || {}) }; delete next[d.dirEditReset]; S.dirLabels = next; save(); dirEditing = false; render(); return toast('Back to the original name.'); }
   if (d.dirBack !== undefined) return closeDirection();
   if (d.dirAll !== undefined) { dirShowAll = true; return render(); }
   if (d.dirChange !== undefined) { dirChanging = true; return render(); }
@@ -2382,6 +2463,12 @@ document.addEventListener('submit', async (ev) => {
   const f = ev.target; ev.preventDefault();
   if (f.id === 'login-form') return submitLogin(f);
   if (f.id === 'reauth-form') return submitReauth(f);
+  if (f.id === 'todo-add' || f.id === 'dir-step-add') { const inp = f.querySelector('input'); const text = inp.value; if (!text.trim()) return; inp.value = ''; return addTodo(text, f.dataset.dir || null); }
+  if (f.id === 'dir-edit') {
+    const n = $('#dir-edit-name').value.trim().slice(0, 40); const l = $('#dir-edit-line').value.trim().slice(0, 160);
+    if (!n || !l || (n === f.dataset.name && l === f.dataset.line)) return;
+    S.dirLabels = { ...(S.dirLabels || {}), [f.dataset.dir]: { name: n, line: l } }; save(); dirEditing = false; render(); return toast('Saved.');
+  }
   if (f.id === 'mem-add') {
     const t = clip($('#mem-new').value, 140); if (!t) return;
     return addMemory(t);
@@ -2395,11 +2482,16 @@ document.addEventListener('submit', async (ev) => {
 });
 document.addEventListener('input', (ev) => {
   if (ev.target.id === 'arch-q') { arch.q = ev.target.value; refreshArchive(); }
+  // Save lights up only when the name or description really changed (and neither is empty)
+  if (ev.target.id === 'dir-edit-name' || ev.target.id === 'dir-edit-line') {
+    const f = $('#dir-edit'); const n = $('#dir-edit-name').value.trim(); const l = $('#dir-edit-line').value.trim();
+    $('#dir-edit-save').disabled = !n || !l || (n === f.dataset.name && l === f.dataset.line);
+  }
 });
 document.addEventListener('change', async (ev) => {
   const t = ev.target;
   if (t.id === 'arch-month' || t.id === 'arch-theme') { arch[t.id === 'arch-month' ? 'month' : 'theme'] = t.value; t.closest('.chip-pick')?.classList.toggle('is-on', !!t.value); refreshArchive(); }
-  if (t.id === 'dtime') { S.deliverTime = t.value; save(); toast(`New letters will arrive at ${t.value}.`); }
+  if (t.id === 'dtime' || t.id === 'lp-time') { S.deliverTime = t.value; save(); toast(`New letters will arrive at ${t.value}.`); }
   if (t.id === 'lname') { S.letterName = t.value.trim().slice(0, LETTER_NAME_MAX) || null; save(); toast(S.letterName ? 'Your letters will use that name.' : 'Your letters won’t use a name.'); }
   if (t.id === 'ylang') { S.lang = t.value; save(); }
   if (t.id === 'slang') { S.speechLang = t.value; save(); toast(`When you talk, Beyond listens in ${t.selectedOptions[0].textContent}.`); }
@@ -2434,8 +2526,8 @@ let ACCOUNT = { deletion: false, letters: false, voice: false };
 let syncing = false; let syncAgain = false;
 const SETTING_FIELDS = [['voice', 'voice'], ['lang', 'letter_language'], ['deliverTime', 'delivery_time'], ['allowEarly', 'allow_early'], ['memoryPaused', 'memory_paused'], ['onboarded', 'onboarded'], ['dirs', 'directions']];
 const WELCOME_FIELDS = [['welcomeSeen', 'welcome_seen'], ['welcomeReasons', 'welcome_reasons'], ['welcomeOther', 'welcome_other'], ['letterName', 'letter_name']];
-const settingFields = () => [...SETTING_FIELDS, ...(welcomeSupported ? WELCOME_FIELDS : []), ...(draftSupported ? [['draft', 'draft']] : [])];
-const settingValue = (k) => (k === 'dirs' ? { ...(S.dirs || {}) } : k === 'allowEarly' ? S.allowEarly !== false : k === 'memoryPaused' || k === 'onboarded' || k === 'welcomeSeen' ? !!S[k]
+const settingFields = () => [...SETTING_FIELDS, ...(welcomeSupported ? WELCOME_FIELDS : []), ...(draftSupported ? [['draft', 'draft']] : []), ...(labelsSupported ? [['dirLabels', 'direction_labels']] : [])];
+const settingValue = (k) => (k === 'dirs' ? { ...(S.dirs || {}) } : k === 'dirLabels' ? { ...(S.dirLabels || {}) } : k === 'allowEarly' ? S.allowEarly !== false : k === 'memoryPaused' || k === 'onboarded' || k === 'welcomeSeen' ? !!S[k]
   : k === 'welcomeReasons' ? [...(S.welcomeReasons || [])] : k === 'welcomeOther' || k === 'letterName' ? S[k] || null
   : k === 'draft' ? (S.draft.trim() ? S.draft.slice(0, MAX_NIGHT) : null) : S[k]);
 function applySettings(s) {
@@ -2445,6 +2537,7 @@ function applySettings(s) {
   welcomeSupported = typeof s.welcome_seen === 'boolean';
   S.welcomeSeen = !!s.welcome_seen; S.welcomeReasons = [...(s.welcome_reasons || [])]; S.welcomeOther = s.welcome_other ?? null; S.letterName = s.letter_name ?? null;
   draftSupported = Object.hasOwn(s, 'draft');
+  labelsSupported = Object.hasOwn(s, 'direction_labels'); if (labelsSupported) S.dirLabels = { ...(s.direction_labels || {}) };
   if (draftSupported && s.draft && !S.draft.trim()) S.draft = s.draft; // unsealed words from last time
 }
 async function syncSettings() {
@@ -2631,7 +2724,7 @@ async function clearJournal() {
   try {
     await backend.clearAll();
     confirmDelete = false;
-    S.letters = []; S.demoLetters = []; S.demoNights = []; S.memories = []; S.notes = {}; S.dirs = {}; S.draft = ''; resetBook();
+    S.letters = []; S.demoLetters = []; S.demoNights = []; S.memories = []; S.notes = {}; S.dirs = {}; S.dirLabels = {}; S.todos = []; S.draft = ''; resetBook();
     try { const fresh = await backend.settings(); synced = await backend.updateSettings(keep, fresh.revision); applySettings(synced); } catch (e) { /* defaults are fine */ }
     toast('Your journal was deleted.'); render();
   } catch (e) { confirmDelete = false; needFreshSignIn(e, 'clear'); }
@@ -2677,9 +2770,9 @@ async function submitLogin(f) {
   }
 }
 async function loadAll() {
-  const [settings, letters, memories, notes, account] = await Promise.all([backend.settings(), backend.letters(), backend.memories(), backend.notes(), backend.account().catch(() => ACCOUNT)]);
+  const [settings, letters, memories, notes, account, todos] = await Promise.all([backend.settings(), backend.letters(), backend.memories(), backend.notes(), backend.account().catch(() => ACCOUNT), backend.todos().catch(() => [])]);
   applySettings(settings); ACCOUNT = account;
-  S.letters = letters.map(toLetter); S.memories = memories.map(toMemory); S.notes = toNotes(notes);
+  S.letters = letters.map(toLetter); S.memories = memories.map(toMemory); S.notes = toNotes(notes); S.todos = todos.map(toTodo);
   claudeState = account.letters ? 'ready' : 'off'; SERVER_STT = !!account.voice;
   // Letters are timed in the zone you write in.
   try { const tz = Intl.DateTimeFormat().resolvedOptions().timeZone; if (tz && tz !== settings.timezone) synced = await backend.updateSettings({ timezone: tz }, settings.revision); } catch (e) { /* keep the old zone */ }

@@ -54,6 +54,7 @@ const db = {
     welcome_reasons: [],
     welcome_other: null,
     draft: null,
+    direction_labels: {},
     revision: 1,
     updated_at: now(),
   },
@@ -62,6 +63,7 @@ const db = {
   memories: [],
   notes: [],
   calls: [],
+  todos: [],
   // Server transcription starts switched off and is turned on while the page is open.
   transcribe: false,
   spoken: [],
@@ -157,6 +159,39 @@ async function api(route) {
     if (!db.transcribe) return err(route, 'not_ready', 503);
     db.spoken.push(new URL(req.url()).searchParams.get('lang'));
     return ok(route, { text: 'Fictional spoken words about the harbour.' });
+  }
+  if (path === '/todos' && req.method() === 'GET')
+    return ok(route, { items: db.todos, next_cursor: null });
+  if (path === '/todos' && req.method() === 'POST') {
+    const t = {
+      id: uuid(),
+      title: body.title,
+      completed: false,
+      revision: 1,
+      created_at: now(),
+      updated_at: now(),
+    };
+    db.todos.push(t);
+    return ok(route, t);
+  }
+  const tm = path.match(/^\/todos\/([0-9a-f-]{36})$/);
+  if (tm) {
+    const t = db.todos.find((x) => x.id === tm[1]);
+    if (!t) return err(route, 'not_found', 404);
+    if (req.method() === 'DELETE') {
+      db.todos = db.todos.filter((x) => x !== t);
+      return ok(route, { id: t.id });
+    }
+    if (req.method() === 'PATCH') {
+      if (body.expected_revision !== t.revision) return err(route, 'conflict', 409);
+      Object.assign(
+        t,
+        'completed' in body ? { completed: body.completed } : {},
+        'title' in body ? { title: body.title } : {},
+        { revision: t.revision + 1, updated_at: now() },
+      );
+    }
+    return ok(route, t);
   }
   if (path === '/letters' && req.method() === 'GET')
     return ok(route, { items: [...db.letters].reverse(), next_cursor: null });
@@ -254,9 +289,12 @@ async function api(route) {
     const meta = { format_version: 1, exported_at: now(), section };
     if (section === 'settings') return ok(route, { ...meta, settings: db.settings });
     if (section === 'notes') return ok(route, { ...meta, items: db.notes });
-    const items = { entries: db.entries, letters: db.letters, memories: db.memories, todos: [] }[
-      section
-    ];
+    const items = {
+      entries: db.entries,
+      letters: db.letters,
+      memories: db.memories,
+      todos: db.todos,
+    }[section];
     return ok(route, { ...meta, items, next_cursor: null });
   }
   return err(route, 'not_found', 404);
@@ -458,7 +496,7 @@ try {
   await page.locator('.onb-ready.is-shown').waitFor({ timeout: 6000 });
   await shot(page, '02b-privacy');
   await page.getByRole('button', { name: 'I’m ready' }).click();
-  await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Who are you becoming…' }).waitFor();
   await sleep(700);
   check(
     db.settings.welcome_seen === true &&
@@ -687,8 +725,9 @@ try {
   await page.locator('.tab[data-go="letters"]').click();
   await page.getByRole('heading', { name: 'Letters', exact: true }).waitFor();
   check(
-    await page.locator('.lp-card').getByText('A calm walk by the harbour').isVisible(),
-    'the newest letter is a small card at the top of Letters',
+    (await page.locator('.lp-card .lp-read').count()) === 1 &&
+      !(await page.locator('.lp-card').getByText('A calm walk by the harbour').count()),
+    'the newest letter is a small pill with Read, without its title',
   );
   check(
     (await page.locator('.lp-head').boundingBox()).height < 200 &&
@@ -705,8 +744,19 @@ try {
     'the letter is also in All letters',
   );
   check(
-    await page.getByText('1 letter so far').isVisible(),
-    'Letters says how many letters so far',
+    (await page.locator('#lp-time').inputValue()) === '08:00' &&
+      (await page.getByText('Receive your morning letters at').isVisible()),
+    'Letters says when morning letters arrive',
+  );
+  await page.locator('#lp-time').selectOption('08:30');
+  for (let t = 0; t < 30 && db.settings.delivery_time !== '08:30'; t++) await sleep(100);
+  check(db.settings.delivery_time === '08:30', 'the arrival time can be changed right there');
+  await page.locator('#lp-time').selectOption('08:00');
+  for (let t = 0; t < 30 && db.settings.delivery_time !== '08:00'; t++) await sleep(100);
+  check(
+    /^[A-Z][a-z]+ \d{1,2}$/.test(await page.locator('.lc-date b').first().innerText()) &&
+      !(await page.locator('#arch-results .lc-line').count()),
+    'each letter shows its date in words and just its title',
   );
 
   console.log('search all letters');
@@ -725,21 +775,40 @@ try {
   await page.fill('#arch-q', 'nothing like this');
   await page.getByText('Nothing matches').waitFor();
   await page.fill('#arch-q', '');
-  await page.locator('[data-act="arch-gold"]').click();
-  await sleep(300);
   check(
-    await page.locator('#arch-results').getByText('A calm walk by the harbour').isVisible(),
-    'the gold seal filter shows the letter whose small step was done',
+    (await page.locator('#arch-month').count()) === 1 &&
+      !(await page.locator('[data-act="arch-gold"], #arch-theme').count()),
+    'only the month filter is left',
   );
-  await page.locator('[data-act="arch-gold"]').click();
   await shot(page, '08-letters');
 
   console.log('identity, patterns');
   await page.locator('.tab[data-go="identity"]').click();
-  await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Who are you becoming…' }).waitFor();
   check(
     await page.getByText('more nights to see your first direction').first().isVisible(),
     'Identity has its own tab and says when a direction will appear',
+  );
+  check(
+    (await page.locator('.id-step .id-step-t').innerText()).includes('Walk ten minutes') &&
+      (await page.locator('.id-step.is-done').count()) === 1,
+    'Identity shows today’s step from the morning’s letter, done because it was done in the letter',
+  );
+  await page.fill('#todo-new', 'Fictional: call grandma');
+  await page.locator('#todo-add button[type="submit"]').click();
+  await page.locator('.todo-i').getByText('Fictional: call grandma').waitFor();
+  check(
+    db.todos.length === 1 && db.todos[0].title === 'Fictional: call grandma',
+    'a to-do is added to the account',
+  );
+  await page.locator('.todo-i .todo-check').first().click();
+  for (let t = 0; t < 30 && !db.todos[0].completed; t++) await sleep(100);
+  check(db.todos[0].completed === true, 'ticking a to-do is saved');
+  await page.locator('.todo-i .todo-x').first().click();
+  for (let t = 0; t < 30 && db.todos.length; t++) await sleep(100);
+  check(
+    db.todos.length === 0 && !(await page.locator('.todo-i').count()),
+    'a to-do can be deleted',
   );
   await page.locator('.tab[data-go="growth"]').click();
   await page.getByRole('heading', { name: 'Growth', exact: true }).waitFor();
@@ -781,7 +850,7 @@ try {
   );
   await shot(page, '09-growth');
   await page.locator('.brand').click();
-  await page.getByRole('heading', { name: 'Identity', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Who are you becoming…' }).waitFor();
   check(true, 'the Beyond mark returns to Identity, the home page');
   await page.locator('.lang-btn').click();
   await page.locator('.tab[data-go="tonight"]').getByText('日记').waitFor();
@@ -1033,9 +1102,48 @@ try {
     'the page has the timeline and a box for each journal',
   );
   check(
-    (await page.locator('#dir-try').count()) === 1,
-    'Try it shows suggestions from its letters',
+    (await page.locator('#dir-steps').count()) === 1 &&
+      (await page.locator('#dir-journals').innerText()) === 'Your letters about this',
+    'the page has its letters and its actionable steps',
   );
+  await page.fill('#dir-step-new', 'Fictional: ask about volunteering');
+  await page.locator('#dir-step-add button[type="submit"]').click();
+  await page
+    .locator('.g-card:has(#dir-steps)')
+    .getByText('Fictional: ask about volunteering')
+    .waitFor();
+  check(
+    db.todos.some((t) => t.title === '[community-builder] Fictional: ask about volunteering'),
+    'a step added here is a to-do tagged with this direction',
+  );
+  await page.locator('.dir-custom').click();
+  await page.locator('#dir-edit').waitFor();
+  check(await page.locator('#dir-edit-save').isDisabled(), 'Save waits for a change');
+  await page.fill('#dir-edit-name', 'Fictional: The Connector');
+  check(!(await page.locator('#dir-edit-save').isDisabled()), 'a real change lights Save up');
+  await page.fill('#dir-edit-name', 'Community Builder');
+  check(await page.locator('#dir-edit-save').isDisabled(), 'changing it back turns Save off again');
+  await page.locator('[data-dir-edit-cancel]').click();
+  check(
+    (await page.locator('.dir-name').innerText()) === 'Community Builder',
+    'Cancel backs out without saving',
+  );
+  await page.locator('.dir-custom').click();
+  await page.fill('#dir-edit-name', 'Fictional: The Connector');
+  await page.fill('#dir-edit-line', 'Fictional: I bring people together.');
+  await page.locator('#dir-edit-save').click();
+  await page.getByRole('heading', { name: 'Fictional: The Connector' }).waitFor();
+  for (let t = 0; t < 30 && !db.settings.direction_labels['community-builder']; t++)
+    await sleep(100);
+  check(
+    db.settings.direction_labels['community-builder']?.name === 'Fictional: The Connector',
+    'a confirmed direction can be renamed and the name is saved to the account',
+  );
+  await page.locator('.dir-custom').click();
+  await page.locator('[data-dir-edit-reset]').click();
+  await page.getByRole('heading', { name: 'Community Builder' }).waitFor();
+  await page.locator('.g-card:has(#dir-steps) .todo-x').first().click();
+  for (let t = 0; t < 30 && db.todos.length; t++) await sleep(100);
   await page.locator('.dir-j').first().click();
   await page.locator('.letter, .env-stage').first().waitFor();
   await page.locator('[data-letter-back-dir="community-builder"]').click();
