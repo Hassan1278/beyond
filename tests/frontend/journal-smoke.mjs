@@ -460,10 +460,10 @@ try {
   await page.locator('.tab[data-go="tonight"]').click();
   await page.locator('#entry').waitFor();
   check(
-    (await page.locator('.tn-head .tn-date').isVisible()) &&
-      (await page.locator('.tn-head #prompt').isVisible()) &&
-      (await page.locator('#entry').getAttribute('placeholder')) === 'Start anywhere',
-    'Journal shows the date and one question above a blank page',
+    (await page.locator('.bk-page.is-write .bk-rule .bk-date').isVisible()) &&
+      !(await page.locator('#prompt, .tn-prompt').count()) &&
+      (await page.locator('#entry').getAttribute('placeholder')) === "What's on your mind tonight?",
+    'Journal is a blank notebook page: the date top left, tonight’s question inside the page',
   );
   check(
     !(await page.locator('.tn .lantern-wrap, .tn .samples, .tn .glance, .tn .arrived').count()),
@@ -529,7 +529,7 @@ try {
   await page.locator('#entry').waitFor();
   check(true, 'the arrow keys turn the pages');
   await page.evaluate(() => {
-    const el = document.querySelector('.bk-page.is-write .tn-head');
+    const el = document.querySelector('.bk-page.is-write .bk-rule');
     const touch = (x) => [new Touch({ identifier: 1, target: el, clientX: x, clientY: 300 })];
     el.dispatchEvent(
       new TouchEvent('touchstart', {
@@ -647,9 +647,9 @@ try {
     'the newest letter is a small card at the top of Letters',
   );
   check(
-    (await page.locator('.lp-head').boundingBox()).height < 120 &&
+    (await page.locator('.lp-head').boundingBox()).height < 200 &&
       (await page.locator('#arch-q').boundingBox()).y < 844,
-    'the header is small and search is on screen without scrolling',
+    'the header and last night’s letter are compact, and search is on screen without scrolling',
   );
   check(
     (await page.locator('#arch-results .lc[data-open]').count()) === 1 &&
@@ -706,13 +706,16 @@ try {
     'Patterns is now Growth',
   );
   check(
-    (await page.locator('.g-card').count()) === 7 &&
-      (await page.locator('.g-card .g-t').count()) === 7 &&
-      (await page.locator('.g-card .g-sub').count()) === 7,
-    'Growth is seven cards, each with a title and a one-line subtitle',
+    (await page.locator('.g-card').count()) === 5 &&
+      (await page.locator('.g-card .g-t').count()) === 5 &&
+      (await page.locator('.g-card .g-sub').count()) === 5 &&
+      (await page.locator('.g-card').first().getAttribute('aria-labelledby')) === 'g-compass' &&
+      !(await page.getByText('Threads that last').count()) &&
+      !(await page.getByText('Try it before you decide').count()),
+    'Growth is five cards, the compass first, each saying plainly what it shows',
   );
   check(
-    (await page.locator('.g-empty').count()) >= 4,
+    (await page.locator('.g-empty').count()) >= 3,
     'a month with few nights shows gentle empty states, not confident visuals',
   );
   await page.goto(`${ORIGIN}/app#patterns-year`);
@@ -905,11 +908,13 @@ try {
   check(
     (await page.locator('.bk-spread .bk-page.left').count()) === 1 &&
       (await page.locator('.bk-spread .bk-page.right').count()) === 1 &&
-      (await page.locator('#bk-cal button.bk-cd.has').count()) >= 1 &&
-      !(await page.locator('.bk-strip').count()),
-    'a wide screen shows a two-page spread with the calendar beside it',
+      !(await page.locator('.bk-strip').count()) &&
+      (await page.locator('[data-bk-cal]').boundingBox()).width < 200 &&
+      (await page.locator('[data-bk-cal]').boundingBox()).x > 900,
+    'a wide screen shows a two-page spread with a small calendar top right',
   );
-  await page.locator('.bk-back-today').click();
+  await page.locator('[data-bk-cal]').click();
+  await page.locator('.bk-sheet .bk-back-today').click();
   await page.locator('.bk-spread .bk-page.right.is-write').waitFor();
   check(
     (await page.locator('.bk-spread .bk-page.left.is-day').count()) === 1,
@@ -917,7 +922,8 @@ try {
   );
   await sleep(400);
   await shot(page, '11b-book-desktop');
-  const target = page.locator('#bk-cal button.bk-cd.has:not(.is-on)').first();
+  await page.locator('[data-bk-cal]').click();
+  const target = page.locator('.bk-sheet button.bk-cd.has:not(.is-on)').first();
   const tDay = await target.getAttribute('data-bk-day');
   await target.click();
   await page.locator(`.bk-spread .bk-page[data-page="${tDay}"]`).waitFor();
@@ -931,7 +937,6 @@ try {
   check(
     (await page.locator('.g-compass .g-pt b').count()) >= 3 &&
       (await page.locator('.g-dot').count()) >= 3 &&
-      (await page.locator('.g-thread').count()) >= 2 &&
       (await page.locator('.g-rank-row').count()) >= 3,
     'Demo mode fills every Growth card from Kit’s letters',
   );

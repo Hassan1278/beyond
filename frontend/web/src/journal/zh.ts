@@ -789,6 +789,25 @@ Object.assign(PHRASES, {
   Close: '关闭',
   'Draft saved': '草稿已保存',
   'Open in your journal': '在日记里打开',
+  'Last night’s letter': '昨晚的来信',
+  'What you love, are good at and care about': '你喜欢的、擅长的、在乎的',
+  'Read from this month’s nights: what you enjoy, what you do well, what matters to you, and what’s within reach.':
+    '来自这个月的夜晚：你喜欢做的、做得好的、在乎的，以及触手可及的机会。',
+  'Read from this year’s nights: what you enjoy, what you do well, what matters to you, and what’s within reach.':
+    '来自今年的夜晚：你喜欢做的、做得好的、在乎的，以及触手可及的机会。',
+  'What gives you energy': '什么让你有能量',
+  'Each dot is something you did. Higher means it gave you more energy; further right means you lost track of time.':
+    '每个点是你做过的一件事。越高表示越让你有能量；越靠右表示你越投入、忘了时间。',
+  'Themes you wrote about more, less, or for the first time.':
+    '写得更多、更少，或第一次出现的主题。',
+  'How your year has changed': '你的这一年有什么变化',
+  'What you wrote about most': '你写得最多的事',
+  'Your top themes this month, by number of nights.': '这个月写得最多的主题，按夜晚数排列。',
+  'Your top themes this year, by number of nights.': '今年写得最多的主题，按夜晚数排列。',
+  'The nights you wrote': '你写过的夜晚',
+  'One star per night. Brighter means a lighter night.': '一颗星是一个夜晚。越亮表示那晚越轻松。',
+  'One line from each month': '每个月的一句话',
+  'A frame for every month, with something you wrote then.': '每个月一格，配上你那时写下的一句话。',
   Read: '阅读',
   Filters: '筛选',
   'demo letter': '演示信',
@@ -801,6 +820,17 @@ const nights = (k: string): string => `${k} 个晚上`;
 
 /** Wording with a date, count or name in it. Content (headlines, quotes) passes through as is. */
 export const ZH_PATTERNS: [RegExp, (...m: string[]) => string][] = [
+  [new RegExp(`^How this month differs from ${MONTHS}$`), (m) => `这个月和${mo(m)}有什么不同`],
+  [/^Read the letter: (.+)$/s, (t) => `读信：${t}`],
+  [
+    new RegExp(`^${DAY}(, sample|, demo letter)?: (?!write$)(.+)$`, 's'),
+    (w, d, m, x, t) =>
+      `${day(w, d, m)}${x ? (x.includes('sample') ? '，示例' : '，演示信') : ''}：${t}`,
+  ],
+  [
+    /^Last night’s letter, (sample|demo letter)$/,
+    (x) => `昨晚的来信，${x === 'sample' ? '示例' : '演示信'}`,
+  ],
   [/^(\d+) letters? so far$/, (k) => `目前共有 ${k} 封来信`],
   [new RegExp(`^${DAY}, demo letter$`), (w, d, m) => `${day(w, d, m)}，演示信`],
   [/^(\d{1,2}):(\d{2})(am|pm)$/, (h, m, x) => `${x === 'am' ? '上午' : '下午'} ${h}:${m}`],

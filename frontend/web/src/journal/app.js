@@ -608,14 +608,16 @@ function vTonight() {
   BK.two = bookTwo();
   if (BK.cursor === undefined && AUTH.user) loadEntries().then(() => { if (route === 'tonight') paintBook(null, { keepWrite: true }); });
   after.push(() => { wireBook(); if (BK.focus && BK.at === 'write' && window.matchMedia('(pointer: fine)').matches) $('#entry')?.focus({ preventScroll: true }); BK.focus = true; });
+  const calBtn = `<button class="bk-cal-btn" data-bk-cal aria-label="Open the calendar" aria-haspopup="dialog">${I.cal}<span class="bk-cal-m" id="bk-cal-m">${calLabel()}</span></button>`;
   return `<h1 class="sr-only">Journal</h1>
     <section class="bk-wrap ${BK.two ? 'is-two' : 'is-one'}">
-      ${BK.two ? '' : `<div class="bk-top"><div class="bk-strip" id="bk-strip" role="group" aria-label="Days in your journal">${stripInner()}</div><button class="bk-cal-btn" data-bk-cal aria-label="Open the calendar">${I.cal}</button></div>`}
+      <div class="bk-top">${BK.two ? '' : `<div class="bk-strip" id="bk-strip" role="group" aria-label="Days in your journal">${stripInner()}</div>`}${calBtn}</div>
       <div class="book" id="book">${bookInner()}</div>
-      ${BK.two ? `<aside class="bk-side" aria-label="Calendar"><div class="bk-cal" id="bk-cal">${calInner()}</div><p class="fine bk-side-note">Highlighted days have writing. Tap one to turn to it.</p></aside>` : ''}
       ${skipReady() ? `<button class="skip-morning" data-act="skip">Skip to morning${I.right}</button>` : ''}
     </section>`;
 }
+/* The calendar button says which month the open page is in. */
+function calLabel() { const P = bookPages(); const p = P[pageAt(P)]; const d = parse(p.date); return `${MON[d.getMonth()]} ${d.getFullYear()}`; }
 function bookInner() {
   const P = bookPages(); const i = pageAt(P);
   const edge = (dir, on) => `<button class="bk-edge ${dir}" data-bk="${dir}" aria-label="${dir === 'prev' ? 'Turn to an earlier day' : 'Turn to a later day'}" ${on ? '' : 'disabled'}><span class="bk-arrow">${dir === 'prev' ? I.left : I.right}</span></button>`;
@@ -623,24 +625,23 @@ function bookInner() {
   return `${edge('prev', i > 0)}<div class="bk-spread">${pageHtml(P[i], 'single')}</div>${edge('next', i < P.length - 1)}`;
 }
 function pageHtml(p, side) {
-  if (!p) return `<div class="bk-page ${side} is-blank" data-page="start"><div class="bk-start"><span class="bk-end-mark" aria-hidden="true">${I.moon}${I.star}</span><p>Your journal starts here.</p><p class="fine">Every night you seal becomes a page you can turn back to.</p></div></div>`;
+  if (!p) return `<div class="bk-page ${side} is-blank" data-page="start"><div class="bk-start"><span class="bk-end-mark" aria-hidden="true">${I.moon}${I.star}</span><p>Your journal starts here.</p></div></div>`;
   return p.write ? writePage(side) : dayPage(p, side);
 }
+/* A notebook page: the date on the rule at the top left, then ruled space to write.
+   Tonight's question is the blank page's placeholder, so nothing sits above the writing. */
 function writePage(side) {
   return `<article class="bk-page ${side} is-write tn" data-page="write" aria-labelledby="tn-date">
-      <header class="tn-head">
-        <h2 class="bk-date tn-date" id="tn-date">${fmtDay(journalDate())}</h2>
-        <p class="tn-prompt" id="prompt"><span>${esc(PROMPTS[0])}</span></p>
-      </header>
+      <header class="bk-rule"><h2 class="bk-date tn-date" id="tn-date">${fmtDay(journalDate())}</h2></header>
       <label for="entry" class="sr-only">Tonight's entry</label>
       <div class="entry-wrap">
-        <textarea id="entry" class="paper-in" placeholder="Start anywhere">${esc(S.draft)}</textarea>
+        <textarea id="entry" class="paper-in" placeholder="${esc(PROMPTS[0])}">${esc(S.draft)}</textarea>
         <button class="mic" id="orb" data-act="orb" type="button" aria-label="Talk instead of typing"><span class="glyph" id="glyph">${I.mic}</span></button>
       </div>
       <p class="voice-hint" id="vhint" aria-live="polite"></p>
       <div id="crisis" style="width:100%"></div>
       ${failedNights()}
-      <div class="tn-bar"><span class="bk-saved" id="bk-saved" aria-live="polite"></span><button class="btn amber" data-act="seal" id="b-seal" ${S.draft.trim() ? '' : 'disabled'}>Seal tonight</button></div>
+      <div class="tn-bar"><span class="bk-saved" id="bk-saved" aria-live="polite"></span><button class="btn amber sm" data-act="seal" id="b-seal" ${S.draft.trim() ? '' : 'disabled'}>Seal tonight</button></div>
     </article>`;
 }
 function dayLetterLink(p) {
@@ -653,8 +654,8 @@ function dayLetterLink(p) {
 function dayPage(p, side) {
   const id = `bk-d-${p.date}`;
   return `<article class="bk-page ${side} is-day" data-page="${p.date}" aria-labelledby="${id}">
-      <header class="bk-day-head"><h2 class="bk-date" id="${id}">${fmtDay(p.date)}${p.sample ? ', sample' : ''}</h2><span class="bk-seal" role="img" aria-label="Sealed" title="Sealed">${I.crescent}</span></header>
-      <ol class="bk-entries">${p.parts.map((x) => `<li>${x.t ? `<time class="bk-time">${ampm(x.t)}</time>` : ''}<p>${esc(x.text)}</p></li>`).join('')}</ol>
+      <header class="bk-rule"><h2 class="bk-date" id="${id}">${fmtDay(p.date)}${p.sample ? ', sample' : ''}</h2><span class="bk-seal" role="img" aria-label="Sealed" title="Sealed">${I.crescent}</span></header>
+      <ol class="bk-entries">${p.parts.map((x) => `<li>${x.t ? `<time class="bk-time">${ampm(x.t)}</time> ` : ''}<p>${esc(x.text)}</p></li>`).join('')}</ol>
       <footer class="bk-foot">${dayLetterLink(p)}</footer>
     </article>`;
 }
@@ -690,6 +691,7 @@ function paintNav() {
   const s = $('#bk-strip'); if (s) { s.innerHTML = stripInner(); const b = s.querySelector('.is-on'); if (b) s.scrollLeft = b.offsetLeft - s.clientWidth / 2 + b.offsetWidth / 2; }
   const c = $('#bk-cal'); if (c) c.innerHTML = calInner();
   const sh = $('.bk-sheet .bk-cal'); if (sh) sh.innerHTML = calInner();
+  const m = $('#bk-cal-m'); if (m) m.textContent = calLabel();
 }
 /* Redraw the open pages. dir 'back' | 'fwd' turns the page; keepWrite leaves the
    writing page alone (so nothing being typed is touched). */
@@ -789,7 +791,7 @@ function wireEntry() {
   const ta = $('#entry'); if (!ta || ta.dataset.wired) return;
   ta.dataset.wired = '1';
   const words = countWords(S.draft); lastWords = words;
-  const grow = () => { if (BK.two) { ta.style.height = ''; return; } ta.style.height = 'auto'; ta.style.height = `${Math.max(ta.scrollHeight, window.innerHeight * 0.42)}px`; };
+  const grow = () => { if (BK.two) { ta.style.height = ''; return; } ta.style.height = 'auto'; ta.style.height = `${Math.max(ta.scrollHeight, window.innerHeight * 0.5)}px`; };
   grow();
   let lastLen = ta.value.length;
   ta.addEventListener('input', () => {
@@ -802,11 +804,12 @@ function wireEntry() {
   });
   if (hasCrisis(ta.value)) $('#crisis').innerHTML = supportInline();
   paintVoice();
+  // tonight's question turns over in the empty page, never above it
   clearInterval(promptTimer); let i = 0;
   promptTimer = setInterval(() => {
-    const p = $('#prompt'); if (!p || route !== 'tonight') return clearInterval(promptTimer);
-    if (ta.value.trim() || voice.state === 'rec') return;
-    i = (i + 1) % PROMPTS.length; p.innerHTML = `<span>${esc(PROMPTS[i])}</span>`;
+    if (!ta.isConnected || route !== 'tonight') return clearInterval(promptTimer);
+    if (ta.value || voice.state === 'rec') return;
+    i = (i + 1) % PROMPTS.length; ta.placeholder = PROMPTS[i];
   }, 5200);
 }
 window.addEventListener('resize', () => { if (route === 'tonight' && BK.two !== null && bookTwo() !== BK.two && !document.querySelector('.bk-sealing')) { BK.focus = false; render(); } });
@@ -815,15 +818,19 @@ document.addEventListener('keydown', (e) => {
   if (e.target.closest?.('textarea, input, select, [contenteditable]') || document.querySelector('.present, .bk-sealing, .overnight, .sheet-wrap')) return;
   e.preventDefault(); flipBook(e.key === 'ArrowLeft' ? 'prev' : 'next');
 });
-/* Phone: the full month in a sheet. */
+/* The month calendar: a small pop-over under the calendar button, top right. */
 function openCalSheet() {
   closeCalSheet();
+  const btn = $('[data-bk-cal]'); const r = btn?.getBoundingClientRect();
   const w = document.createElement('div'); w.className = 'bk-sheet';
-  w.innerHTML = `<button class="bk-sheet-bg" data-bk-sheet-close tabindex="-1" aria-label="Close the calendar"></button><div class="bk-sheet-card" role="dialog" aria-modal="true" aria-label="Calendar"><div class="bk-cal">${calInner()}</div><button class="link" data-bk-sheet-close>Close</button></div>`;
+  w.innerHTML = `<button class="bk-sheet-bg" data-bk-sheet-close tabindex="-1" aria-label="Close the calendar"></button><div class="bk-sheet-card" role="dialog" aria-modal="true" aria-label="Calendar"><div class="bk-cal">${calInner()}</div></div>`;
   $('#layer').appendChild(w);
+  const card = w.querySelector('.bk-sheet-card');
+  if (r) { const width = Math.min(280, window.innerWidth - 24); Object.assign(card.style, { width: `${width}px`, top: `${r.bottom + 8}px`, left: `${Math.max(12, Math.min(r.right - width, window.innerWidth - width - 12))}px` }); }
+  btn?.setAttribute('aria-expanded', 'true');
   setTimeout(() => w.querySelector('.bk-cd.is-on, .bk-cd.has, .bk-mo')?.focus({ preventScroll: true }), 50);
 }
-function closeCalSheet() { const w = $('.bk-sheet'); if (!w) return; w.remove(); $('[data-bk-cal]')?.focus({ preventScroll: true }); }
+function closeCalSheet() { const w = $('.bk-sheet'); if (!w) return; w.remove(); const b = $('[data-bk-cal]'); b?.setAttribute('aria-expanded', 'false'); b?.focus({ preventScroll: true }); }
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('.bk-sheet')) closeCalSheet(); });
 /* Unsealed words are kept as a draft on your account (never in this browser, never
    sent to the letter writer) a second after you stop typing, once the account
@@ -1444,13 +1451,15 @@ function letterLine(l) {
   return para || entryPlain((l.entries || [])[0]?.text || '');
 }
 function letterCard(l, extra = {}) {
-  const sealed = progress(l).complete; const th = realThemes(l).find((t) => THEMES[t]);
+  const sealed = progress(l).complete; const th = realThemes(l).find((t) => THEMES[t]); const d = parse(l.date);
   const tag = l.sample ? 'sample' : l.demo ? 'demo letter' : '';
-  return `<li><button class="lc" data-open="${l.id}">
-      <span class="lc-top"><time class="lc-date" datetime="${l.date}">${fmtDay(l.date)}${tag ? `, ${tag}` : ''}</time>${!l.readAt ? '<span class="lc-new">New</span>' : ''}</span>
-      <span class="lc-h">${extra.head || esc(l.content.title || l.content.headline)}</span>
-      <span class="lc-line">${extra.snip || esc(clip(letterLine(l), 120))}</span>
-      ${sealed || th ? `<span class="lc-tags">${sealed ? `<span class="lc-seal">${goldSeal(18)}<span>Gold seal</span></span>` : ''}${th ? `<span class="lc-tag">${esc(cap(THEMES[th]))}</span>` : ''}</span>` : ''}
+  return `<li><button class="lc" data-open="${l.id}" aria-label="${fmtDay(l.date)}${tag ? `, ${tag}` : ''}: ${esc(l.content.title || l.content.headline)}">
+      <time class="lc-day" datetime="${l.date}"><b>${d.getDate()}</b><small>${WD[d.getDay()]}</small></time>
+      <span class="lc-main">
+        <span class="lc-h">${!l.readAt ? '<span class="lc-new">New</span>' : ''}${extra.head || esc(l.content.title || l.content.headline)}</span>
+        <span class="lc-line">${extra.snip || esc(clip(letterLine(l), 120))}</span>
+        ${sealed || th || tag ? `<span class="lc-tags">${sealed ? `<span class="lc-seal">${goldSeal(16)}<span>Gold seal</span></span>` : ''}${th ? `<span class="lc-tag">${esc(cap(THEMES[th]))}</span>` : ''}${tag ? `<span class="lc-tag is-plain">${tag}</span>` : ''}</span>` : ''}
+      </span>
       <span class="lc-chev" aria-hidden="true">${I.right}</span>
     </button></li>`;
 }
@@ -1459,21 +1468,19 @@ function vLetters() {
   const ready = list.filter(delivered);
   const pending = S.letters.filter((l) => !delivered(l));
   const latest = ready[0];
+  const lastNight = latest && latest.date === addDays(journalDate(), -1);
   after.push(() => riseOnScroll('.month-group'));
   return `<header class="lp-head">
-      <h1 class="lp-title">Letters</h1>
-      <p class="lp-sub">${ready.length ? `${plural(ready.length, 'letter')} so far` : 'Your morning letters collect here.'}</p>
+      <div class="lp-titles"><h1 class="lp-title">Letters</h1><p class="lp-sub">${ready.length ? `${plural(ready.length, 'letter')} so far` : 'Your morning letters collect here.'}</p></div>
+      ${latest ? `<button class="lp-card ${!latest.readAt ? 'is-new' : ''}" data-open="${latest.id}" aria-label="Read the letter: ${esc(latest.content.title || latest.content.headline)}">
+        <span class="lp-k">${lastNight ? 'Last night’s letter' : `Latest letter, ${fmtDay(latest.date)}`}${latest.sample ? ', sample' : latest.demo ? ', demo letter' : ''}</span>
+        <span class="lp-t lc-h">${esc(latest.content.title || latest.content.headline)}</span>
+        <span class="btn sm lp-read">Read</span>
+      </button>` : ''}
     </header>
     ${sampleBanner()}
     ${pending.length ? `<p class="arrived">${I.mail}<span>Your letter for ${fmtDay(pending[0].date)} arrives at ${atTime(pending[0])}.</span> <button class="link" data-go="tonight">Open Journal</button></p>` : ''}
     ${!latest ? `<section class="empty"><span class="empty-mark" aria-hidden="true">${I.moon}${I.star}</span><p class="lead">No letters yet. Write tonight and the first one arrives tomorrow morning.</p><button class="btn amber" data-go="tonight">Write tonight</button></section>` : `
-    <section class="lp-latest" aria-label="Latest letter">
-      <button class="lp-card ${!latest.readAt ? 'is-new' : ''}" data-open="${latest.id}">
-        <span class="lp-k">${!latest.readAt ? 'New letter' : 'Latest letter'}, ${fmtDay(latest.date)}${latest.sample ? ', sample' : latest.demo ? ', demo letter' : ''}</span>
-        <span class="lp-t lc-h">${esc(latest.content.title || latest.content.headline)}</span>
-        <span class="btn sm lp-read">Read</span>
-      </button>
-    </section>
     <section class="lp-archive" id="archive" aria-label="All letters">${archive()}</section>`}`;
 }
 /* Below-the-fold groups rise in as they scroll into view; anything on screen is shown at once. */
@@ -1600,22 +1607,19 @@ function growthMonth(all) {
   const pk = prevMonthOf(pMonth); const prev = all.filter((l) => l.date.startsWith(pk));
   const earlier = all.filter((l) => l.date < `${pMonth}-01`);
   after.push(() => { skyState = { list: inMonth, from: `${pMonth}-01`, to: lastDayOf(pMonth), ticks: 'month', theme: () => null }; drawSky(); });
-  const window = lastMonths(pMonth, 6).map((ym) => ({ ym, list: all.filter((l) => l.date.startsWith(ym)) }));
+  // the compass and where you come alive first, then what changed and what filled the month
   return [
-    card('stars', 'Your month in stars', 'Each star is a night you wrote. Brighter means lighter.', starsInner(), 'g-span2 g-stars'),
-    card('themes', 'What took up your month', 'The themes you wrote about most.', few ? gEmpty('A few more nights and your themes will show here.') : themesInner(g)),
-    card('compass', 'Your compass', 'Where your journal is pointing.', few ? gEmpty('A few more nights and your compass will start to form.') : compassInner(g)),
-    card('alive', 'Where you come alive', 'Top right is where your energy and focus meet.', few ? gEmpty('A few more nights and your map will fill in.') : aliveInner(g)),
-    card('changed', `What changed since ${MON[+pk.slice(5) - 1]}`, 'How this month compares to last.', few ? gEmpty('A few more nights and changes will show here.') : changedInner(inMonth, prev, earlier, MON[+pk.slice(5) - 1])),
-    card('threads', 'Threads that last', 'What keeps coming back, and what faded.', threadsInner(window), 'g-span2'),
-    card('try', 'Try it before you decide', 'Small real-world experiments for the direction you’re exploring.', tryInner(experimentsFor(all, g))),
+    card('compass', 'What you love, are good at and care about', 'Read from this month’s nights: what you enjoy, what you do well, what matters to you, and what’s within reach.', few ? gEmpty('A few more nights and your compass will start to form.') : compassInner(g)),
+    card('alive', 'What gives you energy', 'Each dot is something you did. Higher means it gave you more energy; further right means you lost track of time.', few ? gEmpty('A few more nights and your map will fill in.') : aliveInner(g)),
+    card('changed', `How this month differs from ${MONTH[+pk.slice(5) - 1]}`, 'Themes you wrote about more, less, or for the first time.', few ? gEmpty('A few more nights and changes will show here.') : changedInner(inMonth, prev, earlier, MON[+pk.slice(5) - 1])),
+    card('themes', 'What you wrote about most', 'Your top themes this month, by number of nights.', few ? gEmpty('A few more nights and your themes will show here.') : themesInner(g)),
+    card('stars', 'The nights you wrote', 'One star per night. Brighter means a lighter night.', starsInner(), 'g-span2 g-stars'),
   ].join('');
 }
-function lastMonths(ym, n) { const out = [ym]; while (out.length < n) out.unshift(prevMonthOf(out[0])); return out; }
 
 /* --- Year --- */
 function growthYear(list, all) {
-  if (!list.length) return card('stars', 'Your year in stars', 'Each star is a night you wrote. Brighter means lighter.', gEmpty('Your year fills in as letters arrive. Each night you write becomes a star.'), 'g-span3');
+  if (!list.length) return card('stars', 'The nights you wrote', 'One star per night. Brighter means a lighter night.', gEmpty('Your year fills in as letters arrive. Each night you write becomes a star.'), 'g-span2');
   const g = growthOf(list); const few = list.length < GROWTH_MIN;
   const from = `${list[0].date.slice(0, 7)}-01`; const to = gYear === journalDate().slice(0, 4) ? journalDate() : `${gYear}-12-31`;
   after.push(() => { skyState = { list, from, to, ticks: 'year', theme: () => null }; drawSky(); });
@@ -1623,14 +1627,12 @@ function growthYear(list, all) {
   const first = list.filter((l) => l.date.startsWith(months[0])); const last = list.filter((l) => l.date.startsWith(months[months.length - 1]));
   const firstNeedle = growthOf(first).needle;
   return [
-    card('stars', 'Your year in stars', 'Each star is a night you wrote. Brighter means lighter.', starsInner(), 'g-span2 g-stars'),
-    card('themes', 'What took up your year', 'The themes you wrote about most.', few ? gEmpty('A few more nights and your themes will show here.') : themesInner(g)),
-    card('compass', 'Your compass', 'Where your journal is pointing.', few ? gEmpty('A few more nights and your compass will start to form.') : compassInner(g, firstNeedle && firstNeedle !== g.needle ? { label: firstNeedle, month: MON[+months[0].slice(5) - 1] } : null)),
-    card('alive', 'Where you come alive', 'Top right is where your energy and focus meet.', few ? gEmpty('A few more nights and your map will fill in.') : aliveInner(g)),
-    card('changed', 'What changed since your first month', `${MONTH[+months[0].slice(5) - 1]} compared with ${MONTH[+months[months.length - 1].slice(5) - 1]}.`, few || months.length < 2 ? gEmpty('A few more months and changes will show here.') : changedInner(last, first, [], MON[+months[0].slice(5) - 1])),
-    card('threads', 'Threads that last', 'What keeps coming back, and what faded.', threadsInner(months.map((ym) => ({ ym, list: list.filter((l) => l.date.startsWith(ym)) }))), 'g-span2'),
-    card('try', 'Try it before you decide', 'Small real-world experiments for the direction you’re exploring.', tryInner(experimentsFor(all, g))),
-    card('film', 'Your Life Film', 'One frame per month, with a line you wrote that month.', filmInner(list, months), 'g-span3'),
+    card('compass', 'What you love, are good at and care about', 'Read from this year’s nights: what you enjoy, what you do well, what matters to you, and what’s within reach.', few ? gEmpty('A few more nights and your compass will start to form.') : compassInner(g, firstNeedle && firstNeedle !== g.needle ? { label: firstNeedle, month: MON[+months[0].slice(5) - 1] } : null)),
+    card('alive', 'What gives you energy', 'Each dot is something you did. Higher means it gave you more energy; further right means you lost track of time.', few ? gEmpty('A few more nights and your map will fill in.') : aliveInner(g)),
+    card('changed', 'How your year has changed', `${MONTH[+months[0].slice(5) - 1]} compared with ${MONTH[+months[months.length - 1].slice(5) - 1]}.`, few || months.length < 2 ? gEmpty('A few more months and changes will show here.') : changedInner(last, first, [], MON[+months[0].slice(5) - 1])),
+    card('themes', 'What you wrote about most', 'Your top themes this year, by number of nights.', few ? gEmpty('A few more nights and your themes will show here.') : themesInner(g)),
+    card('stars', 'The nights you wrote', 'One star per night. Brighter means a lighter night.', starsInner(), 'g-span2 g-stars'),
+    card('film', 'One line from each month', 'A frame for every month, with something you wrote then.', filmInner(list, months), 'g-span2'),
   ].join('');
 }
 
@@ -1706,37 +1708,6 @@ function changedInner(now, before, earlier, prevLabel) {
   const icon = { up: '↑', down: '↓', new: '✦' };
   const say = (r) => (r.k === 'new' ? `New: ${THEMES[r.t]} showed up for the first time` : `${r.k === 'up' ? 'More' : 'Fewer'} nights about ${THEMES[r.t]}`);
   return `<ul class="g-changes">${rows.slice(0, 4).map((r) => `<li class="is-${r.k}"><span class="g-ic" aria-hidden="true">${icon[r.k]}</span><span>${esc(say(r))}</span></li>`).join('')}</ul>`;
-}
-function threadsInner(window) {
-  const total = new Map();
-  for (const { list } of window) for (const l of list) for (const t of new Set((l.content.interests || []).length ? (l.content.interests || []).map(gKey) : realThemes(l).map((x) => `#${x}`))) total.set(t, (total.get(t) || 0) + 1);
-  const threads = [...total.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t]) => t);
-  if (!threads.length) return gEmpty('A few more nights and the threads will show here.');
-  const W = 640, row = 34, top = 10, left = 132, H = top + threads.length * row + 28; const step = (W - left - 20) / Math.max(1, window.length - 1);
-  const label = (t) => (t.startsWith('#') ? cap(THEMES[t.slice(1)]) : window.flatMap((w) => w.list).flatMap((l) => l.content.interests || []).find((x) => gKey(x) === t) || t);
-  const cols = window.map((w, i) => ({ ...w, x: left + i * step }));
-  return `<div class="g-threads"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Threads across ${window.length} months">
-      ${cols.map((c) => `<text class="g-ax" x="${c.x}" y="${H - 6}" text-anchor="middle">${MON[+c.ym.slice(5) - 1]}</text>`).join('')}
-      ${threads.map((t, j) => {
-        const y = top + j * row + 12; const pts = cols.map((c) => ({ x: c.x, n: c.list.filter((l) => ((l.content.interests || []).length ? (l.content.interests || []).map(gKey) : realThemes(l).map((x) => `#${x}`)).includes(t)).length }));
-        const on = pts.filter((p) => p.n); const lastOn = pts.map((p) => p.n > 0).lastIndexOf(true); const faded = lastOn < pts.length - 2;
-        return `<g class="g-thread ${faded ? 'is-faded' : ''}"><text class="g-tl" x="${left - 14}" y="${y + 4}" text-anchor="end">${esc(clip(label(t), 17))}</text>
-          ${on.length > 1 ? `<line x1="${on[0].x}" x2="${on[on.length - 1].x}" y1="${y}" y2="${y}"/>` : ''}
-          ${on.map((p) => `<circle cx="${p.x}" cy="${y}" r="${3 + Math.min(5, p.n * 1.4)}"/>`).join('')}
-          ${faded ? `<text class="g-faded" x="${on[on.length - 1].x + 12}" y="${y + 4}">faded</text>` : ''}</g>`;
-      }).join('')}
-    </svg></div>`;
-}
-/* Experiments are the letters' own small steps that explore or connect, in the themes the
-   compass is pointing toward; "Not for me" is the same step feedback the letter uses. */
-function experimentsFor(all, g) {
-  const themes = new Set(g.themes.slice(0, 3).map(([t]) => t));
-  const seen = new Set();
-  return [...all].sort((a, b) => b.date.localeCompare(a.date)).filter((l) => {
-    const st = l.content.small_step; if (!st || !['exploration', 'connection'].includes(st.category)) return false;
-    if (l.actions?.['step.0'] === 'skipped' || !realThemes(l).some((t) => themes.has(t))) return false;
-    if (seen.has(gKey(st.text))) return false; seen.add(gKey(st.text)); return true;
-  }).slice(0, 3);
 }
 function tryInner(list) {
   if (!list.length) return gEmpty('Small experiments will appear here as your letters suggest them.');
